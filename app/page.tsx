@@ -4,6 +4,7 @@ import { Search, TrendingUp, AlertCircle, Users, ChevronDown } from 'lucide-reac
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import CompetitorScanningLoader from '@/components/competitor-scanning-loader'
 
 export const dynamic = 'force-dynamic'
 
@@ -160,15 +161,6 @@ export default function Home() {
     }
     return []
   }
-
-  const getMyReport = () => {
-    if (selectedMedspa && competitorAnalysis.length > 0) {
-      // Show scanning loader when generating the full report
-      setTempCompetitors(competitorAnalysis)
-      setShowScanningLoader(true)
-    }
-  }
-
   const handleScanningComplete = (competitors: any[]) => {
     setShowScanningLoader(false)
     setTempCompetitors([])
