@@ -16,7 +16,6 @@ export default function Home() {
   const [selectedMedspa, setSelectedMedspa] = useState<any>(null)
   const [competitorAnalysis, setCompetitorAnalysis] = useState<any[]>([])
   const [seoAnalysis, setSeoAnalysis] = useState<any>(null)
-  const [isLoadingSEO, setIsLoadingSEO] = useState(false)
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -165,68 +164,13 @@ export default function Home() {
 
   const getMyReport = async () => {
     if (selectedMedspa) {
-      setIsLoadingSEO(true)
-      const startTime = Date.now()
-      console.log('🚀 Starting SEO report generation at:', new Date().toISOString())
-      console.log('📍 Selected MedSpa:', {
-        name: selectedMedspa.name,
-        place_id: selectedMedspa.place_id,
-        website: selectedMedspa.website,
-        hasGeometry: !!selectedMedspa.geometry?.location
-      })
+      console.log('🚀 Starting SEO report generation for:', selectedMedspa.name)
       
-      try {
-        console.log('🌐 Calling /api/seo-analysis...')
-        
-        const response = await fetch('/api/seo-analysis', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            selectedMedspa: selectedMedspa
-          }),
-        })
-
-        const responseTime = Date.now() - startTime
-        console.log(`📊 API response received in ${responseTime}ms, status: ${response.status}`)
-
-        if (response.ok) {
-          console.log('✅ Parsing response data...')
-          const data = await response.json()
-          console.log('📊 SEO Analysis Data:', {
-            totalCompetitors: data.analysis?.totalCompetitors,
-            competitorsWithWebsites: data.analysis?.competitorsWithWebsites,
-            yourSEOPosition: data.analysis?.yourSEOPosition,
-            hasSelectedMedSpaData: !!data.selectedMedspa,
-            hasPageSpeedData: !!data.selectedMedspa?.pagespeed_data,
-            pageSpeedError: data.selectedMedspa?.pagespeed_data?.error
-          })
-          
-          setSeoAnalysis(data)
-          const totalTime = Date.now() - startTime
-          console.log(`🎉 SEO Analysis completed successfully in ${totalTime}ms`)
-
-          // Store SEO analysis results in localStorage
-          localStorage.setItem('seoAnalysisResults', JSON.stringify(data))
-
-          // Navigate to the results page
-          router.push('/results')
-        } else {
-          const errorData = await response.text()
-          console.error('❌ SEO analysis failed with status:', response.status)
-          console.error('❌ Error response:', errorData)
-          // You might want to show an error message to the user
-        }
-      } catch (error) {
-        const totalTime = Date.now() - startTime
-        console.error(`💥 Error generating SEO report after ${totalTime}ms:`, error)
-        // You might want to show an error message to the user
-      } finally {
-        setIsLoadingSEO(false)
-        const totalTime = Date.now() - startTime
-        console.log(`⏹️ SEO analysis process ended after ${totalTime}ms`)
-      }
+      // Store the selected med spa data for the analyzing page
+      localStorage.setItem('analyzingMedspa', JSON.stringify(selectedMedspa))
+      
+      // Navigate to the analyzing page
+      router.push('/analyzing')
     } else {
       console.log('❌ No selected med spa available for analysis')
     }
@@ -608,28 +552,17 @@ export default function Home() {
                     </div>
                     <motion.button
                       onClick={getMyReport}
-                      disabled={isLoadingSEO}
-                      className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium flex items-center space-x-2 disabled:opacity-50"
-                      whileHover={{ scale: isLoadingSEO ? 1 : 1.05, backgroundColor: isLoadingSEO ? "#000000" : "#374151" }}
-                      whileTap={{ scale: isLoadingSEO ? 1 : 0.95 }}
+                      className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium flex items-center space-x-2"
+                      whileHover={{ scale: 1.05, backgroundColor: "#374151" }}
+                      whileTap={{ scale: 0.95 }}
                       transition={{ type: "spring", stiffness: 400, damping: 10 }}
                     >
-                      <span>{isLoadingSEO ? 'Analyzing SEO...' : 'Get my report'}</span>
+                      <span>Get my report</span>
                       <motion.div
-                        animate={{ 
-                          x: isLoadingSEO ? 0 : [0, 4, 0],
-                          rotate: isLoadingSEO ? 360 : 0
-                        }}
-                        transition={{ 
-                          x: { duration: 1.5, repeat: isLoadingSEO ? 0 : Infinity },
-                          rotate: { duration: 1, repeat: isLoadingSEO ? Infinity : 0, ease: "linear" }
-                        }}
+                        animate={{ x: [0, 4, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
                       >
-                        {isLoadingSEO ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
-                        )}
+                        <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
                       </motion.div>
                     </motion.button>
                   </motion.div>
@@ -876,7 +809,7 @@ export default function Home() {
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, delay: 0.5 }}
                           >
-                            #{seoAnalysis.analysis.yourSEOPosition}
+                            #{seoAnalysis.analysis?.yourSEOPosition}
                           </motion.div>
                           <div className="text-sm text-purple-700">Your SEO position</div>
                         </motion.div>
@@ -892,7 +825,7 @@ export default function Home() {
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, delay: 0.6 }}
                           >
-                            {seoAnalysis.selectedMedspa.pagespeed_data?.performance_score || 'N/A'}
+                            {seoAnalysis.selectedMedspa?.pagespeed_data?.performance_score || 'N/A'}
                           </motion.div>
                           <div className="text-sm text-blue-700">Performance score</div>
                         </motion.div>
@@ -908,7 +841,7 @@ export default function Home() {
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, delay: 0.7 }}
                           >
-                            {seoAnalysis.selectedMedspa.pagespeed_data?.seo_score || 'N/A'}
+                            {seoAnalysis.selectedMedspa?.pagespeed_data?.seo_score || 'N/A'}
                           </motion.div>
                           <div className="text-sm text-green-700">SEO score</div>
                         </motion.div>
@@ -924,7 +857,7 @@ export default function Home() {
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, delay: 0.8 }}
                           >
-                            {seoAnalysis.analysis.competitorsWithWebsites}
+                            {seoAnalysis.analysis?.competitorsWithWebsites}
                           </motion.div>
                           <div className="text-sm text-orange-700">Competitors analyzed</div>
                         </motion.div>
@@ -1012,7 +945,7 @@ export default function Home() {
                       )}
 
                       {/* SEO Recommendations */}
-                      {seoAnalysis.analysis.recommendations.length > 0 && (
+                      {seoAnalysis.analysis?.recommendations.length > 0 && (
                         <motion.div 
                           className="p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl"
                           initial={{ opacity: 0, y: 20 }}
@@ -1021,7 +954,7 @@ export default function Home() {
                         >
                           <h4 className="font-semibold text-purple-900 mb-3">💡 SEO Improvement Recommendations</h4>
                           <ul className="space-y-2 text-sm text-purple-800">
-                            {seoAnalysis.analysis.recommendations.map((rec: string, index: number) => (
+                            {seoAnalysis.analysis?.recommendations.map((rec: string, index: number) => (
                               <motion.li 
                                 key={index}
                                 initial={{ opacity: 0, x: -20 }}
@@ -1036,7 +969,7 @@ export default function Home() {
                       )}
 
                       {/* Technical Details */}
-                      {seoAnalysis.selectedMedspa.pagespeed_data && !seoAnalysis.selectedMedspa.pagespeed_data.error && (
+                      {seoAnalysis.selectedMedspa?.pagespeed_data && !seoAnalysis.selectedMedspa.pagespeed_data.error && (
                         <motion.div 
                           className="mt-6 p-6 bg-gray-50 rounded-xl"
                           initial={{ opacity: 0, y: 20 }}
