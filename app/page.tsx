@@ -3,6 +3,7 @@
 import { Search, TrendingUp, AlertCircle, Users, ChevronDown } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import CompetitorScanningLoader from '../components/competitor-scanning-loader'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +16,8 @@ export default function Home() {
   const [selectedMedspa, setSelectedMedspa] = useState<any>(null)
   const [competitorAnalysis, setCompetitorAnalysis] = useState<any[]>([])
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [showScanningLoader, setShowScanningLoader] = useState(false)
+  const [tempCompetitors, setTempCompetitors] = useState<any[]>([])
   const searchRef = useRef<HTMLDivElement>(null)
 
   // Get user's location on component mount
@@ -124,8 +127,9 @@ export default function Home() {
     setSearchQuery(suggestion.name)
     setShowSuggestions(false)
     
-    // Fetch competitor analysis
-    await fetchCompetitorAnalysis(suggestion)
+    // Fetch competitor analysis immediately and show results
+    const competitors = await fetchCompetitorAnalysis(suggestion)
+    setCompetitorAnalysis(competitors)
   }
 
   const fetchCompetitorAnalysis = async (medspa: any) => {
@@ -144,25 +148,35 @@ export default function Home() {
 
       if (response.ok) {
         const data = await response.json()
-        setCompetitorAnalysis(data.competitors || [])
+        return data.competitors || []
       }
     } catch (error) {
       console.error('Error fetching competitor analysis:', error)
+      return []
     } finally {
       setIsLoading(false)
     }
+    return []
+  }
+
+  const getMyReport = () => {
+    if (selectedMedspa && competitorAnalysis.length > 0) {
+      // Show scanning loader when generating the full report
+      setTempCompetitors(competitorAnalysis)
+      setShowScanningLoader(true)
+    }
+  }
+
+  const handleScanningComplete = (competitors: any[]) => {
+    setShowScanningLoader(false)
+    setTempCompetitors([])
+    // Here you could navigate to a full report page or show a detailed report
+    console.log('Report generation complete for:', selectedMedspa.name)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch()
-    }
-  }
-
-  const getMyReport = () => {
-    if (selectedMedspa) {
-      // Trigger report generation
-      console.log('Generating report for:', selectedMedspa.name)
     }
   }
 
@@ -196,6 +210,17 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Scanning Loader Overlay */}
+      <AnimatePresence>
+        {showScanningLoader && selectedMedspa && (
+          <CompetitorScanningLoader
+            businessName={selectedMedspa.name}
+            competitors={tempCompetitors}
+            onComplete={handleScanningComplete}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div 
         className="flex items-center justify-between px-6 py-4"
