@@ -3,6 +3,7 @@
 import { Search, TrendingUp, AlertCircle, Users, ChevronDown } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,8 +15,10 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedMedspa, setSelectedMedspa] = useState<any>(null)
   const [competitorAnalysis, setCompetitorAnalysis] = useState<any[]>([])
+  const [seoAnalysis, setSeoAnalysis] = useState<any>(null)
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   // Get user's location on component mount
   useEffect(() => {
@@ -159,10 +162,17 @@ export default function Home() {
     }
   }
 
-  const getMyReport = () => {
+  const getMyReport = async () => {
     if (selectedMedspa) {
-      // Trigger report generation
-      console.log('Generating report for:', selectedMedspa.name)
+      console.log('🚀 Starting SEO report generation for:', selectedMedspa.name)
+      
+      // Store the selected med spa data for the analyzing page
+      localStorage.setItem('analyzingMedspa', JSON.stringify(selectedMedspa))
+      
+      // Navigate to the analyzing page
+      router.push('/analyzing')
+    } else {
+      console.log('❌ No selected med spa available for analysis')
     }
   }
 
@@ -757,6 +767,247 @@ export default function Home() {
                           <li>• Consider local SEO strategies to improve visibility</li>
                         </ul>
                       </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* SEO Analysis Results */}
+                <AnimatePresence>
+                  {seoAnalysis && (
+                    <motion.div 
+                      className="bg-white rounded-2xl p-8 shadow-md border border-gray-100"
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -30 }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                    >
+                      <motion.h3 
+                        className="text-lg font-semibold text-gray-900 mb-6"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: 0.4 }}
+                      >
+                        🚀 SEO Performance Analysis
+                      </motion.h3>
+                      
+                      {/* SEO Summary */}
+                      <motion.div 
+                        className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+                        variants={staggerContainer}
+                        initial="initial"
+                        animate="animate"
+                      >
+                        <motion.div 
+                          className="bg-purple-50 p-4 rounded-lg text-center"
+                          variants={fadeInUp}
+                          whileHover={{ scale: 1.05, y: -2 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <motion.div 
+                            className="text-2xl font-bold text-purple-600"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200, delay: 0.5 }}
+                          >
+                            #{seoAnalysis.analysis?.yourSEOPosition}
+                          </motion.div>
+                          <div className="text-sm text-purple-700">Your SEO position</div>
+                        </motion.div>
+                        <motion.div 
+                          className="bg-blue-50 p-4 rounded-lg text-center"
+                          variants={fadeInUp}
+                          whileHover={{ scale: 1.05, y: -2 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <motion.div 
+                            className="text-2xl font-bold text-blue-600"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200, delay: 0.6 }}
+                          >
+                            {seoAnalysis.selectedMedspa?.pagespeed_data?.performance_score || 'N/A'}
+                          </motion.div>
+                          <div className="text-sm text-blue-700">Performance score</div>
+                        </motion.div>
+                        <motion.div 
+                          className="bg-green-50 p-4 rounded-lg text-center"
+                          variants={fadeInUp}
+                          whileHover={{ scale: 1.05, y: -2 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <motion.div 
+                            className="text-2xl font-bold text-green-600"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200, delay: 0.7 }}
+                          >
+                            {seoAnalysis.selectedMedspa?.pagespeed_data?.seo_score || 'N/A'}
+                          </motion.div>
+                          <div className="text-sm text-green-700">SEO score</div>
+                        </motion.div>
+                        <motion.div 
+                          className="bg-orange-50 p-4 rounded-lg text-center"
+                          variants={fadeInUp}
+                          whileHover={{ scale: 1.05, y: -2 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <motion.div 
+                            className="text-2xl font-bold text-orange-600"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200, delay: 0.8 }}
+                          >
+                            {seoAnalysis.analysis?.competitorsWithWebsites}
+                          </motion.div>
+                          <div className="text-sm text-orange-700">Competitors analyzed</div>
+                        </motion.div>
+                      </motion.div>
+
+                      {/* Competitor SEO Rankings */}
+                      {seoAnalysis.competitors.length > 0 && (
+                        <motion.div 
+                          className="space-y-3 mb-8"
+                          variants={staggerContainer}
+                          initial="initial"
+                          animate="animate"
+                        >
+                          <h4 className="font-semibold text-gray-900 mb-4">🏆 SEO Rankings vs Competitors</h4>
+                          {seoAnalysis.competitors.map((competitor: any, index: number) => (
+                            <motion.div
+                              key={index}
+                              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                              variants={{
+                                initial: { opacity: 0, x: -50 },
+                                animate: { opacity: 1, x: 0 }
+                              }}
+                              whileHover={{ 
+                                x: 4, 
+                                backgroundColor: "#f3f4f6",
+                                transition: { duration: 0.2 }
+                              }}
+                              transition={{ 
+                                type: "spring", 
+                                stiffness: 300, 
+                                damping: 20,
+                                delay: index * 0.1 + 0.5
+                              }}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-3">
+                                  <motion.div 
+                                    className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-sm font-medium text-purple-600"
+                                    whileHover={{ scale: 1.1, backgroundColor: "#e9d5ff" }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                                  >
+                                    {index + 1}
+                                  </motion.div>
+                                  <div>
+                                    <h5 className="font-medium text-gray-900">{competitor.name}</h5>
+                                    <p className="text-sm text-gray-600">{competitor.distance_miles} miles away</p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-4">
+                                {competitor.pagespeed_data && !competitor.pagespeed_data.error ? (
+                                  <>
+                                    <div className="text-center">
+                                      <div className="text-sm font-medium">{competitor.pagespeed_data.performance_score}</div>
+                                      <div className="text-xs text-gray-500">Performance</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-sm font-medium">{competitor.pagespeed_data.seo_score}</div>
+                                      <div className="text-xs text-gray-500">SEO</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-lg font-bold text-purple-600">{competitor.seo_rank}</div>
+                                      <div className="text-xs text-gray-500">Overall</div>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-sm text-gray-500">No website</div>
+                                )}
+                                {competitor.website && (
+                                  <motion.a 
+                                    href={competitor.website} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    🔗
+                                  </motion.a>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                      )}
+
+                      {/* SEO Recommendations */}
+                      {seoAnalysis.analysis?.recommendations.length > 0 && (
+                        <motion.div 
+                          className="p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.7 }}
+                        >
+                          <h4 className="font-semibold text-purple-900 mb-3">💡 SEO Improvement Recommendations</h4>
+                          <ul className="space-y-2 text-sm text-purple-800">
+                            {seoAnalysis.analysis?.recommendations.map((rec: string, index: number) => (
+                              <motion.li 
+                                key={index}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.8 + index * 0.1 }}
+                              >
+                                • {rec}
+                              </motion.li>
+                            ))}
+                          </ul>
+                        </motion.div>
+                      )}
+
+                      {/* Technical Details */}
+                      {seoAnalysis.selectedMedspa?.pagespeed_data && !seoAnalysis.selectedMedspa.pagespeed_data.error && (
+                        <motion.div 
+                          className="mt-6 p-6 bg-gray-50 rounded-xl"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.9 }}
+                        >
+                          <h4 className="font-semibold text-gray-900 mb-3">🔧 Technical Performance Details</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <div className="text-gray-600">Performance</div>
+                              <div className="font-medium text-lg">{seoAnalysis.selectedMedspa.pagespeed_data.performance_score}/100</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">Accessibility</div>
+                              <div className="font-medium text-lg">{seoAnalysis.selectedMedspa.pagespeed_data.accessibility_score || 'N/A'}/100</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">Best Practices</div>
+                              <div className="font-medium text-lg">{seoAnalysis.selectedMedspa.pagespeed_data.best_practices_score || 'N/A'}/100</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">SEO Score</div>
+                              <div className="font-medium text-lg">{seoAnalysis.selectedMedspa.pagespeed_data.seo_score}/100</div>
+                            </div>
+                          </div>
+                          {seoAnalysis.selectedMedspa.pagespeed_data.largest_contentful_paint && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <div className="text-xs text-gray-600 mb-2">Core Web Vitals:</div>
+                              <div className="text-sm">
+                                <span className="font-medium">LCP:</span> {(seoAnalysis.selectedMedspa.pagespeed_data.largest_contentful_paint / 1000).toFixed(2)}s
+                                {seoAnalysis.selectedMedspa.pagespeed_data.cumulative_layout_shift && (
+                                  <span className="ml-4"><span className="font-medium">CLS:</span> {seoAnalysis.selectedMedspa.pagespeed_data.cumulative_layout_shift.toFixed(3)}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
