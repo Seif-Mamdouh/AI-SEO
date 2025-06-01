@@ -15,7 +15,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
         <div className="w-full max-w-2xl text-center space-y-8">
           {/* Main Heading */}
