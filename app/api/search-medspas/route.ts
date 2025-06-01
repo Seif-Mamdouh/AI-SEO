@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { query, location, userLocation } = body
+    const { query, userLocation } = body
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -21,17 +21,61 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Build search query with location
-    let searchQuery = `${query} med spa OR medical spa OR aesthetic clinic`
-    if (location && location.trim()) {
+    // Parse the query to extract potential location information
+    const parseSearchQuery = (searchQuery: string) => {
+      const locationKeywords = ['in', 'at', 'near', 'around']
+      const commonCities = ['nyc', 'la', 'sf', 'miami', 'chicago', 'houston', 'dallas', 'atlanta', 'boston', 'seattle']
+      const stateAbbreviations = ['ny', 'ca', 'fl', 'tx', 'il', 'ga', 'ma', 'wa', 'az', 'nv', 'co', 'nc', 'sc']
+      
+      let medSpaName = searchQuery
+      let location = ''
+      
+      // Check for location keywords
+      for (const keyword of locationKeywords) {
+        const keywordIndex = searchQuery.toLowerCase().indexOf(` ${keyword} `)
+        if (keywordIndex !== -1) {
+          medSpaName = searchQuery.substring(0, keywordIndex).trim()
+          location = searchQuery.substring(keywordIndex + keyword.length + 2).trim()
+          break
+        }
+      }
+      
+      // Check for city/state patterns if no keyword found
+      if (!location) {
+        const words = searchQuery.toLowerCase().split(' ')
+        const lastWord = words[words.length - 1]
+        const secondLastWord = words.length > 1 ? words[words.length - 2] : ''
+        
+        // Check if ends with state abbreviation or common city
+        if (stateAbbreviations.includes(lastWord) || commonCities.includes(lastWord)) {
+          if (stateAbbreviations.includes(lastWord) && secondLastWord) {
+            // Format: "City, ST"
+            location = `${secondLastWord} ${lastWord}`
+            medSpaName = words.slice(0, -2).join(' ').trim()
+          } else {
+            // Single city name
+            location = lastWord
+            medSpaName = words.slice(0, -1).join(' ').trim()
+          }
+        }
+      }
+      
+      return { medSpaName: medSpaName || searchQuery, location }
+    }
+
+    const { medSpaName, location } = parseSearchQuery(query)
+    
+    // Build search query
+    let searchQuery = `${medSpaName} med spa OR medical spa OR aesthetic clinic`
+    if (location) {
       searchQuery += ` in ${location}`
     }
     
     // Use Google Places Text Search API
     let placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&type=spa&key=${googleApiKey}`
     
-    // Add location bias if user location is available
-    if (userLocation && userLocation.lat && userLocation.lng) {
+    // Add location bias if user location is available and no location was parsed
+    if (userLocation && userLocation.lat && userLocation.lng && !location) {
       placesUrl += `&location=${userLocation.lat},${userLocation.lng}&radius=50000`
     }
 

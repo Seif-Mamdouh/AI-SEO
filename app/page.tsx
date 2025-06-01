@@ -1,13 +1,12 @@
 'use client'
 
-import { Search, TrendingUp, AlertCircle, Users, MapPin, ChevronDown } from 'lucide-react'
+import { Search, TrendingUp, AlertCircle, Users, ChevronDown } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 
 export const dynamic = 'force-dynamic'
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [location, setLocation] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchSuggestions, setSearchSuggestions] = useState<any[]>([])
@@ -55,9 +54,7 @@ export default function Home() {
         try {
           const requestBody: any = { query: searchQuery }
           
-          if (location.trim()) {
-            requestBody.location = location
-          } else if (userLocation) {
+          if (userLocation) {
             requestBody.userLocation = userLocation
           }
 
@@ -85,7 +82,7 @@ export default function Home() {
 
     const debounceTimer = setTimeout(fetchSuggestions, 300)
     return () => clearTimeout(debounceTimer)
-  }, [searchQuery, location, userLocation])
+  }, [searchQuery, userLocation])
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -96,9 +93,7 @@ export default function Home() {
     try {
       const requestBody: any = { query: searchQuery }
       
-      if (location.trim()) {
-        requestBody.location = location
-      } else if (userLocation) {
+      if (userLocation) {
         requestBody.userLocation = userLocation
       }
 
@@ -142,7 +137,7 @@ export default function Home() {
         },
         body: JSON.stringify({ 
           medspa: medspa,
-          location: location || 'nearby'
+          location: medspa.formatted_address || 'nearby'
         }),
       })
 
@@ -195,25 +190,12 @@ export default function Home() {
           </div>
 
           {/* Search Input */}
-          <div className="space-y-4 w-full max-w-lg mx-auto" ref={searchRef}>
-            {/* Location Input */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Location (optional - e.g., New York, NY)"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="w-full px-6 py-3 pl-12 text-base bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all duration-200 placeholder-gray-500"
-              />
-              <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            </div>
-
+          <div className="w-full max-w-lg mx-auto" ref={searchRef}>
             {/* Main Search Input with Suggestions */}
             <div className="relative">
               <input
                 type="text"
-                placeholder="Find your med spa or clinic"
+                placeholder="Find your med spa or clinic (e.g., 'Glow Med Spa NYC' or 'med spa in Los Angeles')"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
