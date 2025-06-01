@@ -3,6 +3,7 @@
 import { Search, TrendingUp, AlertCircle, Users, ChevronDown } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,7 @@ export default function Home() {
   const [isLoadingSEO, setIsLoadingSEO] = useState(false)
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   // Get user's location on component mount
   useEffect(() => {
@@ -164,8 +166,17 @@ export default function Home() {
   const getMyReport = async () => {
     if (selectedMedspa) {
       setIsLoadingSEO(true)
+      const startTime = Date.now()
+      console.log('🚀 Starting SEO report generation at:', new Date().toISOString())
+      console.log('📍 Selected MedSpa:', {
+        name: selectedMedspa.name,
+        place_id: selectedMedspa.place_id,
+        website: selectedMedspa.website,
+        hasGeometry: !!selectedMedspa.geometry?.location
+      })
+      
       try {
-        console.log('Generating SEO report for:', selectedMedspa.name)
+        console.log('🌐 Calling /api/seo-analysis...')
         
         const response = await fetch('/api/seo-analysis', {
           method: 'POST',
@@ -177,20 +188,47 @@ export default function Home() {
           }),
         })
 
+        const responseTime = Date.now() - startTime
+        console.log(`📊 API response received in ${responseTime}ms, status: ${response.status}`)
+
         if (response.ok) {
+          console.log('✅ Parsing response data...')
           const data = await response.json()
+          console.log('📊 SEO Analysis Data:', {
+            totalCompetitors: data.analysis?.totalCompetitors,
+            competitorsWithWebsites: data.analysis?.competitorsWithWebsites,
+            yourSEOPosition: data.analysis?.yourSEOPosition,
+            hasSelectedMedSpaData: !!data.selectedMedspa,
+            hasPageSpeedData: !!data.selectedMedspa?.pagespeed_data,
+            pageSpeedError: data.selectedMedspa?.pagespeed_data?.error
+          })
+          
           setSeoAnalysis(data)
-          console.log('SEO Analysis completed:', data)
+          const totalTime = Date.now() - startTime
+          console.log(`🎉 SEO Analysis completed successfully in ${totalTime}ms`)
+
+          // Store SEO analysis results in localStorage
+          localStorage.setItem('seoAnalysisResults', JSON.stringify(data))
+
+          // Navigate to the results page
+          router.push('/results')
         } else {
-          console.error('SEO analysis failed')
+          const errorData = await response.text()
+          console.error('❌ SEO analysis failed with status:', response.status)
+          console.error('❌ Error response:', errorData)
           // You might want to show an error message to the user
         }
       } catch (error) {
-        console.error('Error generating SEO report:', error)
+        const totalTime = Date.now() - startTime
+        console.error(`💥 Error generating SEO report after ${totalTime}ms:`, error)
         // You might want to show an error message to the user
       } finally {
         setIsLoadingSEO(false)
+        const totalTime = Date.now() - startTime
+        console.log(`⏹️ SEO analysis process ended after ${totalTime}ms`)
       }
+    } else {
+      console.log('❌ No selected med spa available for analysis')
     }
   }
 

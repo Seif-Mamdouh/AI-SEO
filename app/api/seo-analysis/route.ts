@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     }) || []
 
     console.log(`🏢 Filtered to ${competitors.length} relevant competitors`)
-    const competitorNames = competitors.slice(0, 8).map(c => c.name)
+    const competitorNames = competitors.slice(0, 8).map((c: any) => c.name)
     console.log('🏢 Top competitors:', competitorNames)
 
     // Step 3: Get detailed information for competitors and calculate distances
