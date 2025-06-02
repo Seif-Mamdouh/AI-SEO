@@ -36,15 +36,19 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
   const needsImprovement = currentSEOScore < 80 || currentSEOScore < competitorAverage
 
   const handleRebuildWebsite = () => {
-    console.log('🎯 Storing med spa data for AI builder:', {
+    console.log('🎯 Storing complete med spa data for AI builder:', {
       name: medSpaData.name,
       hasPhotos: !!medSpaData.photos,
       photosLength: medSpaData.photos?.length || 0,
+      hasWebsiteData: !!medSpaData.website_data,
+      hasPagespeedData: !!medSpaData.pagespeed_data,
       photos: medSpaData.photos,
+      website_data: medSpaData.website_data,
+      pagespeed_data: medSpaData.pagespeed_data,
       fullData: medSpaData
     })
     
-    // Store the med spa data for the AI builder
+    // Store the complete med spa data for the AI builder
     localStorage.setItem('medSpaContextData', JSON.stringify(medSpaData))
     router.push('/ai-builder?context=medspa')
   }

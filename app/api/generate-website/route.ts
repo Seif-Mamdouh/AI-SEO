@@ -16,12 +16,16 @@ export async function POST(request: NextRequest) {
     console.log('🏥 Med spa data received:', !!medSpaData)
     
     if (medSpaData) {
-      console.log('🎯 Med spa context:', {
+      console.log('🎯 Med spa context detailed analysis:', {
         name: medSpaData.name,
         hasImages: !!medSpaData.photos?.length,
         imageCount: medSpaData.photos?.length || 0,
         hasWebsiteData: !!medSpaData.website_data,
-        hasPerformanceData: !!medSpaData.pagespeed_data
+        hasPerformanceData: !!medSpaData.pagespeed_data,
+        allKeys: Object.keys(medSpaData),
+        photosData: medSpaData.photos,
+        websiteData: medSpaData.website_data,
+        pagespeedData: medSpaData.pagespeed_data
       })
     }
 

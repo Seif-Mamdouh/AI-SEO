@@ -68,7 +68,7 @@ export default function WebsiteAnalysis({ selectedMedspa }: WebsiteAnalysisProps
 
   useEffect(() => {
     // Check if we already have analysis results
-    const analysisResults = localStorage.getItem('analysisResults')
+    const analysisResults = localStorage.getItem('seoAnalysisResults')
     if (analysisResults) {
       const data = JSON.parse(analysisResults)
       if (data.selectedMedspa?.website_data || data.selectedMedspa?.pagespeed_data) {

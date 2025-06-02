@@ -161,7 +161,7 @@ export default function AnalyzingPage() {
                 console.log('🔍 Checking other review sources...')
                 
                 // Check if analysis results have reviews
-                const storedResults = localStorage.getItem('analysisResults')
+                const storedResults = localStorage.getItem('seoAnalysisResults')
                 if (storedResults) {
                   const parsedResults = JSON.parse(storedResults)
                   console.log('🔍 Analysis Results Debug:', {
@@ -209,7 +209,7 @@ export default function AnalyzingPage() {
         })
         
         // Store the results including reviews data
-        localStorage.setItem('analysisResults', JSON.stringify(data))
+        localStorage.setItem('seoAnalysisResults', JSON.stringify(data))
         
         // Update selectedMedspa with reviews data for the visual components
         if (data.selectedMedspa?.reviews) {
