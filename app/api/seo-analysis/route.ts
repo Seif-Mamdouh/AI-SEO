@@ -93,12 +93,33 @@ interface CompetitorWithSEO extends PlaceDetails {
   seo_rank?: number
 }
 
+// PERFORMANCE OPTIMIZATION: Add simple in-memory cache with TTL
+const cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
+
+function getCachedData(key: string): any | null {
+  const cached = cache.get(key)
+  if (cached && Date.now() - cached.timestamp < cached.ttl) {
+    return cached.data
+  }
+  cache.delete(key)
+  return null
+}
+
+function setCachedData(key: string, data: any, ttlMinutes: number = 10): void {
+  cache.set(key, {
+    data,
+    timestamp: Date.now(),
+    ttl: ttlMinutes * 60 * 1000
+  })
+}
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
   console.log('🚀 SEO Analysis API called at:', new Date().toISOString())
   
+  let body: any
   try {
-    const body = await request.json()
+    body = await request.json()
     const { selectedMedspa, generate_llm_report = false } = body
     console.log('📍 Selected MedSpa:', selectedMedspa?.name, selectedMedspa?.place_id)
 
@@ -131,6 +152,14 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ API keys validated')
 
+    // PERFORMANCE OPTIMIZATION: Check cache first
+    const cacheKey = `seo_analysis_${selectedMedspa.place_id}`
+    const cachedResult = getCachedData(cacheKey)
+    if (cachedResult) {
+      console.log('⚡ Returning cached SEO analysis result')
+      return NextResponse.json(cachedResult)
+    }
+
     // Step 1: Get detailed info for selected med spa including coordinates
     console.log('📍 Step 1: Getting med spa details...')
     let medSpaDetails: PlaceDetails
@@ -144,17 +173,6 @@ export async function POST(request: NextRequest) {
       const detailsResponse = await fetch(detailsUrl)
       const detailsData = await detailsResponse.json()
       console.log('📊 Places Details response status:', detailsResponse.status)
-      console.log('🔍 Google Places API Debug:', {
-        url: detailsUrl,
-        responseStatus: detailsResponse.status,
-        hasResult: !!detailsData.result,
-        resultKeys: detailsData.result ? Object.keys(detailsData.result) : null,
-        reviews: detailsData.result?.reviews,
-        reviewsLength: detailsData.result?.reviews?.length || 0,
-        rating: detailsData.result?.rating,
-        userRatingsTotal: detailsData.result?.user_ratings_total,
-        fullResponse: detailsData
-      })
 
       if (!detailsResponse.ok || !detailsData.result) {
         console.log('❌ Failed to get med spa details:', detailsData.error_message || 'Unknown error')
@@ -166,16 +184,6 @@ export async function POST(request: NextRequest) {
 
       medSpaDetails = detailsData.result
       console.log('✅ Got med spa details with coordinates:', medSpaDetails.geometry?.location)
-      console.log('🔍 Med Spa Details Debug:', {
-        name: medSpaDetails.name,
-        rating: medSpaDetails.rating,
-        userRatingsTotal: medSpaDetails.user_ratings_total,
-        hasReviews: !!medSpaDetails.reviews,
-        reviewsCount: medSpaDetails.reviews?.length || 0,
-        hasPhotos: !!medSpaDetails.photos,
-        photosCount: medSpaDetails.photos?.length || 0,
-        photos: medSpaDetails.photos
-      })
     } else {
       medSpaDetails = selectedMedspa
       console.log('✅ Using existing coordinates:', medSpaDetails.geometry?.location)
@@ -184,9 +192,9 @@ export async function POST(request: NextRequest) {
     const { lat, lng } = medSpaDetails.geometry!.location
     console.log(`🗺️ Med spa location: ${lat}, ${lng}`)
 
-    // Step 2: Find nearby competitors within 10 miles (OPTIMIZED: Reduced radius and limit results)
+    // PERFORMANCE OPTIMIZATION: Reduced radius and limit competitors
     console.log('🔍 Step 2: Finding nearby competitors...')
-    const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=8047&type=beauty_salon|spa&key=${googleApiKey}` // Reduced to 5 miles
+    const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=beauty_salon|spa&key=${googleApiKey}` // Reduced to 3 miles
     
     console.log('🌐 Calling Google Places Nearby API...')
     const nearbyResponse = await fetch(nearbyUrl)
@@ -201,143 +209,115 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Filter for medical spas and aesthetic clinics, exclude the selected one (OPTIMIZED: Limit to top 5)
-    const competitors = nearbyData.results?.filter((place: any) => {
-      const name = place.name.toLowerCase()
-      const types = place.types || []
-      
-      // Exclude the selected medspa itself
-      if (place.place_id === selectedMedspa.place_id) {
-        return false
-      }
-      
-      // Focus on medical spas and aesthetic clinics
-      return (
-        name.includes('med spa') ||
-        name.includes('medical spa') ||
-        name.includes('aesthetic') ||
-        name.includes('dermatology') ||
-        name.includes('cosmetic') ||
-        name.includes('laser') ||
-        name.includes('botox') ||
-        name.includes('filler') ||
-        types.includes('spa') ||
-        types.includes('health') ||
-        types.includes('beauty_salon')
-      )
-    }).slice(0, 5) || [] // OPTIMIZED: Limit to 5 competitors
-
-    console.log(`🏢 Filtered to ${competitors.length} relevant competitors`)
-
-    // Step 3: Get detailed information for competitors in PARALLEL (OPTIMIZED)
-    console.log('📍 Step 3: Getting detailed competitor information in parallel...')
-    const detailedCompetitors: CompetitorWithSEO[] = await Promise.all(
-      competitors.map(async (competitor: any, index: number): Promise<CompetitorWithSEO> => {
-        console.log(`🔍 Processing competitor ${index + 1}/${competitors.length}: ${competitor.name}`)
-        try {
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${competitor.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry&key=${googleApiKey}`
-          
-          const detailsResponse = await fetch(detailsUrl)
-          const detailsData = await detailsResponse.json()
-
-          const details = detailsResponse.ok && detailsData.result ? detailsData.result : competitor
-
-          // Calculate distance
-          const distance = calculateDistance(
-            lat, lng,
-            details.geometry?.location?.lat || competitor.geometry?.location?.lat,
-            details.geometry?.location?.lng || competitor.geometry?.location?.lng
-          )
-
-          const result = {
-            place_id: details.place_id,
-            name: details.name,
-            formatted_address: details.formatted_address,
-            rating: details.rating,
-            user_ratings_total: details.user_ratings_total,
-            website: details.website,
-            phone: details.formatted_phone_number,
-            geometry: details.geometry,
-            distance_miles: distance
-          }
-
-          console.log(`✅ Competitor ${index + 1} processed: ${result.name} (${result.distance_miles} miles, website: ${!!result.website})`)
-          return result
-        } catch (error) {
-          console.error(`❌ Error fetching competitor ${index + 1} details:`, error)
-          return {
-            place_id: competitor.place_id,
-            name: competitor.name,
-            formatted_address: competitor.formatted_address,
-            rating: competitor.rating,
-            user_ratings_total: competitor.user_ratings_total,
-            distance_miles: calculateDistance(
-              lat, lng,
-              competitor.geometry?.location?.lat,
-              competitor.geometry?.location?.lng
-            )
-          }
-        }
-      })
+    // PERFORMANCE OPTIMIZATION: Limit and filter competitors more aggressively
+    let competitors = nearbyData.results || []
+    
+    // Filter out the selected med spa and places without basic info
+    competitors = competitors.filter((place: any) => 
+      place.place_id !== selectedMedspa.place_id && 
+      place.rating && 
+      place.user_ratings_total &&
+      place.user_ratings_total >= 5 // Only include places with some reviews
     )
 
-    const competitorsWithWebsites = detailedCompetitors.filter((competitor: CompetitorWithSEO) => competitor.website)
-    console.log(`🌐 Found ${competitorsWithWebsites.length} competitors with websites`)
+    // PERFORMANCE OPTIMIZATION: Limit to top 10 competitors by rating
+    competitors = competitors
+      .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 10) // Reduced from 20+ to 10
 
-    // Step 4: Run PageSpeed analysis in PARALLEL with faster timeouts (OPTIMIZED)
-    console.log('⚡ Step 4: Running PageSpeed analysis in parallel...')
+    console.log(`📊 Processing ${competitors.length} filtered competitors...`)
+
+    // Step 3: PERFORMANCE OPTIMIZATION - Parallel processing with batching
+    console.log('⚡ Step 3: Processing competitors in parallel...')
     
-    // PARALLEL execution for both selected med spa and competitors
-    const analysisPromises: Promise<any>[] = []
+    const BATCH_SIZE = 3 // Process in smaller batches to avoid rate limits
+    const competitorsWithSEO: CompetitorWithSEO[] = []
     
-    // Add selected med spa analysis if it has a website
-    if (medSpaDetails.website) {
-      analysisPromises.push(
-        Promise.all([
-          analyzePageSpeedFast(medSpaDetails.website, pageSpeedApiKey),
-          fetch(`${request.nextUrl.origin}/api/website-parse`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: medSpaDetails.website })
-          }).then(res => res.json()).catch(() => ({
-            url: medSpaDetails.website,
-            headings: { h1: [], h2: [], h3: [] },
-            images: [], links: [], socialLinks: [], contactInfo: {},
-            structure: { hasNavigation: false, hasFooter: false, hasContactForm: false, hasBookingForm: false },
-            error: 'Website parsing failed'
-          }))
-        ]).then(([pageSpeed, websiteData]) => ({ pageSpeed, websiteData }))
+    for (let i = 0; i < competitors.length; i += BATCH_SIZE) {
+      const batch = competitors.slice(i, i + BATCH_SIZE)
+      console.log(`⚡ Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(competitors.length/BATCH_SIZE)}`)
+      
+      const batchResults = await Promise.allSettled(
+        batch.map(async (competitor: any) => {
+          try {
+            // Get detailed info for competitor
+            const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${competitor.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry&key=${googleApiKey}`
+            
+            const detailsResponse = await fetch(detailsUrl)
+            const detailsData = await detailsResponse.json()
+            
+            if (!detailsResponse.ok || !detailsData.result) {
+              console.log(`⚠️ Failed to get details for competitor: ${competitor.name}`)
+              return null
+            }
+
+            const competitorDetails = detailsData.result
+            
+            // Calculate distance
+            const distance = calculateDistance(
+              lat, lng,
+              competitorDetails.geometry?.location?.lat || 0,
+              competitorDetails.geometry?.location?.lng || 0
+            )
+
+            const competitorWithDistance: CompetitorWithSEO = {
+              ...competitorDetails,
+              distance_miles: distance
+            }
+
+            // PERFORMANCE OPTIMIZATION: Only analyze websites for top competitors
+            if (competitorDetails.website && distance <= 3) { // Only within 3 miles
+              try {
+                // Fast PageSpeed analysis only
+                const pageSpeedData = await analyzePageSpeedFast(competitorDetails.website, pageSpeedApiKey)
+                competitorWithDistance.pagespeed_data = pageSpeedData
+              } catch (error) {
+                console.log(`⚠️ PageSpeed analysis failed for ${competitorDetails.name}:`, error)
+                competitorWithDistance.pagespeed_data = { url: competitorDetails.website, error: 'Analysis failed' }
+              }
+            }
+
+            return competitorWithDistance
+          } catch (error) {
+            console.log(`❌ Error processing competitor ${competitor.name}:`, error)
+            return null
+          }
+        })
       )
-    } else {
-      analysisPromises.push(Promise.resolve({ pageSpeed: null, websiteData: null }))
+
+      // Add successful results to the list
+      batchResults.forEach(result => {
+        if (result.status === 'fulfilled' && result.value) {
+          competitorsWithSEO.push(result.value)
+        }
+      })
+
+      // PERFORMANCE OPTIMIZATION: Add delay between batches to respect rate limits
+      if (i + BATCH_SIZE < competitors.length) {
+        await new Promise(resolve => setTimeout(resolve, 200)) // 200ms delay
+      }
     }
 
-    // Add competitor analysis promises
-    const competitorAnalysisPromise = Promise.all(
-      detailedCompetitors.map(async (competitor): Promise<CompetitorWithSEO> => {
-        if (competitor.website) {
-          try {
-            const pagespeedData = await analyzePageSpeedFast(competitor.website, pageSpeedApiKey)
-            return { ...competitor, pagespeed_data: pagespeedData }
-          } catch (error) {
-            console.error(`❌ PageSpeed analysis failed for ${competitor.name}:`, error)
-            return { ...competitor, pagespeed_data: { url: competitor.website, error: 'Analysis failed' } }
-          }
-        } else {
-          return competitor
-        }
-      })
-    )
+    // Step 4: Analyze selected med spa website
+    console.log('🏥 Step 4: Analyzing your med spa...')
+    let selectedMedSpaAnalysis: { pageSpeed?: PageSpeedResult, websiteData?: WebsiteParseResult } = {}
+    
+    if (medSpaDetails.website) {
+      try {
+        console.log('🌐 Analyzing your website performance...')
+        const pageSpeedData = await analyzePageSpeedFast(medSpaDetails.website, pageSpeedApiKey)
+        selectedMedSpaAnalysis.pageSpeed = pageSpeedData
+      } catch (error) {
+        console.log('⚠️ PageSpeed analysis failed for your med spa:', error)
+        selectedMedSpaAnalysis.pageSpeed = { url: medSpaDetails.website, error: 'Analysis failed' }
+      }
+    } else {
+      console.log('ℹ️ No website found for your med spa')
+    }
 
-    // Execute all analysis in parallel
-    const [selectedMedSpaAnalysis, competitorsWithSEO] = await Promise.all([
-      analysisPromises[0],
-      competitorAnalysisPromise
-    ])
+    const { pageSpeed: selectedMedSpaPageSpeed } = selectedMedSpaAnalysis || {}
 
-    const { pageSpeed: selectedMedSpaPageSpeed, websiteData: selectedMedSpaWebsiteData } = selectedMedSpaAnalysis || {}
-
-    console.log(`✅ All analysis completed in parallel`)
+    console.log(`✅ All analysis completed`)
 
     // Step 5: Calculate SEO rankings
     console.log('📊 Step 5: Calculating SEO rankings...')
@@ -351,7 +331,6 @@ export async function POST(request: NextRequest) {
       selectedMedspa: {
         ...medSpaDetails,
         pagespeed_data: selectedMedSpaPageSpeed,
-        website_data: selectedMedSpaWebsiteData || undefined,
         reviews: medSpaDetails.reviews || []
       },
       competitors: seoAnalysis.competitors,
@@ -366,12 +345,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Step 6: Generate LLM analysis report ONLY if explicitly requested (OPTIMIZED)
+    // Step 6: Generate LLM analysis report ONLY if explicitly requested
     let llmReport = null
     if (generate_llm_report) {
-      console.log('🤖 Step 6: Generating LLM analysis report...')
       try {
-        const llmResponse = await fetch(`${request.nextUrl.origin}/api/llm-seo-analysis`, {
+        console.log('🤖 Generating LLM SEO analysis report...')
+        const llmResponse = await fetch(`${request.url.replace('/seo-analysis', '/llm-seo-analysis')}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ seoData: responseData })
@@ -381,204 +360,159 @@ export async function POST(request: NextRequest) {
           const llmData = await llmResponse.json()
           if (llmData.success) {
             llmReport = llmData.report
-            console.log('✅ LLM analysis report generated successfully')
-          } else {
-            console.log('❌ LLM analysis failed:', llmData.error)
+            console.log('✅ LLM report generated successfully')
           }
-        } else {
-          console.log('❌ LLM analysis request failed with status:', llmResponse.status)
         }
-      } catch (llmError) {
-        console.error('❌ LLM analysis error:', llmError)
-        // Don't fail the main request if LLM analysis fails
+      } catch (error) {
+        console.log('⚠️ LLM report generation failed:', error)
       }
     }
 
-    const finalResponseData = {
+    const finalResponse = {
       ...responseData,
       ...(llmReport && { llm_report: llmReport })
     }
 
-    const finalTime = Date.now() - startTime
-    console.log(`🎉 Complete SEO Analysis (with LLM: ${!!llmReport}) finished in ${finalTime}ms`)
+    // PERFORMANCE OPTIMIZATION: Cache the result for 10 minutes
+    setCachedData(cacheKey, finalResponse, 10)
 
-    return NextResponse.json(finalResponseData)
+    return NextResponse.json(finalResponse)
 
   } catch (error) {
     const totalTime = Date.now() - startTime
-    console.error('💥 SEO analysis API error after', totalTime, 'ms:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('❌ SEO Analysis error after', totalTime, 'ms:', error)
+    
+    return NextResponse.json({
+      error: `Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      selectedMedspa: body?.selectedMedspa || null
+    }, { status: 500 })
   }
 }
 
-// OPTIMIZED: Faster PageSpeed analysis with shorter timeout
+// PERFORMANCE OPTIMIZATION: Faster PageSpeed analysis with fewer metrics
 async function analyzePageSpeedFast(url: string, apiKey: string): Promise<PageSpeedResult> {
-  const startTime = Date.now()
-  console.log(`⚡ Starting FAST PageSpeed analysis for: ${url}`)
-  
   try {
-    // Clean and validate URL
-    const cleanUrl = url.startsWith('http') ? url : `https://${url}`
-    console.log(`🔗 Cleaned URL: ${cleanUrl}`)
+    const cleanUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '')
+    const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`
     
-    // OPTIMIZED: Only get essential metrics to speed up analysis
-    const pageSpeedUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(cleanUrl)}&strategy=mobile&category=performance&category=seo&key=${apiKey}`
+    // Only analyze essential metrics for performance
+    const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(fullUrl)}&key=${apiKey}&strategy=mobile&category=performance&category=seo`
     
-    console.log(`🌐 Calling Fast PageSpeed Insights API...`)
-    
-    // OPTIMIZED: Add timeout and use AbortController for faster failures
+    // Use AbortController for timeout
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout instead of 30
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
     
-    const response = await fetch(pageSpeedUrl, {
+    const response = await fetch(apiUrl, { 
       signal: controller.signal
     })
     
     clearTimeout(timeoutId)
     
-    const responseTime = Date.now() - startTime
-    console.log(`📊 Fast PageSpeed API response received in ${responseTime}ms, status: ${response.status}`)
+    if (!response.ok) {
+      throw new Error(`PageSpeed API error: ${response.status}`)
+    }
     
     const data = await response.json()
     
-    if (!response.ok) {
-      console.log(`❌ PageSpeed API error: ${data.error?.message || 'Unknown error'}`)
-      return {
-        url: cleanUrl,
-        error: data.error?.message || 'PageSpeed analysis failed'
-      }
+    return {
+      url: fullUrl,
+      performance_score: data.lighthouseResult?.categories?.performance?.score ? Math.round(data.lighthouseResult.categories.performance.score * 100) : undefined,
+      seo_score: data.lighthouseResult?.categories?.seo?.score ? Math.round(data.lighthouseResult.categories.seo.score * 100) : undefined,
+      loading_experience: data.loadingExperience?.overall_category || 'Unknown',
+      largest_contentful_paint: data.lighthouseResult?.audits?.['largest-contentful-paint']?.numericValue,
+      cumulative_layout_shift: data.lighthouseResult?.audits?.['cumulative-layout-shift']?.numericValue
     }
-
-    const lighthouse = data.lighthouseResult
-    const categories = lighthouse?.categories || {}
-    const audits = lighthouse?.audits || {}
-
-    const result = {
-      url: cleanUrl,
-      performance_score: categories.performance?.score ? Math.round(categories.performance.score * 100) : undefined,
-      seo_score: categories.seo?.score ? Math.round(categories.seo.score * 100) : undefined,
-      // OPTIMIZED: Skip accessibility and best practices for speed
-      largest_contentful_paint: audits['largest-contentful-paint']?.numericValue,
-      cumulative_layout_shift: audits['cumulative-layout-shift']?.numericValue
-    }
-
-    const totalTime = Date.now() - startTime
-    console.log(`✅ Fast PageSpeed analysis completed in ${totalTime}ms. Scores: P:${result.performance_score} S:${result.seo_score}`)
-    
-    return result
   } catch (error) {
-    const totalTime = Date.now() - startTime
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.error(`⏱️ PageSpeed analysis timed out after ${totalTime}ms for: ${url}`)
-      return { url, error: 'Analysis timed out - site may be slow' }
-    }
-    console.error(`❌ Fast PageSpeed analysis failed after ${totalTime}ms:`, error)
+    console.error('PageSpeed analysis error:', error)
     return {
       url,
-      error: `Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: error instanceof Error ? error.message : 'Analysis failed'
     }
   }
 }
 
-// Keep existing function but add faster version above
-async function analyzePageSpeed(url: string, apiKey: string): Promise<PageSpeedResult> {
-  // Use the fast version by default
-  return analyzePageSpeedFast(url, apiKey)
-}
-
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 3959 // Earth's radius in miles
+  const R = 3959 // Radius of the Earth in miles
   const dLat = (lat2 - lat1) * Math.PI / 180
   const dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    Math.sin(dLng/2) * Math.sin(dLng/2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
   return Math.round(R * c * 10) / 10 // Round to 1 decimal place
 }
 
 function calculateSEORankings(competitors: CompetitorWithSEO[], selectedPageSpeed?: PageSpeedResult) {
-  // Sort competitors by overall SEO score (combination of performance and SEO scores)
-  const rankedCompetitors = competitors
-    .filter(c => c.pagespeed_data && !c.pagespeed_data.error)
-    .map(competitor => {
-      const pagespeed = competitor.pagespeed_data!
-      const overallScore = calculateOverallSEOScore(pagespeed)
-      return {
-        ...competitor,
-        seo_rank: overallScore
-      }
-    })
-    .sort((a, b) => (b.seo_rank || 0) - (a.seo_rank || 0))
+  const competitorsWithScores = competitors.filter(c => 
+    c.pagespeed_data && !c.pagespeed_data.error
+  )
 
-  const yourScore = selectedPageSpeed ? calculateOverallSEOScore(selectedPageSpeed) : 0
-  const yourPosition = rankedCompetitors.filter(c => (c.seo_rank || 0) > yourScore).length + 1
+  // Calculate SEO scores for competitors
+  competitorsWithScores.forEach(competitor => {
+    const pagespeedData = competitor.pagespeed_data!
+    competitor.seo_rank = calculateOverallSEOScore(pagespeedData)
+  })
 
-  const performanceScores = rankedCompetitors
-    .map(c => c.pagespeed_data?.performance_score)
-    .filter(score => score !== undefined) as number[]
-  
-  const seoScores = rankedCompetitors
-    .map(c => c.pagespeed_data?.seo_score)
-    .filter(score => score !== undefined) as number[]
+  // Calculate selected med spa's score
+  const selectedScore = selectedPageSpeed ? calculateOverallSEOScore(selectedPageSpeed) : 0
+
+  // Sort competitors by SEO score (highest first)
+  const sortedCompetitors = competitorsWithScores.sort((a, b) => (b.seo_rank || 0) - (a.seo_rank || 0))
+
+  // Find position of selected med spa
+  let yourPosition = sortedCompetitors.length + 1
+  for (let i = 0; i < sortedCompetitors.length; i++) {
+    if (selectedScore > (sortedCompetitors[i].seo_rank || 0)) {
+      yourPosition = i + 1
+      break
+    }
+  }
+
+  const performanceScores = competitorsWithScores.map(c => c.pagespeed_data?.performance_score || 0).filter(s => s > 0)
+  const seoScores = competitorsWithScores.map(c => c.pagespeed_data?.seo_score || 0).filter(s => s > 0)
 
   return {
-    competitors: rankedCompetitors,
+    competitors: sortedCompetitors,
     yourPosition,
-    averagePerformanceScore: performanceScores.length > 0 
-      ? Math.round(performanceScores.reduce((a, b) => a + b, 0) / performanceScores.length)
-      : 0,
-    averageSEOScore: seoScores.length > 0 
-      ? Math.round(seoScores.reduce((a, b) => a + b, 0) / seoScores.length)
-      : 0,
-    topPerformer: rankedCompetitors[0] || null
+    averagePerformanceScore: performanceScores.length > 0 ? Math.round(performanceScores.reduce((a, b) => a + b, 0) / performanceScores.length) : 0,
+    averageSEOScore: seoScores.length > 0 ? Math.round(seoScores.reduce((a, b) => a + b, 0) / seoScores.length) : 0,
+    topPerformer: sortedCompetitors[0] || null
   }
 }
 
 function calculateOverallSEOScore(pagespeed: PageSpeedResult): number {
-  const performance = pagespeed.performance_score || 0
-  const seo = pagespeed.seo_score || 0
+  const scores = [
+    pagespeed.performance_score || 0,
+    pagespeed.seo_score || 0
+  ].filter(score => score > 0)
   
-  // OPTIMIZED: Simplified calculation since we're not getting all scores
-  return Math.round((performance * 0.6) + (seo * 0.4))
+  return scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
 }
 
 function generateSEORecommendations(analysis: any, selectedPageSpeed?: PageSpeedResult): string[] {
   const recommendations: string[] = []
-
-  if (!selectedPageSpeed) {
-    recommendations.push("Add a website to your Google Business Profile to compete effectively")
+  
+  if (!selectedPageSpeed || selectedPageSpeed.error) {
+    recommendations.push("Create a professional website to establish online presence")
+    recommendations.push("Set up Google Business Profile optimization")
+    recommendations.push("Implement local SEO strategy")
     return recommendations
   }
 
-  if (selectedPageSpeed.error) {
-    recommendations.push("Fix website accessibility issues to enable proper SEO analysis")
-    return recommendations
+  if ((selectedPageSpeed.performance_score || 0) < 70) {
+    recommendations.push("Improve website loading speed - currently slower than competitors")
   }
 
-  const performance = selectedPageSpeed.performance_score || 0
-  const seo = selectedPageSpeed.seo_score || 0
-
-  if (performance < 50) {
-    recommendations.push("Critical: Improve website loading speed - your performance score is significantly below average")
-  } else if (performance < 75) {
-    recommendations.push("Optimize website performance to match top competitors")
-  }
-
-  if (seo < 80) {
-    recommendations.push("Improve on-page SEO elements (meta tags, headings, structured data)")
+  if ((selectedPageSpeed.seo_score || 0) < 80) {
+    recommendations.push("Optimize page titles and meta descriptions for local search")
+    recommendations.push("Add location-based keywords to content")
   }
 
   if (analysis.yourPosition > 3) {
-    recommendations.push("Focus on technical SEO improvements to outrank local competitors")
+    recommendations.push("Improve local search rankings - currently ranking lower than top competitors")
   }
 
-  if (selectedPageSpeed.largest_contentful_paint && selectedPageSpeed.largest_contentful_paint > 2500) {
-    recommendations.push("Optimize largest contentful paint (reduce image sizes, improve hosting)")
-  }
-
+  recommendations.push("Collect more customer reviews to improve local presence")
+  
   return recommendations
 } 

@@ -1,10 +1,37 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    domains: ['images.ctfassets.net', 'maps.googleapis.com'],
-  },
+  // Increase timeouts for API routes
   experimental: {
-    serverComponentsExternalPackages: ['puppeteer', 'cheerio']
+    serverComponentsExternalPackages: ['puppeteer'],
+    workerThreads: false,
+    optimizeCss: true,
+  },
+  // API routes timeout configuration
+  serverRuntimeConfig: {
+    // Will only be available on the server side
+    apiTimeout: 120000, // 2 minutes for AI API calls
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'maps.googleapis.com',
+        port: '',
+        pathname: '/maps/api/place/photo/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
+  compress: true,
+  swcMinify: true,
+  onDemandEntries: {
+    maxInactiveAge: 60 * 1000,
+    pagesBufferLength: 5,
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
