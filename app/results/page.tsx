@@ -205,9 +205,10 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
       setGenerationProgress(100)
       setGenerationStep('Website ready!')
       
+      // Store the generated website data and navigate immediately to AI builder
       setTimeout(() => {
-        setGeneratedWebsite(result)
-        setIsGenerating(false)
+        localStorage.setItem('generatedWebsiteData', JSON.stringify(result))
+        router.push('/ai-builder?view=true')
       }, 500)
 
     } catch (error) {
@@ -231,109 +232,38 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
     setGenerationStep('')
   }
 
-  if (generatedWebsite) {
-    return (
-      <motion.div 
-        className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 shadow-md border border-green-100"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-blue-600 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-green-900">
-                ✅ Website Generated Successfully!
-              </h3>
-              <p className="text-green-700 text-sm">
-                Your new website for {medSpaData.name} is ready
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-sm text-green-800">Modern React components</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-sm text-green-800">Uses your real business data</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-sm text-green-800">Mobile responsive & SEO optimized</span>
-            </div>
-          </div>
-          <div className="bg-white/60 rounded-lg p-4">
-            <div className="text-2xl font-bold text-green-600 mb-1">
-              Ready to Deploy
-            </div>
-            <div className="text-sm text-green-700">
-              Download and launch your new website
-            </div>
-            <div className="text-xs text-green-600 mt-1">
-              Built with React, TypeScript & Tailwind CSS
-            </div>
-          </div>
-        </div>
-
-        <div className="flex space-x-4">
-          <button
-            onClick={handleViewWebsite}
-            className="flex-1 px-6 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
-          >
-            <Eye className="w-5 h-5" />
-            <span>View & Download Website</span>
-          </button>
-          <button
-            onClick={handleTryAgain}
-            className="px-4 py-4 bg-white text-gray-700 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-          >
-            Generate New
-          </button>
-        </div>
-      </motion.div>
-    )
-  }
-
   if (isGenerating) {
     return (
       <motion.div 
-        className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 shadow-md border border-blue-100"
+        className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-10 shadow-md border border-blue-100 min-h-[350px]"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-blue-900">
+              <h3 className="text-2xl font-bold text-blue-900">
                 🤖 Building Your Website...
               </h3>
-              <p className="text-blue-700 text-sm">
+              <p className="text-blue-700 text-base">
                 Creating a professional website for {medSpaData.name}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-blue-700">{generationStep}</span>
-            <span className="text-sm text-blue-500">{generationProgress}%</span>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-base font-medium text-blue-700">{generationStep}</span>
+            <span className="text-base text-blue-500">{generationProgress}%</span>
           </div>
-          <div className="w-full bg-blue-200 rounded-full h-3">
+          <div className="w-full bg-blue-200 rounded-full h-4">
             <motion.div
-              className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 h-4 rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${generationProgress}%` }}
               transition={{ duration: 0.5 }}
@@ -341,7 +271,7 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
           </div>
         </div>
 
-        <div className="text-center text-sm text-blue-600">
+        <div className="text-center text-base text-blue-600 py-4">
           Please wait while we generate your professional website...
         </div>
       </motion.div>
@@ -351,21 +281,21 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
   if (error) {
     return (
       <motion.div 
-        className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-8 shadow-md border border-red-100"
+        className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-10 shadow-md border border-red-100 min-h-[350px]"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-pink-600 rounded-xl flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-red-600 to-pink-600 rounded-xl flex items-center justify-center">
+              <AlertTriangle className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-red-900">
+              <h3 className="text-2xl font-bold text-red-900">
                 ⚠️ Generation Failed
               </h3>
-              <p className="text-red-700 text-sm">
+              <p className="text-red-700 text-base">
                 {error}
               </p>
             </div>
@@ -375,14 +305,14 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
         <div className="flex space-x-4">
           <button
             onClick={handleGenerateWebsite}
-            className="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-pink-700 transition-all duration-200 flex items-center justify-center space-x-2"
+            className="flex-1 px-8 py-5 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-pink-700 transition-all duration-200 flex items-center justify-center space-x-3 text-lg"
           >
-            <RefreshCw className="w-5 h-5" />
+            <RefreshCw className="w-6 h-6" />
             <span>Try Again</span>
           </button>
           <button
             onClick={handleTryAgain}
-            className="px-4 py-4 bg-white text-gray-700 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+            className="px-6 py-5 bg-white text-gray-700 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors text-lg"
           >
             Cancel
           </button>
@@ -393,50 +323,50 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
 
   return (
     <motion.div 
-      className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-8 shadow-md border border-purple-100"
+      className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-10 shadow-md border border-purple-100 min-h-[400px]"
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-white" />
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center space-x-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-purple-900">
+            <h3 className="text-2xl font-bold text-purple-900">
               🚀 Build a Better Website with AI
             </h3>
-            <p className="text-purple-700 text-sm">
+            <p className="text-purple-700 text-base">
               Create a high-converting landing page in 60 seconds
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-purple-600" />
-            <span className="text-sm text-purple-800">AI-powered website generation</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3">
+            <CheckCircle className="w-6 h-6 text-purple-600" />
+            <span className="text-base text-purple-800">AI-powered website generation</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-purple-600" />
-            <span className="text-sm text-purple-800">Uses your real business data & photos</span>
+          <div className="flex items-center space-x-3">
+            <CheckCircle className="w-6 h-6 text-purple-600" />
+            <span className="text-base text-purple-800">Uses your real business data & photos</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-purple-600" />
-            <span className="text-sm text-purple-800">Optimized for mobile & SEO</span>
+          <div className="flex items-center space-x-3">
+            <CheckCircle className="w-6 h-6 text-purple-600" />
+            <span className="text-base text-purple-800">Optimized for mobile & SEO</span>
           </div>
         </div>
-        <div className="bg-white/60 rounded-lg p-4">
-          <div className="text-2xl font-bold text-purple-600 mb-1">
+        <div className="bg-white/60 rounded-lg p-6">
+          <div className="text-3xl font-bold text-purple-600 mb-2">
             Expected Improvement
           </div>
-          <div className="text-sm text-purple-700">
+          <div className="text-base text-purple-700 mb-2">
             +{Math.max(20, 90 - currentSEOScore)} points SEO score
           </div>
-          <div className="text-xs text-purple-600 mt-1">
+          <div className="text-sm text-purple-600 mt-2">
             Based on similar medical spa improvements
           </div>
         </div>
@@ -444,9 +374,9 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
 
       <button
         onClick={handleGenerateWebsite}
-        className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+        className="w-full px-8 py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-3 text-lg"
       >
-        <Rocket className="w-5 h-5" />
+        <Rocket className="w-6 h-6" />
         <span>Generate AI Website</span>
       </button>
     </motion.div>
