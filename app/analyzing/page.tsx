@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { 
   Check,
   Loader2,
@@ -161,10 +162,9 @@ export default function AnalyzingPage() {
         }
       }
 
-      // All steps completed - show large business profile instead of proceeding to API
-      console.log('All steps completed! Setting allStepsCompleted to true')
+      // All steps completed - now proceed to actual API call
+      console.log('All steps completed! Starting SEO analysis API call...')
       setAllStepsCompleted(true)
-      return
 
       // Start actual API call
       const response = await fetch('/api/seo-analysis', {
@@ -274,7 +274,12 @@ export default function AnalyzingPage() {
             >
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Running... {formatTime(timeRemaining)} remaining</span>
+                <span>
+                  {allStepsCompleted 
+                    ? 'Generating report...' 
+                    : `Running... ${formatTime(timeRemaining)} remaining`
+                  }
+                </span>
               </div>
             </motion.div>
 
@@ -586,7 +591,9 @@ export default function AnalyzingPage() {
                   <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
                     <div className="grid grid-cols-3 gap-6">
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-gray-900">23</div>
+                        <div className="text-3xl font-bold text-gray-900">
+                          {selectedMedspa?.photos?.length || 0}
+                        </div>
                         <div className="text-sm text-gray-500">Total Photos</div>
                       </div>
                       <div className="text-center">
@@ -594,7 +601,9 @@ export default function AnalyzingPage() {
                         <div className="text-sm text-gray-500">Quality Score</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-red-600">Low</div>
+                        <div className="text-3xl font-bold text-red-600">
+                          {(selectedMedspa?.photos?.length || 0) < 10 ? 'Low' : 'Good'}
+                        </div>
                         <div className="text-sm text-gray-500">Quantity Rating</div>
                       </div>
                     </div>
@@ -602,32 +611,72 @@ export default function AnalyzingPage() {
 
                   {/* Photo Grid */}
                   <div className="grid grid-cols-3 gap-4">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((photo, index) => (
-                      <motion.div
-                        key={index}
-                        className="aspect-square bg-gray-200 rounded-lg overflow-hidden"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
-                          <div className="text-center">
-                            <MapPin className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                            <div className="text-xs text-gray-600">Photo {photo}</div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                    {selectedMedspa?.photos?.slice(0, 9).map((photo: any, index: number) => {
+                      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+                      
+                      return (
+                        <motion.div
+                          key={index}
+                          className="aspect-square bg-gray-200 rounded-lg overflow-hidden"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          {photo.photo_reference && apiKey ? (
+                            <Image
+                              src={`https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${apiKey}`}
+                              alt={`${selectedMedspa.name} photo ${index + 1}`}
+                              width={400}
+                              height={400}
+                              className="w-full h-full object-cover"
+                              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                // Fallback to placeholder if image fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `
+                                    <div class="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+                                      <div class="text-center">
+                                        <svg class="w-8 h-8 text-gray-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <div class="text-xs text-gray-600">Photo ${index + 1}</div>
+                                      </div>
+                                    </div>
+                                  `;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+                              <div className="text-center">
+                                <svg className="w-8 h-8 text-gray-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <div className="text-xs text-gray-600">Photo {index + 1}</div>
+                              </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
                   </div>
 
                   {/* Recommendations */}
                   <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <h3 className="font-medium text-yellow-800 mb-2">Recommendations</h3>
                     <ul className="text-sm text-yellow-700 space-y-1">
-                      <li>• Add more high-quality exterior photos</li>
+                      {(selectedMedspa?.photos?.length || 0) < 5 && (
+                        <li>• Add more photos - you only have {selectedMedspa?.photos?.length || 0} photos</li>
+                      )}
+                      <li>• Add high-quality exterior photos</li>
                       <li>• Include photos of treatment rooms</li>
                       <li>• Add before/after photos (with consent)</li>
                       <li>• Include staff photos for personal touch</li>
+                      {(selectedMedspa?.photos?.length || 0) >= 10 && (
+                        <li>• Great photo quantity! Focus on improving quality</li>
+                      )}
                     </ul>
                   </div>
                 </div>
