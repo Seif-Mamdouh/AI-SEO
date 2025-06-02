@@ -13,7 +13,7 @@ import {
 
 export default function AnalyzingPage() {
   const [currentStep, setCurrentStep] = useState(0)
-  const [timeRemaining, setTimeRemaining] = useState(8) // Reduced time since API runs in parallel with animations
+  const [timeRemaining, setTimeRemaining] = useState(60)
   const [selectedMedspa, setSelectedMedspa] = useState<MedSpa | null>(null)
   const [competitors, setCompetitors] = useState<Competitor[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
@@ -25,31 +25,31 @@ export default function AnalyzingPage() {
       id: 'medspa-competitors',
       title: `${selectedMedspa?.name || 'Med spa'} & competitors`,
       status: 'pending',
-      duration: 2
+      duration: 5
     },
     {
       id: 'google-profile',
       title: 'Google business profile',
       status: 'pending',
-      duration: 3
+      duration: 5 
     },
     {
       id: 'review-sentiment',
       title: 'Google review sentiment',
       status: 'pending',
-      duration: 2
+      duration: 5
     },
     {
       id: 'photo-quality',
       title: 'Photo quality and quantity',
       status: 'pending',
-      duration: 2
+      duration: 5
     },
     {
       id: 'website-analysis',
       title: selectedMedspa?.website || 'Website analysis',
       status: 'pending',
-      duration: 4
+      duration: 5
     }
   ]
 
@@ -144,9 +144,37 @@ export default function AnalyzingPage() {
           if (i === 2) {
             setTimeout(() => {
               // Extract reviews from selectedMedspa data if available
+              console.log('🔍 Step 2 Debug - Review Processing:', {
+                stepIndex: i,
+                selectedMedspaDataFull: selectedMedspaData,
+                hasReviews: !!selectedMedspaData.reviews,
+                reviewsLength: selectedMedspaData.reviews?.length || 0,
+                reviewsData: selectedMedspaData.reviews
+              })
+              
               if (selectedMedspaData.reviews && selectedMedspaData.reviews.length > 0) {
                 setReviews(selectedMedspaData.reviews)
                 console.log('✅ Using real reviews data:', selectedMedspaData.reviews.length)
+                console.log('📊 Reviews set in state:', selectedMedspaData.reviews)
+              } else {
+                console.log('❌ No reviews found in selectedMedspaData')
+                console.log('🔍 Checking other review sources...')
+                
+                // Check if analysis results have reviews
+                const storedResults = localStorage.getItem('analysisResults')
+                if (storedResults) {
+                  const parsedResults = JSON.parse(storedResults)
+                  console.log('🔍 Analysis Results Debug:', {
+                    hasSelectedMedspa: !!parsedResults.selectedMedspa,
+                    selectedMedspaReviews: parsedResults.selectedMedspa?.reviews,
+                    reviewsLength: parsedResults.selectedMedspa?.reviews?.length || 0
+                  })
+                  
+                  if (parsedResults.selectedMedspa?.reviews?.length > 0) {
+                    setReviews(parsedResults.selectedMedspa.reviews)
+                    console.log('✅ Found reviews in analysis results:', parsedResults.selectedMedspa.reviews.length)
+                  }
+                }
               }
             }, 500) // Set reviews after 0.5 seconds
           }

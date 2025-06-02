@@ -41,9 +41,46 @@ interface PageSpeedResult {
   error?: string
 }
 
+interface WebsiteParseResult {
+  url: string
+  title?: string
+  description?: string
+  keywords?: string
+  headings: {
+    h1: string[]
+    h2: string[]
+    h3: string[]
+  }
+  images: {
+    src: string
+    alt: string
+  }[]
+  links: {
+    href: string
+    text: string
+  }[]
+  socialLinks: {
+    platform: string
+    url: string
+  }[]
+  contactInfo: {
+    email?: string
+    phone?: string
+  }
+  structure: {
+    hasNavigation: boolean
+    hasFooter: boolean
+    hasContactForm: boolean
+    hasBookingForm: boolean
+  }
+  screenshot?: string
+  error?: string
+}
+
 interface CompetitorWithSEO extends PlaceDetails {
   distance_miles?: number
   pagespeed_data?: PageSpeedResult
+  website_data?: WebsiteParseResult
   seo_rank?: number
 }
 
@@ -98,6 +135,17 @@ export async function POST(request: NextRequest) {
       const detailsResponse = await fetch(detailsUrl)
       const detailsData = await detailsResponse.json()
       console.log('📊 Places Details response status:', detailsResponse.status)
+      console.log('🔍 Google Places API Debug:', {
+        url: detailsUrl,
+        responseStatus: detailsResponse.status,
+        hasResult: !!detailsData.result,
+        resultKeys: detailsData.result ? Object.keys(detailsData.result) : null,
+        reviews: detailsData.result?.reviews,
+        reviewsLength: detailsData.result?.reviews?.length || 0,
+        rating: detailsData.result?.rating,
+        userRatingsTotal: detailsData.result?.user_ratings_total,
+        fullResponse: detailsData
+      })
 
       if (!detailsResponse.ok || !detailsData.result) {
         console.log('❌ Failed to get med spa details:', detailsData.error_message || 'Unknown error')
@@ -109,6 +157,14 @@ export async function POST(request: NextRequest) {
 
       medSpaDetails = detailsData.result
       console.log('✅ Got med spa details with coordinates:', medSpaDetails.geometry?.location)
+      console.log('🔍 Med Spa Details Debug:', {
+        name: medSpaDetails.name,
+        rating: medSpaDetails.rating,
+        userRatingsTotal: medSpaDetails.user_ratings_total,
+        hasReviews: !!medSpaDetails.reviews,
+        reviewsCount: medSpaDetails.reviews?.length || 0,
+        reviewsData: medSpaDetails.reviews
+      })
     } else {
       medSpaDetails = selectedMedspa
       console.log('✅ Using existing coordinates:', medSpaDetails.geometry?.location)
@@ -251,22 +307,69 @@ export async function POST(request: NextRequest) {
     )
 
     // Step 5: Analyze selected med spa if it has a website
-    console.log('⚡ Step 5: Analyzing selected med spa PageSpeed...')
+    console.log('⚡ Step 5: Analyzing selected med spa PageSpeed and website content...')
     let selectedMedSpaPageSpeed: PageSpeedResult | undefined
+    let selectedMedSpaWebsiteData: WebsiteParseResult | undefined
+    
     if (medSpaDetails.website) {
       console.log(`⚡ Analyzing PageSpeed for selected med spa: ${medSpaDetails.website}`)
       try {
-        selectedMedSpaPageSpeed = await analyzePageSpeed(medSpaDetails.website, pageSpeedApiKey)
+        // Run PageSpeed and Website parsing in parallel
+        const [pageSpeedResult, websiteParseResult] = await Promise.all([
+          analyzePageSpeed(medSpaDetails.website, pageSpeedApiKey),
+          fetch(`${request.nextUrl.origin}/api/website-parse`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: medSpaDetails.website })
+          }).then(res => res.json()).catch(error => {
+            console.error('❌ Website parsing failed:', error)
+            return {
+              url: medSpaDetails.website,
+              headings: { h1: [], h2: [], h3: [] },
+              images: [],
+              links: [],
+              socialLinks: [],
+              contactInfo: {},
+              structure: {
+                hasNavigation: false,
+                hasFooter: false,
+                hasContactForm: false,
+                hasBookingForm: false
+              },
+              error: 'Website parsing failed'
+            }
+          })
+        ])
+        
+        selectedMedSpaPageSpeed = pageSpeedResult
+        selectedMedSpaWebsiteData = websiteParseResult
+        
         console.log(`✅ PageSpeed analysis completed for selected med spa: ${selectedMedSpaPageSpeed.error ? 'FAILED' : 'SUCCESS'}`)
+        console.log(`✅ Website parsing completed for selected med spa: ${selectedMedSpaWebsiteData?.error ? 'FAILED' : 'SUCCESS'}`)
       } catch (error) {
-        console.error('❌ PageSpeed analysis failed for selected med spa:', error)
+        console.error('❌ Selected med spa analysis failed:', error)
         selectedMedSpaPageSpeed = {
           url: medSpaDetails.website,
           error: 'Analysis failed'
         }
+        selectedMedSpaWebsiteData = {
+          url: medSpaDetails.website,
+          headings: { h1: [], h2: [], h3: [] },
+          images: [],
+          links: [],
+          socialLinks: [],
+          contactInfo: {},
+          structure: {
+            hasNavigation: false,
+            hasFooter: false,
+            hasContactForm: false,
+            hasBookingForm: false
+          },
+          error: 'Website parsing failed'
+        }
       }
     } else {
-      console.log('⏭️ Selected med spa has no website, skipping PageSpeed analysis')
+      console.log('⏭️ Selected med spa has no website, skipping analysis')
     }
 
     // Step 6: Calculate SEO rankings and competitive analysis
@@ -277,10 +380,11 @@ export async function POST(request: NextRequest) {
     const totalTime = Date.now() - startTime
     console.log(`🎉 SEO Analysis completed successfully in ${totalTime}ms`)
 
-    return NextResponse.json({
+    const responseData = {
       selectedMedspa: {
         ...medSpaDetails,
         pagespeed_data: selectedMedSpaPageSpeed,
+        website_data: selectedMedSpaWebsiteData || undefined,
         reviews: medSpaDetails.reviews || []
       },
       competitors: seoAnalysis.competitors,
@@ -293,7 +397,19 @@ export async function POST(request: NextRequest) {
         topPerformer: seoAnalysis.topPerformer,
         recommendations: generateSEORecommendations(seoAnalysis, selectedMedSpaPageSpeed)
       }
+    }
+
+    console.log('🔍 Final API Response Debug:', {
+      selectedMedspaName: responseData.selectedMedspa.name,
+      selectedMedspaRating: responseData.selectedMedspa.rating,
+      selectedMedspaUserRatingsTotal: responseData.selectedMedspa.user_ratings_total,
+      hasReviews: !!responseData.selectedMedspa.reviews,
+      reviewsLength: responseData.selectedMedspa.reviews?.length || 0,
+      reviewsArray: responseData.selectedMedspa.reviews,
+      fullSelectedMedspa: responseData.selectedMedspa
     })
+
+    return NextResponse.json(responseData)
 
   } catch (error) {
     const totalTime = Date.now() - startTime
