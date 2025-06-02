@@ -169,7 +169,7 @@ export default function Home() {
       // Store the selected med spa data for the analyzing page
       localStorage.setItem('analyzingMedspa', JSON.stringify(selectedMedspa))
       
-      // Store flag to generate LLM report
+      // Store flag to generate LLM report (enabled by default)
       localStorage.setItem('generateLLMReport', 'true')
       
       // Navigate to the analyzing page

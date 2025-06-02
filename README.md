@@ -1,19 +1,3 @@
----
-name: Vercel Postgres + Prisma Next.js Starter
-slug: postgres-prisma
-description: Simple Next.js template that uses Vercel Postgres as the database and Prisma as the ORM.
-framework: Next.js
-useCase: Starter
-css: Tailwind
-database: Vercel Postgres
-deployUrl: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fexamples%2Ftree%2Fmain%2Fstorage%2Fpostgres-prisma&project-name=postgres-prisma&repository-name=postgres-prisma&demo-title=Vercel%20Postgres%20%2B%20Prisma%20Next.js%20Starter&demo-description=Simple%20Next.js%20template%20that%20uses%20Vercel%20Postgres%20as%20the%20database%20and%20Prisma%20as%20the%20ORM.&demo-url=https%3A%2F%2Fpostgres-prisma.vercel.app%2F&demo-image=https%3A%2F%2Fpostgres-prisma.vercel.app%2Fopengraph-image.png&stores=%5B%7B"type"%3A"postgres"%7D%5D
-demoUrl: https://postgres-prisma.vercel.app/
-relatedTemplates:
-  - postgres-starter
-  - postgres-kysely
-  - postgres-sveltekit
----
-
 # MedSpa Website Scanner & AI Builder
 
 A Next.js application that scans and analyzes med spa websites for SEO performance, competitor analysis, and includes an AI-powered website builder.
@@ -80,14 +64,6 @@ A Next.js application that scans and analyzes med spa websites for SEO performan
 4. Click "Generate Website" and wait for AI to create your site
 5. Preview the generated website and switch between HTML, CSS, and JS views
 6. Download the complete website files
-
-### Example Prompts
-
-- **Med Spa**: "Create a modern medical spa website with hero section, services grid featuring facial treatments ($120), botox ($350), laser therapy ($200), customer testimonials, and online booking form. Use blue and white color scheme."
-
-- **Restaurant**: "Design an elegant Italian restaurant website with hero image, menu showcase, chef biography, and reservation system. Use warm colors and include pasta, pizza, and wine selections."
-
-- **Business**: "Build a professional consulting company website with services overview, team profiles, case studies, and contact form. Modern minimalist design with corporate blue theme."
 
 ## API Endpoints
 

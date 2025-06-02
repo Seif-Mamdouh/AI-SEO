@@ -146,12 +146,6 @@ export default function AIBuilder() {
       preview: '/templates/medspa.jpg'
     },
     {
-      name: 'Restaurant Website',
-      description: 'Elegant restaurant with menu and reservations',
-      prompt: 'Design an elegant restaurant website with hero image, menu showcase, chef info, and reservation system. Use warm colors and food photography.',
-      preview: '/templates/restaurant.jpg'
-    },
-    {
       name: 'Business Portfolio',
       description: 'Professional business portfolio site',
       prompt: 'Build a clean business portfolio website with services, team section, case studies, and contact form. Modern minimalist design.',

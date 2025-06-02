@@ -184,14 +184,13 @@ export async function POST(request: NextRequest) {
     const { lat, lng } = medSpaDetails.geometry!.location
     console.log(`🗺️ Med spa location: ${lat}, ${lng}`)
 
-    // Step 2: Find nearby competitors within 10 miles (16093 meters)
+    // Step 2: Find nearby competitors within 10 miles (OPTIMIZED: Reduced radius and limit results)
     console.log('🔍 Step 2: Finding nearby competitors...')
-    const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=16093&type=beauty_salon|spa&key=${googleApiKey}`
+    const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=8047&type=beauty_salon|spa&key=${googleApiKey}` // Reduced to 5 miles
     
     console.log('🌐 Calling Google Places Nearby API...')
     const nearbyResponse = await fetch(nearbyUrl)
     const nearbyData = await nearbyResponse.json()
-    console.log('📊 Places Nearby response status:', nearbyResponse.status)
     console.log('📊 Found places:', nearbyData.results?.length || 0)
 
     if (!nearbyResponse.ok) {
@@ -202,7 +201,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Filter for medical spas and aesthetic clinics, exclude the selected one
+    // Filter for medical spas and aesthetic clinics, exclude the selected one (OPTIMIZED: Limit to top 5)
     const competitors = nearbyData.results?.filter((place: any) => {
       const name = place.name.toLowerCase()
       const types = place.types || []
@@ -226,17 +225,15 @@ export async function POST(request: NextRequest) {
         types.includes('health') ||
         types.includes('beauty_salon')
       )
-    }) || []
+    }).slice(0, 5) || [] // OPTIMIZED: Limit to 5 competitors
 
     console.log(`🏢 Filtered to ${competitors.length} relevant competitors`)
-    const competitorNames = competitors.slice(0, 8).map((c: any) => c.name)
-    console.log('🏢 Top competitors:', competitorNames)
 
-    // Step 3: Get detailed information for competitors and calculate distances
-    console.log('📍 Step 3: Getting detailed competitor information...')
+    // Step 3: Get detailed information for competitors in PARALLEL (OPTIMIZED)
+    console.log('📍 Step 3: Getting detailed competitor information in parallel...')
     const detailedCompetitors: CompetitorWithSEO[] = await Promise.all(
-      competitors.slice(0, 8).map(async (competitor: any, index: number): Promise<CompetitorWithSEO> => {
-        console.log(`🔍 Processing competitor ${index + 1}/${Math.min(competitors.length, 8)}: ${competitor.name}`)
+      competitors.map(async (competitor: any, index: number): Promise<CompetitorWithSEO> => {
+        console.log(`🔍 Processing competitor ${index + 1}/${competitors.length}: ${competitor.name}`)
         try {
           const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${competitor.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry&key=${googleApiKey}`
           
@@ -287,104 +284,63 @@ export async function POST(request: NextRequest) {
     const competitorsWithWebsites = detailedCompetitors.filter((competitor: CompetitorWithSEO) => competitor.website)
     console.log(`🌐 Found ${competitorsWithWebsites.length} competitors with websites`)
 
-    // Step 4: Run PageSpeed Insights analysis for competitors with websites
-    console.log('⚡ Step 4: Running PageSpeed analysis for competitors...')
-    const competitorsWithSEO: CompetitorWithSEO[] = await Promise.all(
-      detailedCompetitors.map(async (competitor, index): Promise<CompetitorWithSEO> => {
+    // Step 4: Run PageSpeed analysis in PARALLEL with faster timeouts (OPTIMIZED)
+    console.log('⚡ Step 4: Running PageSpeed analysis in parallel...')
+    
+    // PARALLEL execution for both selected med spa and competitors
+    const analysisPromises: Promise<any>[] = []
+    
+    // Add selected med spa analysis if it has a website
+    if (medSpaDetails.website) {
+      analysisPromises.push(
+        Promise.all([
+          analyzePageSpeedFast(medSpaDetails.website, pageSpeedApiKey),
+          fetch(`${request.nextUrl.origin}/api/website-parse`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: medSpaDetails.website })
+          }).then(res => res.json()).catch(() => ({
+            url: medSpaDetails.website,
+            headings: { h1: [], h2: [], h3: [] },
+            images: [], links: [], socialLinks: [], contactInfo: {},
+            structure: { hasNavigation: false, hasFooter: false, hasContactForm: false, hasBookingForm: false },
+            error: 'Website parsing failed'
+          }))
+        ]).then(([pageSpeed, websiteData]) => ({ pageSpeed, websiteData }))
+      )
+    } else {
+      analysisPromises.push(Promise.resolve({ pageSpeed: null, websiteData: null }))
+    }
+
+    // Add competitor analysis promises
+    const competitorAnalysisPromise = Promise.all(
+      detailedCompetitors.map(async (competitor): Promise<CompetitorWithSEO> => {
         if (competitor.website) {
-          console.log(`⚡ Analyzing PageSpeed for ${competitor.name}: ${competitor.website}`)
           try {
-            const pagespeedData = await analyzePageSpeed(competitor.website, pageSpeedApiKey)
-            console.log(`✅ PageSpeed analysis completed for ${competitor.name}: ${pagespeedData.error ? 'FAILED' : 'SUCCESS'}`)
-            return {
-              ...competitor,
-              pagespeed_data: pagespeedData
-            }
+            const pagespeedData = await analyzePageSpeedFast(competitor.website, pageSpeedApiKey)
+            return { ...competitor, pagespeed_data: pagespeedData }
           } catch (error) {
             console.error(`❌ PageSpeed analysis failed for ${competitor.name}:`, error)
-            return {
-              ...competitor,
-              pagespeed_data: {
-                url: competitor.website,
-                error: 'Analysis failed'
-              }
-            }
+            return { ...competitor, pagespeed_data: { url: competitor.website, error: 'Analysis failed' } }
           }
         } else {
-          console.log(`⏭️ Skipping PageSpeed for ${competitor.name} (no website)`)
           return competitor
         }
       })
     )
 
-    // Step 5: Analyze selected med spa if it has a website
-    console.log('⚡ Step 5: Analyzing selected med spa PageSpeed and website content...')
-    let selectedMedSpaPageSpeed: PageSpeedResult | undefined
-    let selectedMedSpaWebsiteData: WebsiteParseResult | undefined
-    
-    if (medSpaDetails.website) {
-      console.log(`⚡ Analyzing PageSpeed for selected med spa: ${medSpaDetails.website}`)
-      try {
-        // Run PageSpeed and Website parsing in parallel
-        const [pageSpeedResult, websiteParseResult] = await Promise.all([
-          analyzePageSpeed(medSpaDetails.website, pageSpeedApiKey),
-          fetch(`${request.nextUrl.origin}/api/website-parse`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: medSpaDetails.website })
-          }).then(res => res.json()).catch(error => {
-            console.error('❌ Website parsing failed:', error)
-            return {
-              url: medSpaDetails.website,
-              headings: { h1: [], h2: [], h3: [] },
-              images: [],
-              links: [],
-              socialLinks: [],
-              contactInfo: {},
-              structure: {
-                hasNavigation: false,
-                hasFooter: false,
-                hasContactForm: false,
-                hasBookingForm: false
-              },
-              error: 'Website parsing failed'
-            }
-          })
-        ])
-        
-        selectedMedSpaPageSpeed = pageSpeedResult
-        selectedMedSpaWebsiteData = websiteParseResult
-        
-        console.log(`✅ PageSpeed analysis completed for selected med spa: ${selectedMedSpaPageSpeed.error ? 'FAILED' : 'SUCCESS'}`)
-        console.log(`✅ Website parsing completed for selected med spa: ${selectedMedSpaWebsiteData?.error ? 'FAILED' : 'SUCCESS'}`)
-      } catch (error) {
-        console.error('❌ Selected med spa analysis failed:', error)
-        selectedMedSpaPageSpeed = {
-          url: medSpaDetails.website,
-          error: 'Analysis failed'
-        }
-        selectedMedSpaWebsiteData = {
-          url: medSpaDetails.website,
-          headings: { h1: [], h2: [], h3: [] },
-          images: [],
-          links: [],
-          socialLinks: [],
-          contactInfo: {},
-          structure: {
-            hasNavigation: false,
-            hasFooter: false,
-            hasContactForm: false,
-            hasBookingForm: false
-          },
-          error: 'Website parsing failed'
-        }
-      }
-    } else {
-      console.log('⏭️ Selected med spa has no website, skipping analysis')
-    }
+    // Execute all analysis in parallel
+    const [selectedMedSpaAnalysis, competitorsWithSEO] = await Promise.all([
+      analysisPromises[0],
+      competitorAnalysisPromise
+    ])
 
-    // Step 6: Calculate SEO rankings and competitive analysis
-    console.log('📊 Step 6: Calculating SEO rankings...')
+    const { pageSpeed: selectedMedSpaPageSpeed, websiteData: selectedMedSpaWebsiteData } = selectedMedSpaAnalysis || {}
+
+    console.log(`✅ All analysis completed in parallel`)
+
+    // Step 5: Calculate SEO rankings
+    console.log('📊 Step 5: Calculating SEO rankings...')
     const seoAnalysis = calculateSEORankings(competitorsWithSEO, selectedMedSpaPageSpeed)
     console.log(`📊 SEO analysis complete. Your position: #${seoAnalysis.yourPosition}`)
 
@@ -410,10 +366,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Step 7: Generate LLM analysis report if requested
+    // Step 6: Generate LLM analysis report ONLY if explicitly requested (OPTIMIZED)
     let llmReport = null
     if (generate_llm_report) {
-      console.log('🤖 Step 7: Generating LLM analysis report...')
+      console.log('🤖 Step 6: Generating LLM analysis report...')
       try {
         const llmResponse = await fetch(`${request.nextUrl.origin}/api/llm-seo-analysis`, {
           method: 'POST',
@@ -458,24 +414,33 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function analyzePageSpeed(url: string, apiKey: string): Promise<PageSpeedResult> {
+// OPTIMIZED: Faster PageSpeed analysis with shorter timeout
+async function analyzePageSpeedFast(url: string, apiKey: string): Promise<PageSpeedResult> {
   const startTime = Date.now()
-  console.log(`⚡ Starting PageSpeed analysis for: ${url}`)
+  console.log(`⚡ Starting FAST PageSpeed analysis for: ${url}`)
   
   try {
     // Clean and validate URL
     const cleanUrl = url.startsWith('http') ? url : `https://${url}`
     console.log(`🔗 Cleaned URL: ${cleanUrl}`)
     
-    const pageSpeedUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(cleanUrl)}&strategy=mobile&category=performance&category=accessibility&category=best-practices&category=seo&key=${apiKey}`
+    // OPTIMIZED: Only get essential metrics to speed up analysis
+    const pageSpeedUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(cleanUrl)}&strategy=mobile&category=performance&category=seo&key=${apiKey}`
     
-    console.log(`🌐 Calling PageSpeed Insights API...`)
+    console.log(`🌐 Calling Fast PageSpeed Insights API...`)
+    
+    // OPTIMIZED: Add timeout and use AbortController for faster failures
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout instead of 30
+    
     const response = await fetch(pageSpeedUrl, {
-      timeout: 30000 // 30 second timeout
-    } as any)
+      signal: controller.signal
+    })
+    
+    clearTimeout(timeoutId)
     
     const responseTime = Date.now() - startTime
-    console.log(`📊 PageSpeed API response received in ${responseTime}ms, status: ${response.status}`)
+    console.log(`📊 Fast PageSpeed API response received in ${responseTime}ms, status: ${response.status}`)
     
     const data = await response.json()
     
@@ -494,27 +459,34 @@ async function analyzePageSpeed(url: string, apiKey: string): Promise<PageSpeedR
     const result = {
       url: cleanUrl,
       performance_score: categories.performance?.score ? Math.round(categories.performance.score * 100) : undefined,
-      accessibility_score: categories.accessibility?.score ? Math.round(categories.accessibility.score * 100) : undefined,
-      best_practices_score: categories['best-practices']?.score ? Math.round(categories['best-practices'].score * 100) : undefined,
       seo_score: categories.seo?.score ? Math.round(categories.seo.score * 100) : undefined,
-      loading_experience: data.loadingExperience?.overall_category,
+      // OPTIMIZED: Skip accessibility and best practices for speed
       largest_contentful_paint: audits['largest-contentful-paint']?.numericValue,
-      first_input_delay: audits['max-potential-fid']?.numericValue,
       cumulative_layout_shift: audits['cumulative-layout-shift']?.numericValue
     }
 
     const totalTime = Date.now() - startTime
-    console.log(`✅ PageSpeed analysis completed in ${totalTime}ms. Scores: P:${result.performance_score} S:${result.seo_score} A:${result.accessibility_score}`)
+    console.log(`✅ Fast PageSpeed analysis completed in ${totalTime}ms. Scores: P:${result.performance_score} S:${result.seo_score}`)
     
     return result
   } catch (error) {
     const totalTime = Date.now() - startTime
-    console.error(`❌ PageSpeed analysis failed after ${totalTime}ms:`, error)
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error(`⏱️ PageSpeed analysis timed out after ${totalTime}ms for: ${url}`)
+      return { url, error: 'Analysis timed out - site may be slow' }
+    }
+    console.error(`❌ Fast PageSpeed analysis failed after ${totalTime}ms:`, error)
     return {
       url,
       error: `Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     }
   }
+}
+
+// Keep existing function but add faster version above
+async function analyzePageSpeed(url: string, apiKey: string): Promise<PageSpeedResult> {
+  // Use the fast version by default
+  return analyzePageSpeedFast(url, apiKey)
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -569,11 +541,9 @@ function calculateSEORankings(competitors: CompetitorWithSEO[], selectedPageSpee
 function calculateOverallSEOScore(pagespeed: PageSpeedResult): number {
   const performance = pagespeed.performance_score || 0
   const seo = pagespeed.seo_score || 0
-  const accessibility = pagespeed.accessibility_score || 0
-  const bestPractices = pagespeed.best_practices_score || 0
   
-  // Weighted average: Performance 40%, SEO 30%, Accessibility 20%, Best Practices 10%
-  return Math.round((performance * 0.4) + (seo * 0.3) + (accessibility * 0.2) + (bestPractices * 0.1))
+  // OPTIMIZED: Simplified calculation since we're not getting all scores
+  return Math.round((performance * 0.6) + (seo * 0.4))
 }
 
 function generateSEORecommendations(analysis: any, selectedPageSpeed?: PageSpeedResult): string[] {
@@ -591,7 +561,6 @@ function generateSEORecommendations(analysis: any, selectedPageSpeed?: PageSpeed
 
   const performance = selectedPageSpeed.performance_score || 0
   const seo = selectedPageSpeed.seo_score || 0
-  const accessibility = selectedPageSpeed.accessibility_score || 0
 
   if (performance < 50) {
     recommendations.push("Critical: Improve website loading speed - your performance score is significantly below average")
@@ -601,10 +570,6 @@ function generateSEORecommendations(analysis: any, selectedPageSpeed?: PageSpeed
 
   if (seo < 80) {
     recommendations.push("Improve on-page SEO elements (meta tags, headings, structured data)")
-  }
-
-  if (accessibility < 70) {
-    recommendations.push("Enhance website accessibility to improve user experience and SEO")
   }
 
   if (analysis.yourPosition > 3) {

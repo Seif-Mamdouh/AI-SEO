@@ -617,7 +617,7 @@ export default function ResultsPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
             >
               <h2 className="text-2xl font-bold text-gray-900 mb-2">3. Local Listings</h2>
-              <p className="text-xl text-gray-700 mb-6">Make your restaurant easy to find</p>
+              <p className="text-xl text-gray-700 mb-6">Make {selectedMedspa.name} easy to find</p>
 
               {/* Google Business Profile */}
               <div className="mb-6">
