@@ -124,13 +124,6 @@ export default function BusinessProfileCard({ selectedMedspa }: BusinessProfileC
               <span className="text-sm text-gray-600">$$$</span>
             </div>
             
-            {/* Warning/Status */}
-            <div className="flex items-center space-x-2 mb-4">
-              <AlertTriangle className="w-4 h-4 text-orange-500" />
-              <span className="text-sm text-orange-600">
-                {!businessPhotoUrl ? 'No business photos found' : 'No description found'}
-              </span>
-            </div>
           </div>
         </div>
         
