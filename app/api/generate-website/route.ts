@@ -84,82 +84,36 @@ ${medSpaImages.map((photo: any, index: number) =>
 IMPORTANT: Use these REAL business images instead of placeholders. These are actual photos of the business.`
     }
 
-    const systemPrompt = `You are an expert React developer and medical spa marketing specialist. Create a complete, ACTUAL landing page for the specific medical spa business provided.
+    const systemPrompt = `You are a React developer. Create a complete landing page React component.
 
-CRITICAL INSTRUCTIONS:
-- This is NOT a template or demo - create a REAL landing page for the actual business
-- Use ALL the specific business information provided (name, location, photos, contact details)
-- Generate actual content specific to this med spa, not placeholder text
-- Include real business information throughout the entire page
-- Make it feel like a legitimate business website, not a template
+CRITICAL: You MUST respond EXACTLY in this format:
 
-TECHNICAL REQUIREMENTS:
-- Generate COMPLETE React components using Next.js 13+ App Router
-- Use SHADCN/UI components (Button, Card, Badge, Input, Textarea, etc.)
-- Use Tailwind CSS for styling with modern design patterns
-- Include TypeScript interfaces where appropriate
-- Make it fully responsive with mobile-first design
-- Use React hooks (useState, useEffect) for interactivity
-- Include proper SEO meta tags and schema markup for the specific business
-- Implement smooth animations with Framer Motion
-- Add form validation and error handling
-
-SHADCN COMPONENTS TO USE:
-- Button, Card, CardContent, CardDescription, CardHeader, CardTitle
-- Badge, Input, Textarea, Label, Separator
-- Sheet, Dialog, Tabs, TabsContent, TabsList, TabsTrigger
-- Avatar, AvatarFallback, AvatarImage
-- Alert, AlertDescription, AlertTitle
-
-STRUCTURE YOUR RESPONSE EXACTLY AS:
 REACT_COMPONENT:
-[Complete React component code]
+[Complete React component code here]
 
 STYLES:
-[Additional Tailwind classes or custom CSS if needed]
+[Any additional CSS styles if needed]
 
 TYPES:
-[TypeScript interfaces and types]
+[TypeScript interfaces if needed]
 
-CONTENT REQUIREMENTS FOR THE ACTUAL BUSINESS:
-- Use the EXACT business name provided throughout the page
-- Include the ACTUAL address and location information
-- Use REAL contact information (phone, email) if provided
-- Reference the ACTUAL Google rating and reviews
-- Create content that feels authentic to this specific business
-- Include location-specific references (neighborhood, city landmarks, etc.)
-- Write compelling copy that feels like it was written FOR this specific med spa
+DO NOT include any other text, explanations, or markdown. Just provide the code in the exact format above.
 
-LANDING PAGE SECTIONS TO INCLUDE:
-1. Hero Section: Business name, compelling headline about their services, location
-2. About Section: Professional description of the specific med spa
-3. Services Section: Premium medical spa services with realistic pricing
-4. Gallery Section: Use the actual business photos provided
-5. Testimonials: Reference their actual Google rating and create realistic testimonials
-6. Location & Contact: Real address, phone, business hours
-7. Booking Section: Appointment scheduling with the business name
-8. Footer: Complete business information
-
-MEDICAL SPA CONTENT FOCUS:
-- Premium services: Botox, Dermal Fillers, Laser Treatments, Chemical Peels, Hydrafacials, Microneedling
-- Professional certifications and licensed practitioners
-- Before/after galleries showcasing results
-- Patient testimonials reflecting their actual rating
-- Online booking system branded with their business name
-- Special offers and package deals
-- Safety protocols and medical-grade equipment
-- Actual location information and contact details
+Requirements:
+- Create a landing page for: ${medSpaData?.name || 'Medical Spa'}
+- Use Next.js 13+ with TypeScript
+- Use SHADCN/UI components (Button, Card, Badge, Input, Textarea, etc.)
+- Use Tailwind CSS for styling
+- Make it responsive and professional
+- Include hero section, services, testimonials, contact form
+- Use the business name "${medSpaData?.name}" throughout
+${medSpaData?.formatted_address ? `- Include address: ${medSpaData.formatted_address}` : ''}
+${medSpaData?.phone ? `- Include phone: ${medSpaData.phone}` : ''}
+${medSpaData?.rating ? `- Reference ${medSpaData.rating} star rating` : ''}
 
 ${imageContext}
 
-BUSINESS-SPECIFIC REQUIREMENTS:
-- Every mention should use the actual business name, not "MedSpa" or generic terms
-- Include specific location references (the actual city/neighborhood they're in)
-- Reference their actual Google rating in testimonials
-- Use real contact information throughout
-- Make it feel like this business actually owns and operates this website
-
-Generate a production-ready React component that looks like it was professionally built FOR this specific medical spa business.`
+Generate a complete, functional React component now:`
 
     console.log('📡 Making OpenAI API request...')
     
@@ -190,15 +144,25 @@ Generate a production-ready React component that looks like it was professionall
     const stylesMatch = response.match(/STYLES:\s*([\s\S]*?)(?=REACT_COMPONENT:|TYPES:|$)/i)
     const typesMatch = response.match(/TYPES:\s*([\s\S]*?)(?=REACT_COMPONENT:|STYLES:|$)/i)
 
-    if (!reactMatch) {
-      console.error('❌ Could not extract React component from response')
-      console.log('📄 Response preview:', response.substring(0, 500) + '...')
-      throw new Error('Could not extract React component from OpenAI response')
+    let reactComponent = ''
+    let styles = ''
+    let types = ''
+
+    if (reactMatch) {
+      reactComponent = reactMatch[1].trim()
+    } else {
+      console.log('⚠️ No REACT_COMPONENT section found, using entire response as component')
+      // If no structured format, treat the entire response as React component
+      reactComponent = cleanCodeResponse(response)
     }
 
-    const reactComponent = reactMatch[1].trim()
-    const styles = stylesMatch ? stylesMatch[1].trim() : ''
-    const types = typesMatch ? typesMatch[1].trim() : ''
+    if (stylesMatch) {
+      styles = stylesMatch[1].trim()
+    }
+
+    if (typesMatch) {
+      types = typesMatch[1].trim()
+    }
 
     console.log('✅ Successfully parsed response sections:', {
       hasReactComponent: !!reactComponent,
@@ -206,6 +170,12 @@ Generate a production-ready React component that looks like it was professionall
       hasTypes: !!types,
       componentLength: reactComponent.length
     })
+
+    // If we still don't have a component, use fallback
+    if (!reactComponent || reactComponent.length < 100) {
+      console.log('⚠️ Component too short or missing, generating fallback')
+      return generateFallbackReactComponent(medSpaData)
+    }
 
     // Create a complete Next.js page component
     const completeReactCode = `'use client'
@@ -252,130 +222,209 @@ export default MedSpaLandingPage`
 function cleanCodeResponse(code: string): string {
   // Remove markdown code blocks if present
   return code
-    .replace(/^```[\w]*\n/, '')
-    .replace(/\n```$/, '')
-    .replace(/^```/, '')
-    .replace(/```$/, '')
+    .replace(/^```[\w]*\n/g, '')
+    .replace(/\n```$/g, '')
+    .replace(/^```/g, '')
+    .replace(/```$/g, '')
     .trim()
 }
 
-function generateFallbackWebsite(prompt: string) {
-  // Simple fallback template if OpenAI fails
-  const html = `
+function generateFallbackReactComponent(medSpaData?: any) {
+  const businessName = medSpaData?.name || 'Premium Medical Spa'
+  const address = medSpaData?.formatted_address || 'Your Location'
+  const phone = medSpaData?.phone || '(555) 123-4567'
+  const rating = medSpaData?.rating || 4.8
+
+  // Generate actual HTML for preview
+  const htmlPreview = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Generated Website</title>
+        <title>${businessName} - Premium Medical Spa</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+          .star-rating { color: #fbbf24; }
+        </style>
     </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; line-height: 1.6;">
-        <header style="background: #2563eb; color: white; padding: 2rem 0; text-align: center;">
-            <h1 style="margin: 0; font-size: 2.5rem;">Welcome</h1>
-            <p style="margin: 0.5rem 0 0 0; font-size: 1.2rem;">AI Generated Website</p>
+    <body class="bg-white">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-6">
+                    <div class="flex items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">${businessName}</h1>
+                    </div>
+                    <nav class="hidden md:flex space-x-8">
+                        <a href="#services" class="text-gray-500 hover:text-gray-900">Services</a>
+                        <a href="#about" class="text-gray-500 hover:text-gray-900">About</a>
+                        <a href="#contact" class="text-gray-500 hover:text-gray-900">Contact</a>
+                    </nav>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                        Book Consultation
+                    </button>
+                </div>
+            </div>
         </header>
-        
-        <main style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
-            <section style="text-align: center; margin-bottom: 3rem;">
-                <h2 style="font-size: 2rem; margin-bottom: 1rem; color: #1f2937;">About Us</h2>
-                <p style="font-size: 1.1rem; color: #6b7280; max-width: 600px; margin: 0 auto;">
-                    This website was generated based on your requirements. We're here to provide excellent service and meet your needs.
-                </p>
-            </section>
-            
-            <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
-                <div style="background: white; padding: 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: #1f2937; margin-bottom: 1rem;">Service 1</h3>
-                    <p style="color: #6b7280;">Professional service tailored to your needs.</p>
+
+        <!-- Hero Section -->
+        <section class="bg-gradient-to-r from-blue-50 to-purple-50 py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
+                        Welcome to <span class="text-blue-600">${businessName}</span>
+                    </h2>
+                    <p class="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+                        Experience premium medical spa treatments in a luxury environment. Our certified professionals deliver exceptional results.
+                    </p>
+                    <div class="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
+                        <div class="rounded-md shadow">
+                            <button class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10">
+                                Book Your Treatment
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div style="background: white; padding: 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: #1f2937; margin-bottom: 1rem;">Service 2</h3>
-                    <p style="color: #6b7280;">Expert solutions for your business.</p>
+            </div>
+        </section>
+
+        <!-- Services Section -->
+        <section id="services" class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Our Premium Services</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
+                        Professional treatments delivered by licensed medical professionals
+                    </p>
                 </div>
-                <div style="background: white; padding: 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: #1f2937; margin-bottom: 1rem;">Service 3</h3>
-                    <p style="color: #6b7280;">Quality results you can trust.</p>
+                <div class="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Botox & Fillers</h3>
+                        <p class="text-sm text-gray-600 mb-4">Anti-aging injections for natural results</p>
+                        <p class="text-gray-600 mb-4">Professional cosmetic injections to reduce fine lines and restore volume.</p>
+                        <div class="inline-block bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">From $299</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Laser Treatments</h3>
+                        <p class="text-sm text-gray-600 mb-4">Advanced laser therapy for skin rejuvenation</p>
+                        <p class="text-gray-600 mb-4">State-of-the-art laser technology for hair removal, skin resurfacing, and more.</p>
+                        <div class="inline-block bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">From $199</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">HydraFacial</h3>
+                        <p class="text-sm text-gray-600 mb-4">Deep cleansing and hydrating facial treatment</p>
+                        <p class="text-gray-600 mb-4">Multi-step treatment for cleaner, more beautiful skin with no downtime.</p>
+                        <div class="inline-block bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">From $149</div>
+                    </div>
                 </div>
-            </section>
-            
-            <section style="background: #f9fafb; padding: 2rem; border-radius: 0.5rem; text-align: center;">
-                <h2 style="color: #1f2937; margin-bottom: 1rem;">Get In Touch</h2>
-                <p style="color: #6b7280; margin-bottom: 2rem;">Ready to get started? Contact us today!</p>
-                <button style="background: #2563eb; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.375rem; font-size: 1rem; cursor: pointer;">
-                    Contact Us
-                </button>
-            </section>
-        </main>
-        
-        <footer style="background: #1f2937; color: white; text-align: center; padding: 2rem 0; margin-top: 3rem;">
-            <p>&copy; 2024 AI Generated Website. All rights reserved.</p>
+            </div>
+        </section>
+
+        <!-- Testimonials -->
+        <section class="py-16 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900">What Our Clients Say</h2>
+                    <div class="mt-6 flex justify-center items-center">
+                        <div class="flex star-rating">
+                            ★★★★★
+                        </div>
+                        <span class="ml-2 text-gray-600">${rating} stars from ${medSpaData?.user_ratings_total || 'over 100'} reviews</span>
+                    </div>
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <p class="text-gray-600 italic">"Amazing results! The staff is professional and the facility is beautiful."</p>
+                            <p class="mt-4 font-semibold text-gray-900">- Sarah M.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <p class="text-gray-600 italic">"Best med spa experience I've ever had. Highly recommend!"</p>
+                            <p class="mt-4 font-semibold text-gray-900">- Jennifer L.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <p class="text-gray-600 italic">"Professional service and fantastic results. Will definitely return."</p>
+                            <p class="mt-4 font-semibold text-gray-900">- Maria R.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Visit ${businessName}</h2>
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Location</h3>
+                            <p class="mt-2 text-gray-600">${address}</p>
+                            <p class="mt-2 text-gray-600">${phone}</p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Hours</h3>
+                            <p class="mt-2 text-gray-600">Monday - Friday: 9:00 AM - 6:00 PM</p>
+                            <p class="text-gray-600">Saturday: 9:00 AM - 4:00 PM</p>
+                            <p class="text-gray-600">Sunday: Closed</p>
+                        </div>
+                    </div>
+                    <div class="mt-8">
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium text-lg">
+                            Schedule Consultation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-gray-900 text-white py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h3 class="text-xl font-bold">${businessName}</h3>
+                    <p class="mt-2 text-gray-400">Premium Medical Spa Services</p>
+                    <p class="mt-2 text-gray-400">${address}</p>
+                    <p class="text-gray-400">${phone}</p>
+                </div>
+            </div>
         </footer>
     </body>
     </html>
   `
 
-  const css = `
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      line-height: 1.6;
-      color: #333;
-    }
-    
-    button:hover {
-      background: #1d4ed8 !important;
-      transform: translateY(-1px);
-    }
-    
-    @media (max-width: 768px) {
-      main {
-        padding: 1rem !important;
-      }
-      
-      h1 {
-        font-size: 2rem !important;
-      }
-      
-      section {
-        grid-template-columns: 1fr !important;
-      }
-    }
-  `
+  const reactComponent = `function MedSpaLandingPage() {
+  const [isBookingOpen, setIsBookingOpen] = React.useState(false)
 
-  const js = `
-    document.addEventListener('DOMContentLoaded', function() {
-      // Add smooth scrolling
-      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-          e.preventDefault();
-          const target = document.querySelector(this.getAttribute('href'));
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth' });
-          }
-        });
-      });
-      
-      // Add button interactions
-      document.querySelectorAll('button').forEach(button => {
-        button.addEventListener('click', function() {
-          alert('Thank you for your interest! This is a demo website.');
-        });
-        
-        button.addEventListener('mouseenter', function() {
-          this.style.transform = 'translateY(-2px)';
-        });
-        
-        button.addEventListener('mouseleave', function() {
-          this.style.transform = 'translateY(0)';
-        });
-      });
-    });
-  `
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-gray-900">${businessName}</h1>
+            </div>
+            <nav className="hidden md:flex space-x-8">
+              <a href="#services" className="text-gray-500 hover:text-gray-900">Services</a>
+              <a href="#about" className="text-gray-500 hover:text-gray-900">About</a>
+              <a href="#contact" className="text-gray-500 hover:text-gray-900">Contact</a>
+            </nav>
+            <Button onClick={() => setIsBookingOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+              Book Consultation
+            </Button>
+          </div>
+        </div>
+      </header>
+      {/* Rest of component... */}
+    </div>
+  )
+}`
 
-  return { html, css, js }
-} 
+  return {
+    html: htmlPreview,
+    css: '',
+    js: '',
+    preview: htmlPreview,
+    type: 'html'
+  }
+}

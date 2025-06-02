@@ -713,71 +713,12 @@ ${generatedWebsite.js}
                     exit={{ opacity: 0 }}
                     className="p-6 h-full"
                   >
-                    {generatedWebsite.type === 'react' ? (
-                      <div className="mx-auto bg-white rounded-lg shadow-lg overflow-hidden max-w-4xl">
-                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 text-center">
-                          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-                            <Code className="w-8 h-8 text-white" />
-                          </div>
-                          <h3 className="text-2xl font-bold text-gray-900 mb-4">React Component Generated!</h3>
-                          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                            Your modern React component with SHADCN/UI has been generated. Click the <strong>REACT</strong> tab to view the code, 
-                            or download the files to integrate into your Next.js project.
-                          </p>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div className="bg-white rounded-lg p-4 shadow-sm">
-                              <FileCode className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                              <h4 className="font-semibold text-gray-900">TypeScript</h4>
-                              <p className="text-sm text-gray-600">Full type safety</p>
-                            </div>
-                            <div className="bg-white rounded-lg p-4 shadow-sm">
-                              <Layout className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                              <h4 className="font-semibold text-gray-900">SHADCN/UI</h4>
-                              <p className="text-sm text-gray-600">Modern components</p>
-                            </div>
-                            <div className="bg-white rounded-lg p-4 shadow-sm">
-                              <Sparkles className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                              <h4 className="font-semibold text-gray-900">Responsive</h4>
-                              <p className="text-sm text-gray-600">Mobile-first design</p>
-                            </div>
-                          </div>
-
-                          {medSpaContext && medSpaContext.photos?.length > 0 && (
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                              <h4 className="font-semibold text-yellow-800 mb-2">
-                                🖼️ Real Business Images Integrated
-                              </h4>
-                              <p className="text-sm text-yellow-700">
-                                {medSpaContext.photos.length} actual photos from {medSpaContext.name} have been integrated into the component using Google Places API.
-                              </p>
-                            </div>
-                          )}
-
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            <button
-                              onClick={() => setActiveTab('react')}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              View React Code
-                            </button>
-                            <button
-                              onClick={downloadWebsite}
-                              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                            >
-                              Download Project
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={`mx-auto bg-white rounded-lg shadow-lg overflow-hidden ${getViewportClass()}`}>
-                        <div 
-                          className="w-full min-h-[500px]"
-                          dangerouslySetInnerHTML={{ __html: generatedWebsite.html }}
-                        />
-                      </div>
-                    )}
+                    <div className={`mx-auto bg-white rounded-lg shadow-lg overflow-hidden ${getViewportClass()}`}>
+                      <div 
+                        className="w-full min-h-[500px]"
+                        dangerouslySetInnerHTML={{ __html: generatedWebsite.html }}
+                      />
+                    </div>
                   </motion.div>
                 )}
 
