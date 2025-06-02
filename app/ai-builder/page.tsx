@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -32,6 +32,53 @@ interface GeneratedWebsite {
   js: string
   preview?: string
   type?: string
+}
+
+// Dynamic React component preview
+function DynamicReactPreview({ code }: { code: string }) {
+  const [htmlContent, setHtmlContent] = useState<string>('')
+  
+  useEffect(() => {
+    // Check if we have HTML content (from preview field) or React code
+    if (code.includes('<!DOCTYPE html>')) {
+      setHtmlContent(code)
+    } else {
+      // Convert React code to HTML by extracting JSX and creating static HTML
+      try {
+        // For now, show a placeholder until the API returns proper HTML
+        setHtmlContent(`
+          <div style="padding: 2rem; text-align: center; font-family: sans-serif;">
+            <h2 style="color: #2563eb; margin-bottom: 1rem;">AI Generated React Component</h2>
+            <p style="color: #6b7280; margin-bottom: 2rem;">This would render as a live React component in production.</p>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+              <h3 style="color: #1e293b; margin: 0 0 1rem 0;">Component Preview</h3>
+              <p style="color: #64748b; margin: 0;">React component generated with SHADCN/UI components, Tailwind CSS, and business data integration.</p>
+            </div>
+            <button style="background: #2563eb; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">
+              Sample Button Component
+            </button>
+          </div>
+        `)
+      } catch (err) {
+        console.error('Preview generation error:', err)
+        setHtmlContent(`
+          <div style="padding: 2rem; text-align: center;">
+            <h2 style="color: #dc2626;">Preview Unavailable</h2>
+            <p style="color: #6b7280;">Unable to generate preview. Check the React tab to view the generated code.</p>
+          </div>
+        `)
+      }
+    }
+  }, [code])
+  
+  return (
+    <iframe
+      srcDoc={htmlContent}
+      className="w-full min-h-[500px] border-0"
+      title="Website Preview"
+      sandbox="allow-scripts"
+    />
+  )
 }
 
 export default function AIBuilder() {
@@ -714,10 +761,9 @@ ${generatedWebsite.js}
                     className="p-6 h-full"
                   >
                     <div className={`mx-auto bg-white rounded-lg shadow-lg overflow-hidden ${getViewportClass()}`}>
-                      <div 
-                        className="w-full min-h-[500px]"
-                        dangerouslySetInnerHTML={{ __html: generatedWebsite.html }}
-                      />
+                      <div className="w-full min-h-[500px]">
+                        <DynamicReactPreview code={generatedWebsite.preview || generatedWebsite.html} />
+                      </div>
                     </div>
                   </motion.div>
                 )}

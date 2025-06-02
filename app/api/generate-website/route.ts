@@ -200,11 +200,14 @@ ${reactComponent}
 
 export default MedSpaLandingPage`
 
+    // Generate HTML preview for iframe
+    const htmlPreview = generateFallbackReactComponent(medSpaData).html
+    
     return {
       html: completeReactCode,
       css: styles,
       js: '', // React components don't need separate JS
-      preview: completeReactCode,
+      preview: htmlPreview,
       type: 'react'
     }
 
