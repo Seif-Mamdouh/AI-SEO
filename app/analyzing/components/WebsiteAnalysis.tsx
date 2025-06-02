@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { MedSpa } from './types'
 import { ExternalLink, Globe, Clock, Star, AlertTriangle, CheckCircle, XCircle, Eye, Link, Mail, Phone } from 'lucide-react'
 
@@ -66,27 +66,7 @@ export default function WebsiteAnalysis({ selectedMedspa }: WebsiteAnalysisProps
   const [currentAction, setCurrentAction] = useState('Initializing...')
   const [iframeError, setIframeError] = useState(false)
 
-  useEffect(() => {
-    // Check if we already have analysis results
-    const analysisResults = localStorage.getItem('analysisResults')
-    if (analysisResults) {
-      const data = JSON.parse(analysisResults)
-      if (data.selectedMedspa?.website_data || data.selectedMedspa?.pagespeed_data) {
-        setWebsiteData(data.selectedMedspa)
-        setIsLoading(false)
-        return
-      }
-    }
-
-    // If no existing data and medspa has a website, start real-time parsing
-    if (selectedMedspa?.website) {
-      startWebsiteAnalysis()
-    } else {
-      setIsLoading(false)
-    }
-  }, [selectedMedspa])
-
-  const startWebsiteAnalysis = async () => {
+  const startWebsiteAnalysis = useCallback(async () => {
     if (!selectedMedspa?.website) return
 
     try {
@@ -133,7 +113,27 @@ export default function WebsiteAnalysis({ selectedMedspa }: WebsiteAnalysisProps
         setIsLoading(false)
       }, 1000)
     }
-  }
+  }, [selectedMedspa])
+
+  useEffect(() => {
+    // Check if we already have analysis results
+    const analysisResults = localStorage.getItem('seoAnalysisResults')
+    if (analysisResults) {
+      const data = JSON.parse(analysisResults)
+      if (data.selectedMedspa?.website_data || data.selectedMedspa?.pagespeed_data) {
+        setWebsiteData(data.selectedMedspa)
+        setIsLoading(false)
+        return
+      }
+    }
+
+    // If no existing data and medspa has a website, start real-time parsing
+    if (selectedMedspa?.website) {
+      startWebsiteAnalysis()
+    } else {
+      setIsLoading(false)
+    }
+  }, [selectedMedspa, startWebsiteAnalysis])
 
   const getScoreColor = (score?: number) => {
     if (!score) return 'text-gray-400'

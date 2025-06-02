@@ -14,87 +14,162 @@ relatedTemplates:
   - postgres-sveltekit
 ---
 
-# MedSpa Search GPT
+# MedSpa Website Scanner & AI Builder
 
-A Next.js application that helps users find and analyze medical spas using Google Places API. Users can search for med spas by name and get detailed information including ratings, reviews, and website links.
+A Next.js application that scans and analyzes med spa websites for SEO performance, competitor analysis, and includes an AI-powered website builder.
 
 ## Features
 
-- **Smart Med Spa Search**: Uses Google Places API to find medical spas, aesthetic clinics, and dermatology practices
-- **Detailed Results**: Shows ratings, reviews, contact information, and website links
-- **Real-time Search**: Interactive search with loading states and instant results
-- **Responsive Design**: Beautiful, modern UI built with Tailwind CSS
+- **Med Spa Search & Analysis**: Search for med spas, analyze their SEO performance, and compare with competitors
+- **AI Website Builder**: Generate complete websites using OpenAI's GPT-4 based on text prompts
+- **Competitor Analysis**: Real-time competitor comparison and SEO insights
+- **Website Performance Analysis**: PageSpeed insights, accessibility scores, and technical SEO analysis
+- **Interactive Code Editor**: Preview, edit, and download generated websites
 
-## Demo
+## Prerequisites
 
-Search for any med spa name and get comprehensive results with business details and SEO insights.
+- Node.js 18+ 
+- npm/pnpm
+- OpenAI API key
 
 ## Setup
 
-### Prerequisites
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd scan-med-spas
+   ```
 
-1. **Google Places API Key**: You'll need a Google Cloud Project with Places API enabled
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select an existing one
-   - Enable the "Places API" and "Places API (New)"
-   - Create credentials (API Key)
-   - Restrict the API key to your domain/IP for security
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   pnpm install
+   ```
 
-### Installation
+3. **Set up environment variables**
+   
+   Create a `.env.local` file in the root directory and add your OpenAI API key:
+   
+   ```bash
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+   
+   To get an OpenAI API key:
+   - Go to [OpenAI API Platform](https://platform.openai.com/)
+   - Sign up or log in to your account
+   - Navigate to API Keys section
+   - Create a new API key
+   - Copy the key and add it to your `.env.local` file
 
-1. **Clone and Install Dependencies**
+4. **Run the development server**
+   ```bash
+   npm run dev
+   # or
+   pnpm dev
+   ```
 
-```bash
-git clone <your-repo-url>
-cd scan-med-spas
-pnpm install
-```
+5. **Open the application**
+   Navigate to [http://localhost:3000](http://localhost:3000) in your browser
 
-2. **Environment Variables**
+## AI Website Builder Usage
 
-Copy the environment example file:
+1. Navigate to the AI Builder by clicking "AI Website Builder" in the header
+2. Choose from quick start templates or write a custom prompt
+3. Describe your website requirements in detail
+4. Click "Generate Website" and wait for AI to create your site
+5. Preview the generated website and switch between HTML, CSS, and JS views
+6. Download the complete website files
 
-```bash
-cp env.example .env.local
-```
+### Example Prompts
 
-Then open `.env.local` and add your Google Places API key:
+- **Med Spa**: "Create a modern medical spa website with hero section, services grid featuring facial treatments ($120), botox ($350), laser therapy ($200), customer testimonials, and online booking form. Use blue and white color scheme."
 
-```bash
-GOOGLE_PLACES_API_KEY=your_actual_google_places_api_key_here
-```
+- **Restaurant**: "Design an elegant Italian restaurant website with hero image, menu showcase, chef biography, and reservation system. Use warm colors and include pasta, pizza, and wine selections."
 
-3. **Run the Development Server**
-
-```bash
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see the application.
-
-## How to Use
-
-1. **Search for Med Spas**: Enter a med spa name in the search box
-2. **View Results**: Browse through the search results showing nearby medical spas
-3. **Get Details**: Click on website links to visit the med spa's official site
-4. **Analyze Competitors**: Use the suggestion buttons to analyze SEO performance
+- **Business**: "Build a professional consulting company website with services overview, team profiles, case studies, and contact form. Modern minimalist design with corporate blue theme."
 
 ## API Endpoints
 
-- `POST /api/search-medspas` - Search for medical spas using Google Places API
+- `POST /api/search-medspas` - Search for med spas using Google Places API
+- `POST /api/competitor-analysis` - Analyze competitors in the area
+- `POST /api/website-parse` - Parse website content and structure
+- `POST /api/generate-website` - Generate website using OpenAI (requires API key)
 
-## Tech Stack
+## Technologies Used
 
-- **Framework**: Next.js 13+ with App Router
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **API**: Google Places API
-- **Deployment**: Vercel
+- **Frontend**: Next.js 13, React, TypeScript, Tailwind CSS, Framer Motion
+- **APIs**: OpenAI GPT-4, Google Places API, Google PageSpeed Insights
+- **Analysis**: Puppeteer for website screenshots, Cheerio for content parsing
 
-## Deployment
+## Environment Variables
 
-Deploy with [Vercel](https://vercel.com/new):
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `OPENAI_API_KEY` | OpenAI API key for website generation | Yes (for AI builder) |
+| `GOOGLE_PLACES_API_KEY` | Google Places API key | No (for med spa search) |
+| `GOOGLE_PAGESPEED_API_KEY` | PageSpeed Insights API key | No (for performance analysis) |
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
+## Features in Detail
 
-Remember to add your `GOOGLE_PLACES_API_KEY` environment variable in your Vercel project settings.
+### Med Spa Analysis
+- Search local med spas using Google Places
+- Analyze website performance and SEO
+- Compare with competitors
+- Generate improvement recommendations
+
+### AI Website Builder
+- **GPT-4 Integration**: Uses OpenAI's most advanced model
+- **Complete Websites**: Generates HTML, CSS, and JavaScript
+- **Professional Design**: Modern, responsive, and accessible
+- **Industry-Specific**: Optimized for med spas, restaurants, businesses
+- **Interactive Preview**: Live preview with mobile/tablet/desktop views
+- **Code Export**: Download complete website files
+
+### Performance Analysis
+- PageSpeed Insights integration
+- Core Web Vitals analysis
+- SEO score analysis
+- Accessibility evaluation
+- Mobile-friendliness testing
+
+## Development
+
+The project structure:
+```
+├── app/
+│   ├── page.tsx                    # Main search interface
+│   ├── analyzing/                  # Analysis results page
+│   ├── ai-builder/                 # AI website builder
+│   └── api/
+│       ├── search-medspas/         # Med spa search API
+│       ├── competitor-analysis/    # Competitor analysis API
+│       ├── website-parse/          # Website parsing API
+│       └── generate-website/       # AI website generation API
+├── components/                     # Reusable React components
+├── lib/                           # Utility functions
+└── public/                        # Static assets
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Support
+
+For issues and questions:
+- Check existing GitHub issues
+- Create a new issue with detailed description
+- Include steps to reproduce any bugs
+
+---
+
+**Note**: The AI website builder requires an OpenAI API key. API usage will incur costs based on OpenAI's pricing. Monitor your usage through the OpenAI dashboard.
