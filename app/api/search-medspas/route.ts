@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     const detailedResults = await Promise.all(
       filteredResults.slice(0, 5).map(async (place: any) => {
         try {
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,opening_hours&key=${googleApiKey}`
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,opening_hours,photos&key=${googleApiKey}`
           
           const detailsResponse = await fetch(detailsUrl)
           const detailsData = await detailsResponse.json()
@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
               website: detailsData.result.website,
               phone: detailsData.result.formatted_phone_number,
               opening_hours: detailsData.result.opening_hours,
+              photos: detailsData.result.photos,
             }
           }
           
