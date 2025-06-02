@@ -64,6 +64,7 @@ export default function WebsiteAnalysis({ selectedMedspa }: WebsiteAnalysisProps
   const [isLoading, setIsLoading] = useState(true)
   const [parseProgress, setParseProgress] = useState(0)
   const [currentAction, setCurrentAction] = useState('Initializing...')
+  const [iframeError, setIframeError] = useState(false)
 
   useEffect(() => {
     // Check if we already have analysis results
@@ -309,38 +310,56 @@ export default function WebsiteAnalysis({ selectedMedspa }: WebsiteAnalysisProps
             </a>
           </div>
           
-          <div className="relative">
-            {websiteParseData?.screenshot ? (
-              <div className="relative group">
-                <img
-                  src={`data:image/jpeg;base64,${websiteParseData.screenshot}`}
-                  alt={`Screenshot of ${selectedMedspa?.name} website`}
-                  className="w-full h-96 object-cover object-top"
+          <div className="relative bg-white">
+            {!iframeError ? (
+              <>
+                <iframe
+                  src={selectedMedspa?.website?.startsWith('http') ? selectedMedspa.website : `https://${selectedMedspa?.website}`}
+                  className="w-full h-96 border-0 bg-white"
+                  title={`${selectedMedspa?.name} website`}
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
+                  loading="lazy"
+                  onLoad={() => {
+                    console.log('Website loaded successfully in iframe')
+                  }}
+                  onError={() => {
+                    console.log('Iframe failed to load website')
+                    setIframeError(true)
+                  }}
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <Eye className="w-8 h-8 text-white" />
-                  </div>
-                </div>
-              </div>
+                {/* Subtle overlay for interaction prevention during analysis */}
+                <div className="absolute inset-0 bg-transparent pointer-events-none hover:bg-blue-50 hover:bg-opacity-5 transition-colors duration-200"></div>
+              </>
             ) : (
               <div className="h-96 bg-gradient-to-br from-blue-50 to-purple-50 p-8 flex items-center justify-center">
                 <div className="text-center">
                   <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 font-medium mb-2">Website Content Analyzed</p>
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">Website Preview Unavailable</h3>
                   <p className="text-gray-500 text-sm mb-4">
-                    {websiteParseData?.error ? 'Unable to capture screenshot' : 'Website structure and content have been analyzed'}
+                    The website cannot be displayed in an iframe, but it&apos;s still being analyzed.
                   </p>
                   
                   {/* Show website title and description if available */}
                   {websiteParseData?.title && (
-                    <div className="bg-white rounded-lg p-4 max-w-md mx-auto">
+                    <div className="bg-white rounded-lg p-4 max-w-md mx-auto shadow-sm">
                       <h4 className="font-semibold text-gray-900 mb-2">{websiteParseData.title}</h4>
                       {websiteParseData.description && (
                         <p className="text-sm text-gray-600">{websiteParseData.description}</p>
                       )}
                     </div>
                   )}
+                  
+                  <div className="mt-4">
+                    <a
+                      href={selectedMedspa?.website?.startsWith('http') ? selectedMedspa.website : `https://${selectedMedspa?.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Visit Website
+                    </a>
+                  </div>
                 </div>
               </div>
             )}
