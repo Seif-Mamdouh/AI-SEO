@@ -146,12 +146,6 @@ export default function AIBuilder() {
       preview: '/templates/medspa.jpg'
     },
     {
-      name: 'Restaurant Website',
-      description: 'Elegant restaurant with menu and reservations',
-      prompt: 'Design an elegant restaurant website with hero image, menu showcase, chef info, and reservation system. Use warm colors and food photography.',
-      preview: '/templates/restaurant.jpg'
-    },
-    {
       name: 'Business Portfolio',
       description: 'Professional business portfolio site',
       prompt: 'Build a clean business portfolio website with services, team section, case studies, and contact form. Modern minimalist design.',
@@ -166,6 +160,21 @@ export default function AIBuilder() {
   ]
 
   useEffect(() => {
+    // Check if we're viewing a pre-generated website
+    const isViewing = searchParams.get('view') === 'true'
+    if (isViewing) {
+      const generatedData = localStorage.getItem('generatedWebsiteData')
+      if (generatedData) {
+        console.log('🔍 Loading pre-generated website data')
+        const websiteData = JSON.parse(generatedData)
+        setGeneratedWebsite(websiteData)
+        setActiveTab('preview')
+        // Clear the data to prevent confusion
+        localStorage.removeItem('generatedWebsiteData')
+        return
+      }
+    }
+
     // Check if we have med spa context data
     const hasContext = searchParams.get('context') === 'medspa'
     if (hasContext) {

@@ -1,262 +1,419 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  AnalysisProgressSidebar,
-  AnalysisStepContent,
-  AnalysisStep,
-  Competitor,
-  Review,
-  MedSpa
-} from './components'
+import { ArrowLeft, TrendingUp, Globe, Zap, Users, CheckCircle, Brain, AlertCircle } from 'lucide-react'
+import WebsiteAnalysis from './components/WebsiteAnalysis'
+
+interface MedSpa {
+  place_id: string
+  name: string
+  formatted_address: string
+  rating?: number
+  user_ratings_total?: number
+  website?: string
+  phone?: string
+}
+
+interface AnalysisStep {
+  id: string
+  title: string
+  description: string
+  icon: any
+  status: 'pending' | 'active' | 'completed' | 'error'
+  progress?: number
+}
 
 export default function AnalyzingPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [timeRemaining, setTimeRemaining] = useState(60)
   const [selectedMedspa, setSelectedMedspa] = useState<MedSpa | null>(null)
-  const [competitors, setCompetitors] = useState<Competitor[]>([])
-  const [reviews, setReviews] = useState<Review[]>([])
-  const [allStepsCompleted, setAllStepsCompleted] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([
+    {
+      id: 'competitors',
+      title: 'Finding Competitors',
+      description: 'Discovering local medical spas nearby',
+      icon: Users,
+      status: 'pending'
+    },
+    {
+      id: 'websites',
+      title: 'Analyzing Websites',
+      description: 'Checking performance and SEO metrics',
+      icon: Globe,
+      status: 'pending'
+    },
+    {
+      id: 'performance',
+      title: 'Performance Testing',
+      description: 'Running Google PageSpeed insights',
+      icon: Zap,
+      status: 'pending'
+    },
+    {
+      id: 'ranking',
+      title: 'SEO Ranking',
+      description: 'Calculating competitive positioning',
+      icon: TrendingUp,
+      status: 'pending'
+    },
+    {
+      id: 'ai-analysis',
+      title: 'AI Deep Analysis',
+      description: 'Generating comprehensive insights',
+      icon: Brain,
+      status: 'pending'
+    }
+  ])
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [partialResults, setPartialResults] = useState<any>(null)
   const router = useRouter()
 
-  const analysisSteps: AnalysisStep[] = [
-    {
-      id: 'medspa-competitors',
-      title: `${selectedMedspa?.name || 'Med spa'} & competitors`,
-      status: 'pending',
-      duration: 5
-    },
-    {
-      id: 'google-profile',
-      title: 'Google business profile',
-      status: 'pending',
-      duration: 5 
-    },
-    {
-      id: 'review-sentiment',
-      title: 'Google review sentiment',
-      status: 'pending',
-      duration: 5
-    },
-    {
-      id: 'photo-quality',
-      title: 'Photo quality and quantity',
-      status: 'pending',
-      duration: 5
-    },
-    {
-      id: 'website-analysis',
-      title: selectedMedspa?.website || 'Website analysis',
-      status: 'pending',
-      duration: 5
-    }
-  ]
-
-  const [steps, setSteps] = useState(analysisSteps)
-
-  // Simulate adding competitors as they're discovered
-  const addCompetitor = (competitor: Competitor) => {
-    setCompetitors(prev => [...prev, competitor])
+  const updateStepStatus = (stepId: string, status: AnalysisStep['status'], progress?: number) => {
+    setAnalysisSteps(prev => prev.map(step => 
+      step.id === stepId 
+        ? { ...step, status, progress }
+        : step
+    ))
   }
 
   const startAnalysis = useCallback(async () => {
-    const selectedMedspaData = JSON.parse(localStorage.getItem('analyzingMedspa') || '{}')
-    
+    if (!selectedMedspa) return
+
+    setIsAnalyzing(true)
+    setError(null)
+
     try {
-      // Start the API call immediately in parallel with visual animations
-      const apiCallPromise = fetch('/api/seo-analysis', {
+      console.log('🚀 Starting optimized SEO analysis for:', selectedMedspa.name)
+
+      // Step 1: Finding Competitors (faster)
+      updateStepStatus('competitors', 'active')
+      await new Promise(resolve => setTimeout(resolve, 500)) // Reduced from 1000ms
+      updateStepStatus('competitors', 'completed')
+
+      // Step 2: Website Analysis (faster)
+      updateStepStatus('websites', 'active')
+      await new Promise(resolve => setTimeout(resolve, 800)) // Reduced from 1500ms
+      updateStepStatus('websites', 'completed')
+
+      // Step 3: Performance Testing (faster)
+      updateStepStatus('performance', 'active')
+      await new Promise(resolve => setTimeout(resolve, 1000)) // Reduced from 2000ms
+      updateStepStatus('performance', 'completed')
+
+      // Step 4: SEO Ranking
+      updateStepStatus('ranking', 'active')
+      await new Promise(resolve => setTimeout(resolve, 500))
+      updateStepStatus('ranking', 'completed')
+
+      // Step 5: AI Deep Analysis
+      updateStepStatus('ai-analysis', 'active')
+
+      // Make the actual API call (includes AI analysis)
+      console.log('📡 Calling SEO analysis API with AI insights...')
+      const response = await fetch('/api/seo-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          selectedMedspa: selectedMedspaData
+          selectedMedspa,
+          generate_llm_report: true  // Always include AI analysis
         }),
       })
 
-      // Start visual animations in parallel
-      const visualAnimationsPromise = (async () => {
-        // Simulate the analysis process step by step
-        for (let i = 0; i < analysisSteps.length; i++) {
-          // Set current step as active
-          setSteps(prev => prev.map((step, index) => ({
-            ...step,
-            status: index === i ? 'active' : index < i ? 'completed' : 'pending'
-          })))
-          setCurrentStep(i)
-
-          // If it's the competitors step, simulate adding competitors
-          if (i === 0) {
-            // Simulate discovering competitors over time
-            const mockCompetitors = [
-              { id: '1', name: 'Competitor 1', lat: selectedMedspaData.geometry?.location?.lat + 0.01 || 40.7128, lng: selectedMedspaData.geometry?.location?.lng + 0.01 || -74.0060, rating: 4.2 },
-              { id: '2', name: 'Competitor 2', lat: selectedMedspaData.geometry?.location?.lat - 0.01 || 40.7028, lng: selectedMedspaData.geometry?.location?.lng + 0.02 || -74.0040, rating: 4.5 },
-              { id: '3', name: 'Competitor 3', lat: selectedMedspaData.geometry?.location?.lat + 0.02 || 40.7228, lng: selectedMedspaData.geometry?.location?.lng - 0.01 || -74.0080, rating: 3.9 }
-            ]
-
-            // Add competitors with proper timing within the step duration
-            for (let j = 0; j < mockCompetitors.length; j++) {
-              setTimeout(() => {
-                addCompetitor(mockCompetitors[j])
-                // Mark all competitors as added when the last one is added
-                if (j === mockCompetitors.length - 1) {
-                  console.log('All competitors added to map')
-                }
-              }, (j + 1) * 500) // Add each competitor after 0.5 seconds (last one at 1.5s)
-            }
-          }
-
-          // If it's the review sentiment step, set reviews data
-          if (i === 2) {
-            setTimeout(() => {
-              // Extract reviews from selectedMedspa data if available
-              console.log('🔍 Step 2 Debug - Review Processing:', {
-                stepIndex: i,
-                selectedMedspaDataFull: selectedMedspaData,
-                hasReviews: !!selectedMedspaData.reviews,
-                reviewsLength: selectedMedspaData.reviews?.length || 0,
-                reviewsData: selectedMedspaData.reviews
-              })
-              
-              if (selectedMedspaData.reviews && selectedMedspaData.reviews.length > 0) {
-                setReviews(selectedMedspaData.reviews)
-                console.log('✅ Using real reviews data:', selectedMedspaData.reviews.length)
-                console.log('📊 Reviews set in state:', selectedMedspaData.reviews)
-              } else {
-                console.log('❌ No reviews found in selectedMedspaData')
-                console.log('🔍 Checking other review sources...')
-                
-                // Check if analysis results have reviews
-                const storedResults = localStorage.getItem('seoAnalysisResults')
-                if (storedResults) {
-                  const parsedResults = JSON.parse(storedResults)
-                  console.log('🔍 Analysis Results Debug:', {
-                    hasSelectedMedspa: !!parsedResults.selectedMedspa,
-                    selectedMedspaReviews: parsedResults.selectedMedspa?.reviews,
-                    reviewsLength: parsedResults.selectedMedspa?.reviews?.length || 0
-                  })
-                  
-                  if (parsedResults.selectedMedspa?.reviews?.length > 0) {
-                    setReviews(parsedResults.selectedMedspa.reviews)
-                    console.log('✅ Found reviews in analysis results:', parsedResults.selectedMedspa.reviews.length)
-                  }
-                }
-              }
-            }, 500) // Set reviews after 0.5 seconds
-          }
-
-          // Wait for step duration
-          await new Promise(resolve => setTimeout(resolve, analysisSteps[i].duration * 1000))
-
-          // Mark step as completed
-          setSteps(prev => prev.map((step, index) => ({
-            ...step,
-            status: index <= i ? 'completed' : 'pending'
-          })))
-        }
-
-        // All visual steps completed
-        console.log('All visual steps completed! Generating report...')
-        setAllStepsCompleted(true)
-      })()
-
-      // Wait for both API call and visual animations to complete
-      const [apiResult] = await Promise.all([apiCallPromise, visualAnimationsPromise])
-      
-      console.log('✅ Analysis complete!')
-      
-      if (apiResult.ok) {
-        const data = await apiResult.json()
-        console.log('📊 Analysis API Response:', {
-          hasSelectedMedspa: !!data.selectedMedspa,
-          selectedMedspaPhotos: data.selectedMedspa?.photos?.length || 0,
-          selectedMedspaData: data.selectedMedspa,
-          fullResponse: data
-        })
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ SEO analysis completed successfully')
+        console.log('🤖 LLM report included:', !!data.llm_report)
         
-        // Store the results including reviews data
+        updateStepStatus('ai-analysis', 'completed')
+
+        // Store results and navigate to results page
         localStorage.setItem('seoAnalysisResults', JSON.stringify(data))
         
-        // Update selectedMedspa with reviews data for the visual components
-        if (data.selectedMedspa?.reviews) {
-          const updatedMedspaData = {
-            ...selectedMedspaData,
-            reviews: data.selectedMedspa.reviews
-          }
-          localStorage.setItem('analyzingMedspa', JSON.stringify(updatedMedspaData))
-          setSelectedMedspa(updatedMedspaData)
-          setReviews(data.selectedMedspa.reviews)
-          console.log('✅ Updated med spa data with reviews:', data.selectedMedspa.reviews.length)
-        }
-        
-        // Redirect to results after a short delay
+        // Show completion for a moment before redirecting
         setTimeout(() => {
           router.push('/results')
-        }, 2000)
+        }, 800)
       } else {
-        console.error('❌ Analysis failed')
-        // Handle error - maybe redirect to error page or show error message
+        console.error('❌ SEO analysis failed')
+        const errorData = await response.json()
+        setError(errorData.error || 'Analysis failed')
+        updateStepStatus('ai-analysis', 'error')
       }
     } catch (error) {
-      console.error('Analysis error:', error)
-      router.push('/')
+      console.error('💥 Analysis error:', error)
+      setError('Failed to analyze. Please try again.')
+      setAnalysisSteps(prev => prev.map(step => 
+        step.status === 'active' ? { ...step, status: 'error' } : step
+      ))
+    } finally {
+      setIsAnalyzing(false)
     }
-  }, [router])
+  }, [selectedMedspa, router])
 
   useEffect(() => {
     // Get selected med spa from localStorage
     const storedMedspa = localStorage.getItem('analyzingMedspa')
     if (storedMedspa) {
-      const parsedMedspa = JSON.parse(storedMedspa)
-      console.log('🏪 Med Spa Data from localStorage:', {
-        name: parsedMedspa.name,
-        hasPhotos: !!parsedMedspa.photos,
-        photosLength: parsedMedspa.photos?.length || 0,
-        photos: parsedMedspa.photos,
-        fullData: parsedMedspa
-      })
-      setSelectedMedspa(parsedMedspa)
+      setSelectedMedspa(JSON.parse(storedMedspa))
     } else {
-      console.log('❌ No med spa data found in localStorage')
+      // If no med spa data, redirect back
       router.push('/')
-      return
     }
+  }, [router])
 
-    // Start the analysis process
-    startAnalysis()
-  }, [router, startAnalysis])
-
-  // Timer for time remaining
   useEffect(() => {
-    if (timeRemaining > 0) {
-      const timer = setInterval(() => {
-        setTimeRemaining(prev => Math.max(0, prev - 1))
-      }, 1000)
-      return () => clearInterval(timer)
+    if (selectedMedspa && !isAnalyzing) {
+      startAnalysis()
     }
-  }, [timeRemaining])
+  }, [selectedMedspa, isAnalyzing, startAnalysis])
 
-  const handleNavigateToResults = () => {
-    router.push('/results')
+  const retryAnalysis = () => {
+    setError(null)
+    setAnalysisSteps(prev => prev.map(step => ({ ...step, status: 'pending' })))
+    startAnalysis()
+  }
+
+  const goBack = () => {
+    router.push('/')
+  }
+
+  const getStepIcon = (step: AnalysisStep) => {
+    const IconComponent = step.icon
+    return <IconComponent className="w-5 h-5 sm:w-6 sm:h-6" />
+  }
+
+  const getStepStatusIcon = (status: AnalysisStep['status']) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="w-5 h-5 text-green-500" />
+      case 'active':
+        return (
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        )
+      case 'error':
+        return <AlertCircle className="w-5 h-5 text-red-500" />
+      default:
+        return <div className="w-5 h-5 bg-gray-300 rounded-full" />
+    }
+  }
+
+  if (!selectedMedspa) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex h-screen">
-        <AnalysisProgressSidebar
-          steps={steps}
-          timeRemaining={timeRemaining}
-          allStepsCompleted={allStepsCompleted}
-          onNavigateToResults={handleNavigateToResults}
-        />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Header */}
+      <motion.div 
+        className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={goBack}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="hidden sm:inline">Back</span>
+              </button>
+              <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">SEO Analysis</h1>
+            </div>
+            <div className="text-xs sm:text-sm text-gray-500 max-w-xs truncate">
+              {selectedMedspa.name}
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
-        <AnalysisStepContent
-          currentStep={currentStep}
-          selectedMedspa={selectedMedspa}
-          competitors={competitors}
-          reviews={reviews}
-        />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+          {/* Left Panel - Analysis Progress */}
+          <motion.div
+            className="space-y-6 order-2 xl:order-1"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            {/* Business Info Card */}
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-md border border-gray-100">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Analyzing</h2>
+              <div className="flex items-start space-x-3 sm:space-x-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-lg flex-shrink-0">
+                  {selectedMedspa.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 truncate">{selectedMedspa.name}</h3>
+                  <p className="text-gray-600 text-sm line-clamp-2 sm:line-clamp-none">{selectedMedspa.formatted_address}</p>
+                  {selectedMedspa.rating && (
+                    <div className="flex items-center mt-2">
+                      <span className="text-yellow-500 text-sm">★</span>
+                      <span className="ml-1 text-sm text-gray-700">{selectedMedspa.rating}</span>
+                      {selectedMedspa.user_ratings_total && (
+                        <span className="ml-1 text-xs text-gray-500">
+                          ({selectedMedspa.user_ratings_total} reviews)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Analysis Options */}
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-md border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Analysis Options</h3>
+              
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-start sm:items-center justify-between p-3 sm:p-4 bg-blue-50 rounded-lg">
+                  <div className="flex items-start sm:items-center space-x-3 flex-1 min-w-0">
+                    <Zap className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-900 text-sm sm:text-base">Fast Analysis</div>
+                      <div className="text-xs sm:text-sm text-gray-600 line-clamp-2">Basic SEO metrics & competitor comparison</div>
+                    </div>
+                  </div>
+                  <div className="text-green-600 font-medium text-sm ml-2 flex-shrink-0">✓ Included</div>
+                </div>
+
+                <div className="flex items-start sm:items-center justify-between p-3 sm:p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="flex items-start sm:items-center space-x-3 flex-1 min-w-0">
+                    <Brain className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-900 flex flex-col sm:flex-row sm:items-center sm:space-x-2 text-sm sm:text-base">
+                        <span>AI Deep Analysis</span>
+                        
+                      </div>
+                      <div className="text-xs sm:text-sm text-gray-600 line-clamp-2">Detailed insights & actionable recommendations (+30-60s)</div>
+                    </div>
+                  </div>
+                  <div className="text-green-600 font-medium text-sm ml-2 flex-shrink-0">✓ Included</div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-xs sm:text-sm text-green-700">
+                    <strong>Comprehensive Analysis:</strong> Both fast metrics and AI-powered insights are included for the most complete SEO analysis.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Analysis Steps */}
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-md border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Analysis Progress</h3>
+              
+              <div className="space-y-3 sm:space-y-4">
+                {analysisSteps.map((step, index) => (
+                  <motion.div
+                    key={step.id}
+                    className={`flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl transition-all duration-300 ${
+                      step.status === 'active' 
+                        ? 'bg-blue-50 border border-blue-200' 
+                        : step.status === 'completed'
+                        ? 'bg-green-50 border border-green-200'
+                        : step.status === 'error'
+                        ? 'bg-red-50 border border-red-200'
+                        : 'bg-gray-50 border border-gray-200'
+                    }`}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                  >
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      step.status === 'active'
+                        ? 'bg-blue-500 text-white'
+                        : step.status === 'completed'
+                        ? 'bg-green-500 text-white'
+                        : step.status === 'error'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-300 text-gray-600'
+                    }`}>
+                      {getStepIcon(step)}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{step.title}</h4>
+                        <div className="ml-2 flex-shrink-0">
+                          {getStepStatusIcon(step.status)}
+                        </div>
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{step.description}</p>
+                      
+                      {step.status === 'active' && (
+                        <motion.div 
+                          className="w-full bg-gray-200 rounded-full h-1 mt-2"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                        >
+                          <motion.div 
+                            className="bg-blue-500 h-1 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: '100%' }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          />
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Error Display */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                >
+                  <h3 className="font-semibold text-red-800 mb-2 text-sm sm:text-base">Analysis Failed</h3>
+                  <p className="text-red-700 text-sm mb-4">{error}</p>
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <button
+                      onClick={retryAnalysis}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Right Panel - Website Analysis */}
+          <motion.div
+            className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden order-1 xl:order-2 max-h-[70vh] xl:max-h-[calc(100vh-180px)]"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <div className="h-full overflow-auto">
+              <WebsiteAnalysis selectedMedspa={selectedMedspa} />
+            </div>
+          </motion.div>
+        </div>
       </div>
     </div>
   )

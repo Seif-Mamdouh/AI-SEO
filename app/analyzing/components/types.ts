@@ -26,25 +26,27 @@ export interface Review {
 }
 
 export interface Photo {
-  photo_reference?: string  // Old API format
-  name?: string            // New API v1 format
+  photo_reference?: string  
+  name?: string           
 }
 
 export interface MedSpa {
+  place_id: string
   name: string
-  rating: number
+  formatted_address: string
+  rating?: number
   user_ratings_total?: number
+  website?: string
+  phone?: string
+  types?: string[] 
   geometry?: {
-    location?: {
+    location: {
       lat: number
       lng: number
     }
   }
-  types?: string[]
-  website?: string
-  photos?: Photo[]
   reviews?: Review[]
-  description?: string
+  photos?: Photo[]
 }
 
 // Utility function to generate photo URLs for both old and new Google Places API

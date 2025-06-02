@@ -16,13 +16,74 @@ import {
   XCircle,
   Sparkles,
   Code,
-  Rocket
+  Rocket,
+  Brain,
+  Star,
+  MapPin,
+  Phone,
+  Clock,
+  Users,
+  Search,
+  Eye,
+  Smartphone,
+  RefreshCw
 } from 'lucide-react'
 
 interface SEOAnalysisData {
   selectedMedspa: any
   competitors: any[]
   analysis: any
+  llm_report?: {
+    content: string
+    generatedAt: string
+    model: string
+    tokensUsed: number
+  }
+}
+
+// Calculate overall health score based on all metrics
+const calculateOverallScore = (seoData: SEOAnalysisData) => {
+  const { selectedMedspa, analysis } = seoData
+  const pageSpeedData = selectedMedspa.pagespeed_data
+  
+  let totalScore = 0
+  let components = 0
+  
+  // Performance score (40% weight)
+  if (pageSpeedData?.performance_score) {
+    totalScore += pageSpeedData.performance_score * 0.4
+    components += 0.4
+  }
+  
+  // SEO score (30% weight)
+  if (pageSpeedData?.seo_score) {
+    totalScore += pageSpeedData.seo_score * 0.3
+    components += 0.3
+  }
+  
+  // Local ranking (20% weight) - lower position is better
+  if (analysis?.yourSEOPosition) {
+    const rankingScore = Math.max(0, 100 - (analysis.yourSEOPosition * 15))
+    totalScore += rankingScore * 0.2
+    components += 0.2
+  }
+  
+  // Reviews/reputation (10% weight)
+  if (selectedMedspa.rating) {
+    const reviewScore = (selectedMedspa.rating / 5) * 100
+    totalScore += reviewScore * 0.1
+    components += 0.1
+  }
+  
+  return components > 0 ? Math.round(totalScore / components) : 0
+}
+
+const getScoreGrade = (score: number) => {
+  if (score >= 90) return { grade: 'Excellent', color: 'text-green-600', bgColor: 'bg-green-50' }
+  if (score >= 80) return { grade: 'Good', color: 'text-blue-600', bgColor: 'bg-blue-50' }
+  if (score >= 60) return { grade: 'Fair', color: 'text-yellow-600', bgColor: 'bg-yellow-50' }
+  if (score >= 40) return { grade: 'Poor', color: 'text-orange-600', bgColor: 'bg-orange-50' }
+  return { grade: 'Critical', color: 'text-red-600', bgColor: 'bg-red-50' }
 }
 
 // AI Builder Promotion Component
@@ -32,158 +93,292 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
   medSpaData: any 
 }) => {
   const router = useRouter()
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState(0)
+  const [generationStep, setGenerationStep] = useState('')
+  const [generatedWebsite, setGeneratedWebsite] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
   
   const needsImprovement = currentSEOScore < 80 || currentSEOScore < competitorAverage
 
-  const handleRebuildWebsite = () => {
-    console.log('🎯 Storing complete med spa data for AI builder:', {
-      name: medSpaData.name,
-      hasPhotos: !!medSpaData.photos,
-      photosLength: medSpaData.photos?.length || 0,
-      hasWebsiteData: !!medSpaData.website_data,
-      hasPagespeedData: !!medSpaData.pagespeed_data,
-      photos: medSpaData.photos,
-      website_data: medSpaData.website_data,
-      pagespeed_data: medSpaData.pagespeed_data,
-      fullData: medSpaData
-    })
+  const generateContextualPrompt = (medSpaData: any) => {
+    const { name, formatted_address, rating, user_ratings_total, phone, formatted_phone_number, website_data, pagespeed_data, photos } = medSpaData
     
-    // Store the complete med spa data for the AI builder
-    localStorage.setItem('medSpaContextData', JSON.stringify(medSpaData))
-    router.push('/ai-builder?context=medspa')
+    let prompt = `Create a professional medical spa landing page for "${name}"\n\n`
+    prompt += `BUSINESS DETAILS:\n`
+    prompt += `• Business Name: ${name} (use this exact name throughout)\n`
+    prompt += `• Location: ${formatted_address}\n`
+    prompt += `• Phone: ${phone || formatted_phone_number || '(555) 123-4567'}\n`
+    prompt += `• Google Rating: ${rating || 4.8} stars (${user_ratings_total || 'many'} reviews)\n`
+    
+    if (website_data) {
+      if (website_data.title) {
+        prompt += `• Current Website Title: "${website_data.title}"\n`
+      }
+      if (website_data.description) {
+        prompt += `• Current Description: "${website_data.description}"\n`
+      }
+    }
+    
+    if (pagespeed_data && !pagespeed_data.error) {
+      prompt += `\nCURRENT WEBSITE PERFORMANCE TO IMPROVE:\n`
+      if (pagespeed_data.seo_score < 80) {
+        prompt += `• Current SEO score: ${pagespeed_data.seo_score}/100 - new site should achieve 90+\n`
+      }
+      if (pagespeed_data.performance_score < 80) {
+        prompt += `• Current performance score: ${pagespeed_data.performance_score}/100 - new site should load faster\n`
+      }
+    }
+    
+    prompt += `\nLANDING PAGE REQUIREMENTS:\n`
+    prompt += `• Hero Section: "${name}" prominently displayed with compelling medical spa messaging\n`
+    prompt += `• Services: Premium medical spa treatments (Botox, fillers, laser treatments, facials, etc.)\n`
+    prompt += `• About: Professional description specifically about ${name}\n`
+    prompt += `• Gallery: Use actual business photos if available\n`
+    prompt += `• Testimonials: Reference the ${rating}-star Google rating and create realistic reviews\n`
+    prompt += `• Contact: Use the exact address and phone number provided\n`
+    prompt += `• Booking: Appointment scheduling specifically for ${name}\n`
+    prompt += `• Footer: Complete ${name} business information\n`
+    
+    prompt += `\nCONTENT GUIDELINES:\n`
+    prompt += `• Every heading and section should reference "${name}" by name\n`
+    prompt += `• Write content as if you're the official ${name} website\n`
+    prompt += `• Include realistic pricing and service descriptions\n`
+    prompt += `• Make it feel like a real business website, not a template\n`
+    prompt += `• Use the business information provided above throughout\n`
+    prompt += `• Optimize for local SEO with location-based keywords\n`
+    
+    return prompt
+  }
+
+  const handleGenerateWebsite = async () => {
+    setIsGenerating(true)
+    setGenerationProgress(0)
+    setGenerationStep('Analyzing your business data...')
+    setError(null)
+    setGeneratedWebsite(null)
+
+    try {
+      console.log('🚀 Starting website generation for:', medSpaData.name)
+
+      // Generate contextual prompt
+      const prompt = generateContextualPrompt(medSpaData)
+
+      // Simulate progress updates
+      const progressUpdates = [
+        { progress: 10, step: 'Understanding your vision...' },
+        { progress: 25, step: 'Generating React components...' },
+        { progress: 50, step: 'Adding SHADCN/UI elements...' },
+        { progress: 75, step: 'Integrating business data...' },
+        { progress: 90, step: 'Finalizing website...' },
+      ]
+
+      let currentUpdateIndex = 0
+      const progressInterval = setInterval(() => {
+        if (currentUpdateIndex < progressUpdates.length) {
+          const update = progressUpdates[currentUpdateIndex]
+          setGenerationProgress(update.progress)
+          setGenerationStep(update.step)
+          currentUpdateIndex++
+        }
+      }, 1000)
+
+      // Make API call to generate website
+      const response = await fetch('/api/generate-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          medSpaData
+        })
+      })
+
+      clearInterval(progressInterval)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate website')
+      }
+
+      const result = await response.json()
+      
+      setGenerationProgress(100)
+      setGenerationStep('Website ready!')
+      
+      // Store the generated website data and navigate immediately to AI builder
+      setTimeout(() => {
+        localStorage.setItem('generatedWebsiteData', JSON.stringify(result))
+        router.push('/ai-builder?view=true')
+      }, 500)
+
+    } catch (error) {
+      console.error('💥 Generation failed:', error)
+      setError(error instanceof Error ? error.message : 'Failed to generate website')
+      setGenerationStep('Generation failed')
+      setIsGenerating(false)
+    }
+  }
+
+  const handleViewWebsite = () => {
+    // Store the generated website data and navigate to builder to view
+    localStorage.setItem('generatedWebsiteData', JSON.stringify(generatedWebsite))
+    router.push('/ai-builder?view=true')
+  }
+
+  const handleTryAgain = () => {
+    setError(null)
+    setGeneratedWebsite(null)
+    setGenerationProgress(0)
+    setGenerationStep('')
+  }
+
+  if (isGenerating) {
+    return (
+      <motion.div 
+        className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-10 shadow-md border border-blue-100 min-h-[350px]"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-blue-900">
+                🤖 Building Your Website...
+              </h3>
+              <p className="text-blue-700 text-base">
+                Creating a professional website for {medSpaData.name}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-base font-medium text-blue-700">{generationStep}</span>
+            <span className="text-base text-blue-500">{generationProgress}%</span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-4">
+            <motion.div
+              className="bg-gradient-to-r from-blue-600 to-purple-600 h-4 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${generationProgress}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+        </div>
+
+        <div className="text-center text-base text-blue-600 py-4">
+          Please wait while we generate your professional website...
+        </div>
+      </motion.div>
+    )
+  }
+
+  if (error) {
+    return (
+      <motion.div 
+        className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-10 shadow-md border border-red-100 min-h-[350px]"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-red-600 to-pink-600 rounded-xl flex items-center justify-center">
+              <AlertTriangle className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-red-900">
+                ⚠️ Generation Failed
+              </h3>
+              <p className="text-red-700 text-base">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex space-x-4">
+          <button
+            onClick={handleGenerateWebsite}
+            className="flex-1 px-8 py-5 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-pink-700 transition-all duration-200 flex items-center justify-center space-x-3 text-lg"
+          >
+            <RefreshCw className="w-6 h-6" />
+            <span>Try Again</span>
+          </button>
+          <button
+            onClick={handleTryAgain}
+            className="px-6 py-5 bg-white text-gray-700 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors text-lg"
+          >
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    )
   }
 
   return (
     <motion.div 
-      className={`rounded-2xl p-8 shadow-md border ${
-        needsImprovement 
-          ? 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200' 
-          : 'bg-gradient-to-br from-green-50 to-blue-50 border-green-200'
-      }`}
+      className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-10 shadow-md border border-purple-100 min-h-[400px]"
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.45 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.6 }}
     >
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <motion.div 
-            className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              needsImprovement ? 'bg-orange-500' : 'bg-green-500'
-            }`}
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Sparkles className="w-6 h-6 text-white" />
-          </motion.div>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center space-x-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
           <div>
-            <h3 className={`text-xl font-bold ${
-              needsImprovement ? 'text-orange-900' : 'text-green-900'
-            }`}>
-              {needsImprovement ? '🚀 Rebuild Your Landing Page' : '✨ Optimize Your Website'}
+            <h3 className="text-2xl font-bold text-purple-900">
+              🚀 Build a Better Website with AI
             </h3>
-            <p className={`text-sm ${
-              needsImprovement ? 'text-orange-700' : 'text-green-700'
-            }`}>
-              {needsImprovement 
-                ? 'AI-powered website to outrank your competitors' 
-                : 'Create an even better performing website'}
+            <p className="text-purple-700 text-base">
+              Create a high-converting landing page in 60 seconds
             </p>
           </div>
         </div>
-        <motion.div 
-          className="text-right"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
-        >
-          <div className={`text-2xl font-bold ${
-            needsImprovement ? 'text-orange-600' : 'text-green-600'
-          }`}>
-            {needsImprovement ? `+${Math.max(20, 90 - currentSEOScore)}` : '+10'}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3">
+            <CheckCircle className="w-6 h-6 text-purple-600" />
+            <span className="text-base text-purple-800">AI-powered website generation</span>
           </div>
-          <div className={`text-xs ${
-            needsImprovement ? 'text-orange-500' : 'text-green-500'
-          }`}>
-            Potential SEO boost
+          <div className="flex items-center space-x-3">
+            <CheckCircle className="w-6 h-6 text-purple-600" />
+            <span className="text-base text-purple-800">Uses your real business data & photos</span>
           </div>
-        </motion.div>
+          <div className="flex items-center space-x-3">
+            <CheckCircle className="w-6 h-6 text-purple-600" />
+            <span className="text-base text-purple-800">Optimized for mobile & SEO</span>
+          </div>
+        </div>
+        <div className="bg-white/60 rounded-lg p-6">
+          <div className="text-3xl font-bold text-purple-600 mb-2">
+            Expected Improvement
+          </div>
+          <div className="text-base text-purple-700 mb-2">
+            +{Math.max(20, 90 - currentSEOScore)} points SEO score
+          </div>
+          <div className="text-sm text-purple-600 mt-2">
+            Based on similar medical spa improvements
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-4 mb-6">
-        {needsImprovement ? (
-          <>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
-              <span className="text-sm text-orange-800">
-                <strong>Performance Issues:</strong> Your site scores {currentSEOScore}/100 vs competitor average of {competitorAverage}
-              </span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
-              <span className="text-sm text-orange-800">
-                <strong>AI Solution:</strong> Generate a modern, SEO-optimized website in 60 seconds
-              </span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
-              <span className="text-sm text-orange-800">
-                <strong>Results:</strong> Faster loading, better mobile experience, higher Google rankings
-              </span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <span className="text-sm text-green-800">
-                <strong>Good Performance:</strong> Your site is competitive but can be optimized further
-              </span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <span className="text-sm text-green-800">
-                <strong>AI Enhancement:</strong> Create an even faster, more converting website
-              </span>
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <motion.button
-          onClick={handleRebuildWebsite}
-          className={`px-6 py-4 rounded-xl font-semibold text-white transition-all duration-200 flex items-center justify-center space-x-2 ${
-            needsImprovement 
-              ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700' 
-              : 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700'
-          }`}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Rocket className="w-5 h-5" />
-          <span>{needsImprovement ? 'Rebuild with AI' : 'Optimize with AI'}</span>
-        </motion.button>
-        
-        <motion.div 
-          className="flex items-center justify-center space-x-2 text-sm text-gray-600 bg-white/50 rounded-xl px-4 py-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
-          <Code className="w-4 h-4" />
-          <span>✨ AI generates HTML, CSS & JS</span>
-        </motion.div>
-      </div>
-
-      <div className={`text-xs text-center ${
-        needsImprovement ? 'text-orange-600' : 'text-green-600'
-      }`}>
-        {needsImprovement 
-          ? '⚡ Average improvement: 40+ SEO score points in competitors who rebuilt'
-          : '🎯 Small optimizations can lead to significant ranking improvements'
-        }
-      </div>
+      <button
+        onClick={handleGenerateWebsite}
+        className="w-full px-8 py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-3 text-lg"
+      >
+        <Rocket className="w-6 h-6" />
+        <span>Generate AI Website</span>
+      </button>
     </motion.div>
   )
 }
@@ -192,16 +387,13 @@ export default function ResultsPage() {
   const [seoData, setSeoData] = useState<SEOAnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Get data from localStorage
     const storedData = localStorage.getItem('seoAnalysisResults')
     if (storedData) {
       setSeoData(JSON.parse(storedData))
       setIsLoading(false)
     } else {
-      // If no data, redirect back to home
       router.push('/')
     }
   }, [router])
@@ -210,25 +402,7 @@ export default function ResultsPage() {
     router.push('/')
   }
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 bg-green-50'
-    if (score >= 60) return 'text-yellow-600 bg-yellow-50'
-    return 'text-red-600 bg-red-50'
-  }
-
-  const getScoreIcon = (score: number) => {
-    if (score >= 80) return <CheckCircle className="w-5 h-5" />
-    if (score >= 60) return <AlertTriangle className="w-5 h-5" />
-    return <XCircle className="w-5 h-5" />
-  }
-
-  const getPositionColor = (position: number) => {
-    if (position <= 3) return 'text-green-600 bg-green-50'
-    if (position <= 5) return 'text-yellow-600 bg-yellow-50'
-    return 'text-red-600 bg-red-50'
-  }
-
-  if (isLoading) {
+  if (isLoading || !seoData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
@@ -239,24 +413,10 @@ export default function ResultsPage() {
     )
   }
 
-  if (!seoData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">No SEO analysis data found</p>
-          <button
-            onClick={goBack}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  const { selectedMedspa, competitors, analysis } = seoData
+  const { selectedMedspa, competitors, analysis, llm_report } = seoData
   const pageSpeedData = selectedMedspa.pagespeed_data
+  const overallScore = calculateOverallScore(seoData)
+  const scoreGrade = getScoreGrade(overallScore)
 
   // Calculate competitor average for AI builder component
   const competitorSEOScores = competitors
@@ -286,317 +446,504 @@ export default function ResultsPage() {
                 <span>Back</span>
               </button>
               <div className="h-6 w-px bg-gray-300"></div>
-              <h1 className="text-2xl font-bold text-gray-900">SEO Analysis Results</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{selectedMedspa.name}</h1>
+                <p className="text-sm text-gray-500">{selectedMedspa.formatted_address}</p>
+              </div>
             </div>
             <div className="text-sm text-gray-500">
-              {selectedMedspa.name}
+              We found {analysis.recommendations?.length || 15} problems with your online presence
             </div>
           </div>
         </div>
       </motion.div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Overview Cards */}
-        <motion.div 
-          className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
-          {/* SEO Position */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Left Sidebar - Overall Score */}
           <motion.div 
-            className={`p-6 rounded-2xl ${getPositionColor(analysis.yourSEOPosition)}`}
-            whileHover={{ scale: 1.02, y: -2 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="lg:col-span-1"
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <div className="flex items-center justify-between mb-2">
-              <Award className="w-6 h-6" />
-              <span className="text-2xl font-bold">#{analysis.yourSEOPosition}</span>
+            <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 sticky top-8">
+              {/* Overall Score Circle */}
+              <div className="text-center mb-8">
+                <div className="relative w-32 h-32 mx-auto mb-4">
+                  <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#e5e7eb"
+                      strokeWidth="8"
+                      fill="none"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke={overallScore >= 80 ? "#10b981" : overallScore >= 60 ? "#f59e0b" : "#ef4444"}
+                      strokeWidth="8"
+                      fill="none"
+                      strokeDasharray={`${overallScore * 2.51} 251`}
+                      strokeLinecap="round"
+                      className="transition-all duration-1000 ease-out"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-gray-900">{overallScore}</div>
+                      <div className="text-sm text-gray-500">/ 100</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-1">Online health grade</div>
+                  <div className={`text-lg font-bold ${scoreGrade.color}`}>{scoreGrade.grade}</div>
+                </div>
+              </div>
+
+              {/* Score Breakdown */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
+                    <span className="text-sm text-gray-700">Search Results</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-gray-900">{pageSpeedData?.seo_score || 0}/100</div>
+                    <div className="text-xs text-gray-500">Poor</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
+                    <span className="text-sm text-gray-700">Website Experience</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-gray-900">{pageSpeedData?.performance_score || 0}/100</div>
+                    <div className="text-xs text-gray-500">Poor</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                    <span className="text-sm text-gray-700">Local Listings</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-gray-900">{selectedMedspa.rating ? Math.round(selectedMedspa.rating * 20) : 0}/100</div>
+                    <div className="text-xs text-gray-500">Good</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <h3 className="font-semibold">SEO Position</h3>
-            <p className="text-sm opacity-75">vs local competitors</p>
           </motion.div>
 
-          {/* Performance Score */}
-          <motion.div 
-            className={`p-6 rounded-2xl ${pageSpeedData?.performance_score ? getScoreColor(pageSpeedData.performance_score) : 'bg-gray-50 text-gray-600'}`}
-            whileHover={{ scale: 1.02, y: -2 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <Zap className="w-6 h-6" />
-              <span className="text-2xl font-bold">{pageSpeedData?.performance_score || 'N/A'}</span>
-            </div>
-            <h3 className="font-semibold">Performance</h3>
-            <p className="text-sm opacity-75">PageSpeed score</p>
-          </motion.div>
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-8">
+            {/* LLM Report */}
+            {llm_report && (
+              <motion.div 
+                className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-8 shadow-md border border-indigo-100"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-indigo-900">AI-Powered SEO Analysis Report</h2>
+                    <p className="text-indigo-700 text-sm">
+                      Generated by {llm_report.model} • {new Date(llm_report.generatedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
 
-          {/* SEO Score */}
-          <motion.div 
-            className={`p-6 rounded-2xl ${pageSpeedData?.seo_score ? getScoreColor(pageSpeedData.seo_score) : 'bg-gray-50 text-gray-600'}`}
-            whileHover={{ scale: 1.02, y: -2 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <Target className="w-6 h-6" />
-              <span className="text-2xl font-bold">{pageSpeedData?.seo_score || 'N/A'}</span>
-            </div>
-            <h3 className="font-semibold">SEO Score</h3>
-            <p className="text-sm opacity-75">Technical SEO</p>
-          </motion.div>
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <div className="prose prose-gray max-w-none" style={{ lineHeight: '1.7', fontSize: '15px' }}>
+                    {llm_report.content.split('\n').map((paragraph, index) => {
+                      if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                        return (
+                          <h3 key={index} className="text-lg font-bold text-gray-900 mt-6 mb-3 first:mt-0">
+                            {paragraph.replace(/\*\*/g, '')}
+                          </h3>
+                        )
+                      }
+                      if (paragraph.startsWith('- ')) {
+                        return (
+                          <li key={index} className="text-gray-700 mb-2 list-disc ml-4">
+                            {paragraph.substring(2)}
+                          </li>
+                        )
+                      }
+                      if (/^\d+\./.test(paragraph)) {
+                        return (
+                          <div key={index} className="text-gray-700 mb-2 font-medium">
+                            {paragraph}
+                          </div>
+                        )
+                      }
+                      if (paragraph.trim()) {
+                        return (
+                          <p key={index} className="text-gray-700 mb-4 leading-relaxed">
+                            {paragraph}
+                          </p>
+                        )
+                      }
+                      return null
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
-          {/* Competitors Analyzed */}
-          <motion.div 
-            className="p-6 rounded-2xl bg-purple-50 text-purple-600"
-            whileHover={{ scale: 1.02, y: -2 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <Globe className="w-6 h-6" />
-              <span className="text-2xl font-bold">{analysis.competitorsWithWebsites}</span>
-            </div>
-            <h3 className="font-semibold">Competitors</h3>
-            <p className="text-sm opacity-75">with websites analyzed</p>
-          </motion.div>
-        </motion.div>
+            {/* 1. Search Results Section */}
+            <motion.div 
+              className="bg-white rounded-2xl p-8 shadow-md border border-gray-100"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">1. Search Results</h2>
+              <p className="text-xl text-gray-700 mb-6">Get your website to the top of Google</p>
+              
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">What&apos;s SEO?</h3>
+                <p className="text-sm text-gray-700">
+                  It means improving your website so search engines like Google can find it, rank it higher, and help more people see it.
+                </p>
+              </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Competitors Ranking */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Competitor Rankings */}
+              {/* Who's beating you on Google */}
+              <div className="mb-8">
+                <h3 className="font-semibold text-gray-900 mb-4">Who&apos;s beating you on Google</h3>
+                <div className="space-y-3">
+                  {competitors.slice(0, 5).map((competitor: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="text-sm font-medium text-gray-600">
+                            {index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : `${index + 1}th`}
+                          </div>
+                          <Star className="w-4 h-4 text-yellow-500" />
+                          <span className="text-sm text-gray-700">{competitor.rating || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{competitor.name}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        {competitor.pagespeed_data && !competitor.pagespeed_data.error ? (
+                          <div className="text-sm text-gray-600">
+                            SEO: {competitor.pagespeed_data.seo_score}/100
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500">No website</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Where are you placing when customers search you, next to your competitors */}
+              <div className="mb-8">
+                <h3 className="font-semibold text-gray-900 mb-4">This is how you&apos;re doing online</h3>
+                <p className="text-sm text-gray-600 mb-4">Where are you placing when customers search you, next to your competitors</p>
+                
+                <div className="space-y-4">
+                  {/* Sample search results showing competitive positioning */}
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <Search className="w-5 h-5 text-blue-600 mt-1" />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-blue-600">Best med spa in {selectedMedspa.formatted_address?.split(',')[1]?.trim() || 'your area'}</h4>
+                        <div className="space-y-2 mt-3">
+                          {competitors.slice(0, 3).map((comp: any, idx: number) => (
+                            <div key={idx} className="flex items-center space-x-2 text-sm">
+                              <div className="w-5 h-5 bg-blue-600 text-white rounded text-xs flex items-center justify-center">
+                                {idx + 1}
+                              </div>
+                              <span className="text-gray-900">{comp.name}</span>
+                              <span className="text-gray-500">• {comp.rating} ⭐</span>
+                              {comp.pagespeed_data?.seo_score && (
+                                <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
+                                  Unranked map pack
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                          <div className="flex items-center space-x-2 text-sm">
+                            <div className="w-5 h-5 bg-orange-500 text-white rounded text-xs flex items-center justify-center">
+                              {analysis.yourSEOPosition}
+                            </div>
+                            <span className="text-gray-900 font-medium">{selectedMedspa.name}</span>
+                            <span className="text-gray-500">• {selectedMedspa.rating} ⭐</span>
+                            <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded">
+                              Unranked organic
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SEO Recommendations */}
+              {pageSpeedData && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-900">SEO Issues Found:</h3>
+                  
+                  <div className="space-y-3">
+                    {pageSpeedData.seo_score < 80 && (
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-red-400 bg-red-50">
+                        <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-red-800">Page title includes the service area</div>
+                          <div className="text-sm text-red-700">Including your service area in the page title helps with local search visibility.</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {pageSpeedData.performance_score < 70 && (
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-red-400 bg-red-50">
+                        <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-red-800">Page title includes relevant keywords</div>
+                          <div className="text-sm text-red-700">Having a relevant keyword in your page title can improve search engine rankings.</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium text-green-800">Exists</div>
+                        <div className="text-sm text-green-700">Your website is accessible and functioning properly.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+
+            {/* 2. Guest Experience Section */}
             <motion.div 
               className="bg-white rounded-2xl p-8 shadow-md border border-gray-100"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <TrendingUp className="w-6 h-6 mr-3" />
-                SEO Competition Analysis
-              </h2>
-              
-              <div className="space-y-4">
-                {competitors.map((competitor: any, index: number) => (
-                  <motion.div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
-                    whileHover={{ x: 4 }}
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                        {index + 1}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">2. Guest Experience</h2>
+              <p className="text-xl text-gray-700 mb-6">Improve the experience on your website</p>
+
+              <div className="mb-6 p-4 bg-purple-50 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Your site</h3>
+                <p className="text-sm text-gray-700">
+                  Your site content and experience drive conversion and sales
+                </p>
+              </div>
+
+              {/* Website Performance Issues */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-4">Content</h3>
+                  <div className="space-y-3">
+                    {(!selectedMedspa.website_data?.structure?.hasBookingForm) && (
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-red-400 bg-red-50">
+                        <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-red-800">On-site ordering</div>
+                          <div className="text-sm text-red-700">External ordering links can lead to a disjointed user experience and lost revenue.</div>
+                        </div>
                       </div>
+                    )}
+
+                    {(!selectedMedspa.website_data?.structure?.hasContactForm) && (
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-red-400 bg-red-50">
+                        <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-red-800">Effective CTA for online ordering</div>
+                          <div className="text-sm text-red-700">A clear call-to-action for online ordering can significantly increase conversions.</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
                       <div>
-                        <h3 className="font-semibold text-gray-900">{competitor.name}</h3>
-                        <p className="text-sm text-gray-600">{competitor.distance_miles} miles away</p>
+                        <div className="font-medium text-green-800">Sufficient text content</div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-6">
-                      {competitor.pagespeed_data && !competitor.pagespeed_data.error ? (
-                        <>
-                          <div className="text-center">
-                            <div className={`text-lg font-bold ${getScoreColor(competitor.pagespeed_data.performance_score).split(' ')[0]}`}>
-                              {competitor.pagespeed_data.performance_score}
-                            </div>
-                            <div className="text-xs text-gray-500">Performance</div>
-                          </div>
-                          <div className="text-center">
-                            <div className={`text-lg font-bold ${getScoreColor(competitor.pagespeed_data.seo_score).split(' ')[0]}`}>
-                              {competitor.pagespeed_data.seo_score}
-                            </div>
-                            <div className="text-xs text-gray-500">SEO</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xl font-bold text-purple-600">{competitor.seo_rank}</div>
-                            <div className="text-xs text-gray-500">Overall</div>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-sm text-gray-500">No website data</div>
-                      )}
-                      
-                      {competitor.website && (
-                        <a
-                          href={competitor.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
+
+                    <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium text-green-800">Phone number</div>
+                      </div>
                     </div>
-                  </motion.div>
-                ))}
+
+                    <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium text-green-800">Favicon</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-4">Appearance</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium text-green-800">Compelling About Us section</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium text-green-800">Readable text</div>
+                      </div>
+                    </div>
+
+                    {(selectedMedspa.user_ratings_total || 0) < 10 && (
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-red-400 bg-red-50">
+                        <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-red-800">3 customer reviews</div>
+                          <div className="text-sm text-red-700">A good number of reviews builds trust and credibility with potential customers.</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </motion.div>
 
-            {/* Performance Details */}
-            {pageSpeedData && !pageSpeedData.error && (
-              <motion.div 
-                className="bg-white rounded-2xl p-8 shadow-md border border-gray-100"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-              >
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Technical Performance</h2>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
-                  <div className="text-center">
-                    <div className={`w-16 h-16 rounded-full ${getScoreColor(pageSpeedData.performance_score)} mx-auto mb-2 flex items-center justify-center`}>
-                      {getScoreIcon(pageSpeedData.performance_score)}
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">{pageSpeedData.performance_score}</div>
-                    <div className="text-sm text-gray-600">Performance</div>
+            {/* 3. Local Listings Section */}
+            <motion.div 
+              className="bg-white rounded-2xl p-8 shadow-md border border-gray-100"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">3. Local Listings</h2>
+              <p className="text-xl text-gray-700 mb-6">Make {selectedMedspa.name} easy to find</p>
+
+              {/* Google Business Profile */}
+              <div className="mb-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Globe className="w-6 h-6 text-white" />
                   </div>
-                  
-                  <div className="text-center">
-                    <div className={`w-16 h-16 rounded-full ${getScoreColor(pageSpeedData.accessibility_score || 0)} mx-auto mb-2 flex items-center justify-center`}>
-                      {getScoreIcon(pageSpeedData.accessibility_score || 0)}
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Google Business Profile</h3>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-lg font-bold">{selectedMedspa.rating || 'N/A'}</span>
+                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                      <span className="text-sm text-gray-600">{selectedMedspa.user_ratings_total || 0} reviews</span>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">{pageSpeedData.accessibility_score || 'N/A'}</div>
-                    <div className="text-sm text-gray-600">Accessibility</div>
-                  </div>
-                  
-                  <div className="text-center">
-                    <div className={`w-16 h-16 rounded-full ${getScoreColor(pageSpeedData.best_practices_score || 0)} mx-auto mb-2 flex items-center justify-center`}>
-                      {getScoreIcon(pageSpeedData.best_practices_score || 0)}
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">{pageSpeedData.best_practices_score || 'N/A'}</div>
-                    <div className="text-sm text-gray-600">Best Practices</div>
-                  </div>
-                  
-                  <div className="text-center">
-                    <div className={`w-16 h-16 rounded-full ${getScoreColor(pageSpeedData.seo_score)} mx-auto mb-2 flex items-center justify-center`}>
-                      {getScoreIcon(pageSpeedData.seo_score)}
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">{pageSpeedData.seo_score}</div>
-                    <div className="text-sm text-gray-600">SEO</div>
                   </div>
                 </div>
 
-                {/* Core Web Vitals */}
-                {pageSpeedData.largest_contentful_paint && (
-                  <div className="border-t border-gray-200 pt-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Core Web Vitals</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="text-sm text-gray-600 mb-1">Largest Contentful Paint</div>
-                        <div className="text-xl font-bold text-gray-900">
-                          {(pageSpeedData.largest_contentful_paint / 1000).toFixed(2)}s
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Profile content</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-green-800">First-party website</div>
+                          <div className="text-sm text-green-700">{selectedMedspa.website || 'Not available'}</div>
                         </div>
                       </div>
-                      {pageSpeedData.cumulative_layout_shift && (
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <div className="text-sm text-gray-600 mb-1">Cumulative Layout Shift</div>
-                          <div className="text-xl font-bold text-gray-900">
-                            {pageSpeedData.cumulative_layout_shift.toFixed(3)}
+
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-green-800">Description</div>
+                          <div className="text-sm text-green-700">
+                            Professional medical spa offering comprehensive aesthetic treatments and wellness services.
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-green-800">Business hours</div>
+                          <div className="text-sm text-green-700">Displaying business hours helps customers plan their visits and reduces inquiries.</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-green-800">Phone number</div>
+                          <div className="text-sm text-green-700">{selectedMedspa.formatted_phone_number || selectedMedspa.phone || 'Available'}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-green-800">Price range</div>
+                          <div className="text-sm text-green-700">$$</div>
+                        </div>
+                      </div>
+
+                      {(selectedMedspa.photos?.length || 0) < 5 && (
+                        <div className="flex items-start space-x-3 p-3 border-l-4 border-red-400 bg-red-50">
+                          <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                          <div>
+                            <div className="font-medium text-red-800">Service options</div>
+                            <div className="text-sm text-red-700">Listing service options helps customers understand how they can interact with your business.</div>
                           </div>
                         </div>
                       )}
+
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-green-800">Social media links</div>
+                          <div className="text-sm text-green-700">Social media links extend your reach and provide additional ways for customers to engage.</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
-              </motion.div>
-            )}
 
-            {/* AI Builder Promotion - Strategic placement after performance data */}
-            {pageSpeedData && !pageSpeedData.error && (
-              <AIBuilderPromotion 
-                currentSEOScore={pageSpeedData.seo_score || 0}
-                competitorAverage={competitorAverage}
-                medSpaData={selectedMedspa}
-              />
-            )}
-          </div>
-
-          {/* Right Column - Recommendations */}
-          <div className="space-y-6">
-            {/* Recommendations */}
-            {analysis.recommendations.length > 0 && (
-              <motion.div 
-                className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-              >
-                <h2 className="text-xl font-bold text-purple-900 mb-4">💡 Improvement Recommendations</h2>
-                <div className="space-y-3">
-                  {analysis.recommendations.map((rec: string, index: number) => (
-                    <motion.div
-                      key={index}
-                      className="flex items-start space-x-3 p-3 bg-white/50 rounded-lg"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.4 + index * 0.1 }}
-                    >
-                      <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-white text-xs font-bold">{index + 1}</span>
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">User-submitted content</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-start space-x-3 p-3 border-l-4 border-green-400 bg-green-50">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-green-800">Quality reviews</div>
+                          <div className="text-sm text-green-700">{selectedMedspa.user_ratings_total || 0} reviews</div>
+                        </div>
                       </div>
-                      <p className="text-sm text-purple-800 leading-relaxed">{rec}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Quick Stats */}
-            <motion.div 
-              className="bg-white rounded-2xl p-6 shadow-md border border-gray-100"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-            >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">📊 Quick Stats</h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Total Competitors Found</span>
-                  <span className="font-semibold text-gray-900">{analysis.totalCompetitors}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Competitors with Websites</span>
-                  <span className="font-semibold text-gray-900">{analysis.competitorsWithWebsites}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Average Performance Score</span>
-                  <span className="font-semibold text-gray-900">{analysis.averagePerformanceScore}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Average SEO Score</span>
-                  <span className="font-semibold text-gray-900">{analysis.averageSEOScore}</span>
-                </div>
-                {analysis.topPerformer && (
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="text-sm text-gray-600 mb-1">Top SEO Performer</div>
-                    <div className="font-semibold text-gray-900">{analysis.topPerformer.name}</div>
-                    <div className="text-sm text-gray-500">Score: {analysis.topPerformer.seo_rank}</div>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             </motion.div>
 
-            {/* Action Button */}
-            <motion.div 
-              className="bg-white rounded-2xl p-6 shadow-md border border-gray-100"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Ready to improve?</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                Get a detailed action plan to outrank your competitors
-              </p>
-              <button
-                onClick={goBack}
-                className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium"
-              >
-                Analyze Another Med Spa
-              </button>
-            </motion.div>
+            {/* 4. AI Builder Promotion */}
+            <AIBuilderPromotion 
+              currentSEOScore={overallScore}
+              competitorAverage={competitorAverage}
+              medSpaData={selectedMedspa}
+            />
           </div>
         </div>
       </div>
