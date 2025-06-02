@@ -13,13 +13,161 @@ import {
   ExternalLink,
   CheckCircle,
   AlertTriangle,
-  XCircle
+  XCircle,
+  Sparkles,
+  Code,
+  Rocket
 } from 'lucide-react'
 
 interface SEOAnalysisData {
   selectedMedspa: any
   competitors: any[]
   analysis: any
+}
+
+// AI Builder Promotion Component
+const AIBuilderPromotion = ({ currentSEOScore, competitorAverage }: { currentSEOScore: number, competitorAverage: number }) => {
+  const router = useRouter()
+  
+  const needsImprovement = currentSEOScore < 80 || currentSEOScore < competitorAverage
+
+  const handleRebuildWebsite = () => {
+    router.push('/ai-builder')
+  }
+
+  return (
+    <motion.div 
+      className={`rounded-2xl p-8 shadow-md border ${
+        needsImprovement 
+          ? 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200' 
+          : 'bg-gradient-to-br from-green-50 to-blue-50 border-green-200'
+      }`}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.45 }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+    >
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <motion.div 
+            className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              needsImprovement ? 'bg-orange-500' : 'bg-green-500'
+            }`}
+            whileHover={{ rotate: 360 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Sparkles className="w-6 h-6 text-white" />
+          </motion.div>
+          <div>
+            <h3 className={`text-xl font-bold ${
+              needsImprovement ? 'text-orange-900' : 'text-green-900'
+            }`}>
+              {needsImprovement ? '🚀 Rebuild Your Landing Page' : '✨ Optimize Your Website'}
+            </h3>
+            <p className={`text-sm ${
+              needsImprovement ? 'text-orange-700' : 'text-green-700'
+            }`}>
+              {needsImprovement 
+                ? 'AI-powered website to outrank your competitors' 
+                : 'Create an even better performing website'}
+            </p>
+          </div>
+        </div>
+        <motion.div 
+          className="text-right"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
+        >
+          <div className={`text-2xl font-bold ${
+            needsImprovement ? 'text-orange-600' : 'text-green-600'
+          }`}>
+            {needsImprovement ? `+${Math.max(20, 90 - currentSEOScore)}` : '+10'}
+          </div>
+          <div className={`text-xs ${
+            needsImprovement ? 'text-orange-500' : 'text-green-500'
+          }`}>
+            Potential SEO boost
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        {needsImprovement ? (
+          <>
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
+              <span className="text-sm text-orange-800">
+                <strong>Performance Issues:</strong> Your site scores {currentSEOScore}/100 vs competitor average of {competitorAverage}
+              </span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
+              <span className="text-sm text-orange-800">
+                <strong>AI Solution:</strong> Generate a modern, SEO-optimized website in 60 seconds
+              </span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
+              <span className="text-sm text-orange-800">
+                <strong>Results:</strong> Faster loading, better mobile experience, higher Google rankings
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span className="text-sm text-green-800">
+                <strong>Good Performance:</strong> Your site is competitive but can be optimized further
+              </span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span className="text-sm text-green-800">
+                <strong>AI Enhancement:</strong> Create an even faster, more converting website
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <motion.button
+          onClick={handleRebuildWebsite}
+          className={`px-6 py-4 rounded-xl font-semibold text-white transition-all duration-200 flex items-center justify-center space-x-2 ${
+            needsImprovement 
+              ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700' 
+              : 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700'
+          }`}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Rocket className="w-5 h-5" />
+          <span>{needsImprovement ? 'Rebuild with AI' : 'Optimize with AI'}</span>
+        </motion.button>
+        
+        <motion.div 
+          className="flex items-center justify-center space-x-2 text-sm text-gray-600 bg-white/50 rounded-xl px-4 py-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+        >
+          <Code className="w-4 h-4" />
+          <span>✨ AI generates HTML, CSS & JS</span>
+        </motion.div>
+      </div>
+
+      <div className={`text-xs text-center ${
+        needsImprovement ? 'text-orange-600' : 'text-green-600'
+      }`}>
+        {needsImprovement 
+          ? '⚡ Average improvement: 40+ SEO score points in competitors who rebuilt'
+          : '🎯 Small optimizations can lead to significant ranking improvements'
+        }
+      </div>
+    </motion.div>
+  )
 }
 
 export default function ResultsPage() {
@@ -91,6 +239,14 @@ export default function ResultsPage() {
 
   const { selectedMedspa, competitors, analysis } = seoData
   const pageSpeedData = selectedMedspa.pagespeed_data
+
+  // Calculate competitor average for AI builder component
+  const competitorSEOScores = competitors
+    .filter((comp: any) => comp.pagespeed_data && !comp.pagespeed_data.error)
+    .map((comp: any) => comp.pagespeed_data.seo_score)
+  const competitorAverage = competitorSEOScores.length > 0 
+    ? Math.round(competitorSEOScores.reduce((a: number, b: number) => a + b, 0) / competitorSEOScores.length)
+    : 70
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -328,6 +484,14 @@ export default function ResultsPage() {
                   </div>
                 )}
               </motion.div>
+            )}
+
+            {/* AI Builder Promotion - Strategic placement after performance data */}
+            {pageSpeedData && !pageSpeedData.error && (
+              <AIBuilderPromotion 
+                currentSEOScore={pageSpeedData.seo_score || 0}
+                competitorAverage={competitorAverage}
+              />
             )}
           </div>
 

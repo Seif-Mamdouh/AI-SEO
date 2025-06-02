@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, TrendingUp, AlertCircle, Users, ChevronDown } from 'lucide-react'
+import { Search, TrendingUp, AlertCircle, Users, ChevronDown, Sparkles } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
@@ -224,6 +224,23 @@ export default function Home() {
             <div className="w-4 h-4 bg-white rounded-full"></div>
           </motion.div>
           <span className="text-xl font-semibold text-gray-900">MedSpaGPT</span>
+        </motion.div>
+        
+        <motion.div 
+          className="flex items-center space-x-4"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <motion.a
+            href="/ai-builder"
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>AI Website Builder</span>
+          </motion.a>
         </motion.div>
       </motion.div>
 
