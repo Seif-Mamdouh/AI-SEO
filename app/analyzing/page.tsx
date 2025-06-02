@@ -34,7 +34,7 @@ interface Competitor {
 
 export default function AnalyzingPage() {
   const [currentStep, setCurrentStep] = useState(0)
-  const [timeRemaining, setTimeRemaining] = useState(13) // Total estimated time (reduced after removing mobile step)
+  const [timeRemaining, setTimeRemaining] = useState(8) // Reduced time since API runs in parallel with animations
   const [selectedMedspa, setSelectedMedspa] = useState<any>(null)
   const [competitors, setCompetitors] = useState<Competitor[]>([])
   const [showEmailModal, setShowEmailModal] = useState(false)
@@ -110,64 +110,8 @@ export default function AnalyzingPage() {
     const selectedMedspaData = JSON.parse(localStorage.getItem('analyzingMedspa') || '{}')
     
     try {
-      // Simulate the analysis process step by step
-      for (let i = 0; i < analysisSteps.length; i++) {
-        // Set current step as active
-        setSteps(prev => prev.map((step, index) => ({
-          ...step,
-          status: index === i ? 'active' : index < i ? 'completed' : 'pending'
-        })))
-        setCurrentStep(i)
-
-        // If it's the competitors step, simulate adding competitors
-        if (i === 0) {
-          // Simulate discovering competitors over time
-          const mockCompetitors = [
-            { id: '1', name: 'Competitor 1', lat: selectedMedspaData.geometry?.location?.lat + 0.01 || 40.7128, lng: selectedMedspaData.geometry?.location?.lng + 0.01 || -74.0060, rating: 4.2 },
-            { id: '2', name: 'Competitor 2', lat: selectedMedspaData.geometry?.location?.lat - 0.01 || 40.7028, lng: selectedMedspaData.geometry?.location?.lng + 0.02 || -74.0040, rating: 4.5 },
-            { id: '3', name: 'Competitor 3', lat: selectedMedspaData.geometry?.location?.lat + 0.02 || 40.7228, lng: selectedMedspaData.geometry?.location?.lng - 0.01 || -74.0080, rating: 3.9 }
-          ]
-
-          // Add competitors with proper timing within the step duration
-          for (let j = 0; j < mockCompetitors.length; j++) {
-            setTimeout(() => {
-              addCompetitor(mockCompetitors[j])
-              // Mark all competitors as added when the last one is added
-              if (j === mockCompetitors.length - 1) {
-                console.log('All competitors added to map')
-              }
-            }, (j + 1) * 500) // Add each competitor after 0.5 seconds (last one at 1.5s)
-          }
-        }
-
-        // If it's the Google business profile step, show the business profile card
-        if (i === 1) {
-          setTimeout(() => {
-            setShowBusinessProfile(true)
-          }, 1000) // Show business profile after 1 second
-        }
-
-        // Wait for step duration
-        await new Promise(resolve => setTimeout(resolve, analysisSteps[i].duration * 1000))
-
-        // Mark step as completed
-        setSteps(prev => prev.map((step, index) => ({
-          ...step,
-          status: index <= i ? 'completed' : 'pending'
-        })))
-
-        // Hide business profile when step is completed
-        if (i === 1) {
-          setShowBusinessProfile(false)
-        }
-      }
-
-      // All steps completed - now proceed to actual API call
-      console.log('All steps completed! Starting SEO analysis API call...')
-      setAllStepsCompleted(true)
-
-      // Start actual API call
-      const response = await fetch('/api/seo-analysis', {
+      // Start the API call immediately in parallel with visual animations
+      const apiCallPromise = fetch('/api/seo-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,8 +121,70 @@ export default function AnalyzingPage() {
         }),
       })
 
-      if (response.ok) {
-        const data = await response.json()
+      // Start visual animations in parallel
+      const visualAnimationsPromise = (async () => {
+        // Simulate the analysis process step by step
+        for (let i = 0; i < analysisSteps.length; i++) {
+          // Set current step as active
+          setSteps(prev => prev.map((step, index) => ({
+            ...step,
+            status: index === i ? 'active' : index < i ? 'completed' : 'pending'
+          })))
+          setCurrentStep(i)
+
+          // If it's the competitors step, simulate adding competitors
+          if (i === 0) {
+            // Simulate discovering competitors over time
+            const mockCompetitors = [
+              { id: '1', name: 'Competitor 1', lat: selectedMedspaData.geometry?.location?.lat + 0.01 || 40.7128, lng: selectedMedspaData.geometry?.location?.lng + 0.01 || -74.0060, rating: 4.2 },
+              { id: '2', name: 'Competitor 2', lat: selectedMedspaData.geometry?.location?.lat - 0.01 || 40.7028, lng: selectedMedspaData.geometry?.location?.lng + 0.02 || -74.0040, rating: 4.5 },
+              { id: '3', name: 'Competitor 3', lat: selectedMedspaData.geometry?.location?.lat + 0.02 || 40.7228, lng: selectedMedspaData.geometry?.location?.lng - 0.01 || -74.0080, rating: 3.9 }
+            ]
+
+            // Add competitors with proper timing within the step duration
+            for (let j = 0; j < mockCompetitors.length; j++) {
+              setTimeout(() => {
+                addCompetitor(mockCompetitors[j])
+                // Mark all competitors as added when the last one is added
+                if (j === mockCompetitors.length - 1) {
+                  console.log('All competitors added to map')
+                }
+              }, (j + 1) * 500) // Add each competitor after 0.5 seconds (last one at 1.5s)
+            }
+          }
+
+          // If it's the Google business profile step, show the business profile card
+          if (i === 1) {
+            setTimeout(() => {
+              setShowBusinessProfile(true)
+            }, 1000) // Show business profile after 1 second
+          }
+
+          // Wait for step duration
+          await new Promise(resolve => setTimeout(resolve, analysisSteps[i].duration * 1000))
+
+          // Mark step as completed
+          setSteps(prev => prev.map((step, index) => ({
+            ...step,
+            status: index <= i ? 'completed' : 'pending'
+          })))
+
+          // Hide business profile when step is completed
+          if (i === 1) {
+            setShowBusinessProfile(false)
+          }
+        }
+
+        // All visual steps completed
+        console.log('All visual steps completed! Generating report...')
+        setAllStepsCompleted(true)
+      })()
+
+      // Wait for both visual animations and API call to complete
+      const [apiResponse] = await Promise.all([apiCallPromise, visualAnimationsPromise])
+
+      if (apiResponse.ok) {
+        const data = await apiResponse.json()
         
         // Store results and navigate to results page
         localStorage.setItem('seoAnalysisResults', JSON.stringify(data))
