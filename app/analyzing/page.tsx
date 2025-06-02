@@ -56,9 +56,15 @@ export default function AnalyzingPage() {
       description: 'Calculating competitive positioning',
       icon: TrendingUp,
       status: 'pending'
+    },
+    {
+      id: 'ai-analysis',
+      title: 'AI Deep Analysis',
+      description: 'Generating comprehensive insights',
+      icon: Brain,
+      status: 'pending'
     }
   ])
-  const [includeLLMAnalysis, setIncludeLLMAnalysis] = useState(true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [partialResults, setPartialResults] = useState<any>(null)
@@ -98,9 +104,14 @@ export default function AnalyzingPage() {
 
       // Step 4: SEO Ranking
       updateStepStatus('ranking', 'active')
+      await new Promise(resolve => setTimeout(resolve, 500))
+      updateStepStatus('ranking', 'completed')
 
-      // Make the actual API call (OPTIMIZED: No LLM by default)
-      console.log('📡 Calling optimized SEO analysis API...')
+      // Step 5: AI Deep Analysis
+      updateStepStatus('ai-analysis', 'active')
+
+      // Make the actual API call (includes AI analysis)
+      console.log('📡 Calling SEO analysis API with AI insights...')
       const response = await fetch('/api/seo-analysis', {
         method: 'POST',
         headers: {
@@ -108,7 +119,7 @@ export default function AnalyzingPage() {
         },
         body: JSON.stringify({ 
           selectedMedspa,
-          generate_llm_report: includeLLMAnalysis  // Only generate if requested
+          generate_llm_report: true  // Always include AI analysis
         }),
       })
 
@@ -117,7 +128,7 @@ export default function AnalyzingPage() {
         console.log('✅ SEO analysis completed successfully')
         console.log('🤖 LLM report included:', !!data.llm_report)
         
-        updateStepStatus('ranking', 'completed')
+        updateStepStatus('ai-analysis', 'completed')
 
         // Store results and navigate to results page
         localStorage.setItem('seoAnalysisResults', JSON.stringify(data))
@@ -125,12 +136,12 @@ export default function AnalyzingPage() {
         // Show completion for a moment before redirecting
         setTimeout(() => {
           router.push('/results')
-        }, 800) // Reduced from 1500ms
+        }, 800)
       } else {
         console.error('❌ SEO analysis failed')
         const errorData = await response.json()
         setError(errorData.error || 'Analysis failed')
-        updateStepStatus('ranking', 'error')
+        updateStepStatus('ai-analysis', 'error')
       }
     } catch (error) {
       console.error('💥 Analysis error:', error)
@@ -141,7 +152,7 @@ export default function AnalyzingPage() {
     } finally {
       setIsAnalyzing(false)
     }
-  }, [selectedMedspa, includeLLMAnalysis, router])
+  }, [selectedMedspa, router])
 
   useEffect(() => {
     // Get selected med spa from localStorage
@@ -286,21 +297,12 @@ export default function AnalyzingPage() {
                     <div className="min-w-0">
                       <div className="font-medium text-gray-900 flex flex-col sm:flex-row sm:items-center sm:space-x-2 text-sm sm:text-base">
                         <span>AI Deep Analysis</span>
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full w-fit mt-1 sm:mt-0">Recommended</span>
+                        
                       </div>
                       <div className="text-xs sm:text-sm text-gray-600 line-clamp-2">Detailed insights & actionable recommendations (+30-60s)</div>
                     </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer ml-2 flex-shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={includeLLMAnalysis}
-                      onChange={(e) => setIncludeLLMAnalysis(e.target.checked)}
-                      disabled={isAnalyzing}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 sm:w-11 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                  </label>
+                  <div className="text-green-600 font-medium text-sm ml-2 flex-shrink-0">✓ Included</div>
                 </div>
               </div>
 
@@ -308,7 +310,7 @@ export default function AnalyzingPage() {
                 <div className="flex items-start space-x-2">
                   <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                   <div className="text-xs sm:text-sm text-green-700">
-                    <strong>Recommended:</strong> AI analysis provides personalized insights and specific recommendations to outrank your competitors.
+                    <strong>Comprehensive Analysis:</strong> Both fast metrics and AI-powered insights are included for the most complete SEO analysis.
                   </div>
                 </div>
               </div>
@@ -373,25 +375,6 @@ export default function AnalyzingPage() {
                     </div>
                   </motion.div>
                 ))}
-
-                {/* LLM Analysis Step (conditional) */}
-                {includeLLMAnalysis && (
-                  <motion.div
-                    className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl bg-purple-50 border border-purple-200"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                  >
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center bg-purple-500 text-white flex-shrink-0">
-                      <Brain className="w-5 h-5 sm:w-6 sm:h-6" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 text-sm sm:text-base">AI Deep Analysis</h4>
-                      <p className="text-xs sm:text-sm text-gray-600 mt-1">Generating comprehensive insights</p>
-                    </div>
-                    <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                  </motion.div>
-                )}
               </div>
             </div>
 
@@ -412,15 +395,6 @@ export default function AnalyzingPage() {
                       className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                     >
                       Try Again
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIncludeLLMAnalysis(false)
-                        retryAnalysis()
-                      }}
-                      className="px-4 py-2 bg-white text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors text-sm"
-                    >
-                      Try Without AI Analysis
                     </button>
                   </div>
                 </motion.div>
