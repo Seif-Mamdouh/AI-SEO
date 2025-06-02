@@ -11,7 +11,8 @@ import {
   Star,
   Search,
   Mail,
-  Clock
+  Clock,
+  AlertTriangle
 } from 'lucide-react'
 
 interface AnalysisStep {
@@ -32,10 +33,12 @@ interface Competitor {
 
 export default function AnalyzingPage() {
   const [currentStep, setCurrentStep] = useState(0)
-  const [timeRemaining, setTimeRemaining] = useState(45) // Total estimated time
+  const [timeRemaining, setTimeRemaining] = useState(15) // Total estimated time (reduced for testing)
   const [selectedMedspa, setSelectedMedspa] = useState<any>(null)
   const [competitors, setCompetitors] = useState<Competitor[]>([])
   const [showEmailModal, setShowEmailModal] = useState(false)
+  const [showBusinessProfile, setShowBusinessProfile] = useState(false)
+  const [allStepsCompleted, setAllStepsCompleted] = useState(false)
   const router = useRouter()
 
   const analysisSteps: AnalysisStep[] = [
@@ -43,37 +46,37 @@ export default function AnalyzingPage() {
       id: 'medspa-competitors',
       title: `${selectedMedspa?.name || 'Med spa'} & competitors`,
       status: 'pending',
-      duration: 5
+      duration: 2
     },
     {
       id: 'google-profile',
       title: 'Google business profile',
       status: 'pending',
-      duration: 8
+      duration: 3
     },
     {
       id: 'review-sentiment',
       title: 'Google review sentiment',
       status: 'pending',
-      duration: 12
+      duration: 2
     },
     {
       id: 'photo-quality',
       title: 'Photo quality and quantity',
       status: 'pending',
-      duration: 8
+      duration: 2
     },
     {
       id: 'website-analysis',
       title: selectedMedspa?.website || 'Website analysis',
       status: 'pending',
-      duration: 8
+      duration: 2
     },
     {
       id: 'mobile-experience',
       title: 'Mobile experience',
       status: 'pending',
-      duration: 4
+      duration: 2
     }
   ]
 
@@ -113,7 +116,7 @@ export default function AnalyzingPage() {
     
     try {
       // Simulate the analysis process step by step
-      for (let i = 0; i < steps.length; i++) {
+      for (let i = 0; i < analysisSteps.length; i++) {
         // Set current step as active
         setSteps(prev => prev.map((step, index) => ({
           ...step,
@@ -133,19 +136,36 @@ export default function AnalyzingPage() {
           for (let j = 0; j < mockCompetitors.length; j++) {
             setTimeout(() => {
               addCompetitor(mockCompetitors[j])
-            }, (j + 1) * 2000) // Add each competitor after 2 seconds
+            }, (j + 1) * 1000) // Add each competitor after 1 second
           }
         }
 
+        // If it's the Google business profile step, show the business profile card
+        if (i === 1) {
+          setTimeout(() => {
+            setShowBusinessProfile(true)
+          }, 1000) // Show business profile after 1 second
+        }
+
         // Wait for step duration
-        await new Promise(resolve => setTimeout(resolve, steps[i].duration * 1000))
+        await new Promise(resolve => setTimeout(resolve, analysisSteps[i].duration * 1000))
 
         // Mark step as completed
         setSteps(prev => prev.map((step, index) => ({
           ...step,
           status: index <= i ? 'completed' : 'pending'
         })))
+
+        // Hide business profile when step is completed
+        if (i === 1) {
+          setShowBusinessProfile(false)
+        }
       }
+
+      // All steps completed - show large business profile instead of proceeding to API
+      console.log('All steps completed! Setting allStepsCompleted to true')
+      setAllStepsCompleted(true)
+      return
 
       // Start actual API call
       const response = await fetch('/api/seo-analysis', {
@@ -295,88 +315,273 @@ export default function AnalyzingPage() {
             </div>
           </div>
 
-          {/* Map Container */}
-          <div className="w-full h-full bg-gradient-to-br from-blue-100 to-green-100 relative overflow-hidden">
-            {/* Simulated Map Background */}
-            <div className="absolute inset-0 opacity-20">
-              <svg width="100%" height="100%" className="text-blue-200">
-                <defs>
-                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid)" />
-              </svg>
-            </div>
-
-            {/* Map Areas (simulated) */}
-            <div className="absolute inset-0">
-              {/* Blue areas (water) */}
-              <div className="absolute top-0 left-0 w-1/3 h-full bg-blue-200 opacity-60 transform -skew-x-12"></div>
-              <div className="absolute bottom-0 right-0 w-1/4 h-2/3 bg-blue-200 opacity-60 transform skew-y-12"></div>
-              
-              {/* Green areas (parks) */}
-              <div className="absolute top-1/4 left-1/3 w-16 h-20 bg-green-200 opacity-80 rounded-lg transform rotate-12"></div>
-              <div className="absolute top-1/2 right-1/4 w-20 h-16 bg-green-200 opacity-80 rounded-lg transform -rotate-45"></div>
-              <div className="absolute bottom-1/3 left-1/2 w-24 h-12 bg-green-200 opacity-80 rounded-lg"></div>
-              
-              {/* More scattered green areas */}
-              <div className="absolute top-3/4 right-1/3 w-12 h-16 bg-green-200 opacity-80 rounded-lg transform rotate-45"></div>
-              <div className="absolute top-1/6 right-1/2 w-14 h-14 bg-green-200 opacity-80 rounded-lg transform -rotate-12"></div>
-            </div>
-
-            {/* Main Med Spa Pin */}
-            {selectedMedspa && (
+          {/* Small Business Profile Card (during scanning) */}
+          <AnimatePresence>
+            {showBusinessProfile && selectedMedspa && !allStepsCompleted && (
               <motion.div
-                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20"
-                initial={{ scale: 0, y: -50 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="absolute bottom-4 left-4 z-20"
+                initial={{ opacity: 0, y: 100, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 100, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
               >
-                <div className="bg-black text-white p-2 rounded-full shadow-lg">
-                  <MapPin className="w-6 h-6" />
+                <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-80">
+                  <div className="flex space-x-3">
+                    {/* Business Image */}
+                    <div className="flex-shrink-0">
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                          <MapPin className="w-4 h-4 text-gray-600" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Business Details */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 text-sm mb-1 truncate">
+                        {selectedMedspa.name}
+                      </h3>
+                      
+                      {/* Rating */}
+                      <div className="flex items-center space-x-1 mb-1">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <= Math.floor(selectedMedspa.rating || 0)
+                                  ? 'text-yellow-400 fill-current'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-600 ml-1">
+                          {selectedMedspa.rating || '4.7'}
+                        </span>
+                        <span className="text-xs text-gray-500 ml-1">
+                          Business
+                        </span>
+                        <span className="text-xs text-gray-600">•</span>
+                        <span className="text-xs text-gray-600">$$$</span>
+                      </div>
+                      
+                      {/* Business Description (only show if available) */}
+                      {selectedMedspa.editorial_summary?.overview || selectedMedspa.description ? (
+                        <div className="text-xs text-gray-600 mb-1">
+                          {selectedMedspa.editorial_summary?.overview || selectedMedspa.description}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                  
+                  {/* Map Preview */}
+                  <div className="mt-3 h-20 bg-gray-100 rounded-lg overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-green-50">
+                      {/* Simulated street layout */}
+                      <div className="absolute inset-0 opacity-30">
+                        <div className="absolute top-2 left-2 right-2 h-px bg-gray-300"></div>
+                        <div className="absolute top-8 left-2 right-2 h-px bg-gray-300"></div>
+                        <div className="absolute top-2 left-8 bottom-2 w-px bg-gray-300"></div>
+                        <div className="absolute top-2 right-8 bottom-2 w-px bg-gray-300"></div>
+                      </div>
+                      
+                      {/* Pin */}
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="bg-red-500 text-white p-1 rounded-full shadow-sm">
+                          <MapPin className="w-3 h-3" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
+          </AnimatePresence>
 
-            {/* Competitor Pins */}
-            <AnimatePresence>
-              {competitors.map((competitor, index) => (
-                <motion.div
-                  key={competitor.id}
-                  className="absolute z-10"
-                  style={{
-                    left: `${50 + (competitor.lng - (selectedMedspa?.geometry?.location?.lng || -74.0060)) * 1000}%`,
-                    top: `${50 - (competitor.lat - (selectedMedspa?.geometry?.location?.lat || 40.7128)) * 1000}%`
-                  }}
-                  initial={{ scale: 0, y: -50 }}
-                  animate={{ scale: 1, y: 0 }}
-                  exit={{ scale: 0, y: -50 }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 300, 
-                    damping: 20,
-                    delay: index * 0.2 
-                  }}
-                >
-                  <div className="relative group">
-                    <div className="bg-red-500 text-white p-2 rounded-full shadow-lg cursor-pointer transform hover:scale-110 transition-transform">
-                      <MapPin className="w-5 h-5" />
+          {/* Map Container */}
+          <div className="w-full h-full bg-gradient-to-br from-blue-100 to-green-100 relative overflow-hidden">
+            {allStepsCompleted && selectedMedspa ? (
+              /* Large Business Profile View */
+              <div className="w-full h-full bg-white flex items-center justify-center p-8">
+                <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 w-full max-w-2xl">
+                  <div className="flex space-x-6">
+                    {/* Business Image */}
+                    <div className="flex-shrink-0">
+                      <div className="w-48 h-32 bg-gray-100 rounded-lg overflow-hidden">
+                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                          <div className="text-center">
+                            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                            <div className="text-xs text-gray-500">Business Photo</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      Competitor
+                    {/* Business Details */}
+                    <div className="flex-1">
+                      <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                        {selectedMedspa.name}
+                      </h2>
+                      
+                      {/* Rating */}
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${
+                                star <= Math.floor(selectedMedspa.rating || 4.5)
+                                  ? 'text-yellow-400 fill-current'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-700 font-medium">
+                          {selectedMedspa.rating || '4.5'}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {selectedMedspa.types?.[0]?.replace(/_/g, ' ') || 'Business'}
+                        </span>
+                        <span className="text-sm text-gray-500">•</span>
+                        <span className="text-sm text-gray-600">$$$</span>
+                      </div>
+                      
+                      {/* Warning/Status */}
+                      <div className="flex items-center space-x-2 mb-4">
+                        <AlertTriangle className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm text-orange-600">
+                          No description found
+                        </span>
+                      </div>
+                      
+                      {/* Business Description (if available) */}
+                      {selectedMedspa.editorial_summary?.overview || selectedMedspa.description ? (
+                        <div className="text-sm text-gray-600 mb-4">
+                          {selectedMedspa.editorial_summary?.overview || selectedMedspa.description}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  
+                  {/* Large Map Preview */}
+                  <div className="mt-6 h-40 bg-gray-100 rounded-lg overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-green-50">
+                      {/* Simulated street layout */}
+                      <div className="absolute inset-0 opacity-40">
+                        <div className="absolute top-4 left-4 right-4 h-px bg-gray-400"></div>
+                        <div className="absolute top-12 left-4 right-4 h-px bg-gray-400"></div>
+                        <div className="absolute top-20 left-4 right-4 h-px bg-gray-400"></div>
+                        <div className="absolute top-28 left-4 right-4 h-px bg-gray-400"></div>
+                        <div className="absolute top-4 left-12 bottom-4 w-px bg-gray-400"></div>
+                        <div className="absolute top-4 left-24 bottom-4 w-px bg-gray-400"></div>
+                        <div className="absolute top-4 right-12 bottom-4 w-px bg-gray-400"></div>
+                        <div className="absolute top-4 right-24 bottom-4 w-px bg-gray-400"></div>
+                      </div>
+                      
+                      {/* Street labels */}
+                      <div className="absolute top-2 left-16 text-xs text-gray-600 font-medium">41st St</div>
+                      <div className="absolute top-14 left-16 text-xs text-gray-600 font-medium">40th St</div>
+                      <div className="absolute top-26 left-16 text-xs text-gray-600 font-medium">39th St</div>
+                      <div className="absolute top-6 left-2 text-xs text-gray-600 font-medium transform -rotate-90 origin-left">9th Ave</div>
+                      <div className="absolute top-6 left-20 text-xs text-gray-600 font-medium transform -rotate-90 origin-left">8th Ave</div>
+                      
+                      {/* Pin */}
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="bg-red-500 text-white p-2 rounded-full shadow-lg">
+                          <MapPin className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Regular Map View During Scanning */
+              <>
+                {/* Simulated Map Background */}
+                <div className="absolute inset-0 opacity-20">
+                  <svg width="100%" height="100%" className="text-blue-200">
+                    <defs>
+                      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                  </svg>
+                </div>
 
-            {/* Google Maps Attribution */}
-            <div className="absolute bottom-4 right-4 text-xs text-gray-500 bg-white px-2 py-1 rounded">
-              Map data ©2025 Google
-            </div>
+                {/* Map Areas (simulated) */}
+                <div className="absolute inset-0">
+                  {/* Blue areas (water) */}
+                  <div className="absolute top-0 left-0 w-1/3 h-full bg-blue-200 opacity-60 transform -skew-x-12"></div>
+                  <div className="absolute bottom-0 right-0 w-1/4 h-2/3 bg-blue-200 opacity-60 transform skew-y-12"></div>
+                  
+                  {/* Green areas (parks) */}
+                  <div className="absolute top-1/4 left-1/3 w-16 h-20 bg-green-200 opacity-80 rounded-lg transform rotate-12"></div>
+                  <div className="absolute top-1/2 right-1/4 w-20 h-16 bg-green-200 opacity-80 rounded-lg transform -rotate-45"></div>
+                  <div className="absolute bottom-1/3 left-1/2 w-24 h-12 bg-green-200 opacity-80 rounded-lg"></div>
+                  
+                  {/* More scattered green areas */}
+                  <div className="absolute top-3/4 right-1/3 w-12 h-16 bg-green-200 opacity-80 rounded-lg transform rotate-45"></div>
+                  <div className="absolute top-1/6 right-1/2 w-14 h-14 bg-green-200 opacity-80 rounded-lg transform -rotate-12"></div>
+                </div>
+
+                {/* Main Med Spa Pin */}
+                {selectedMedspa && (
+                  <motion.div
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20"
+                    initial={{ scale: 0, y: -50 }}
+                    animate={{ scale: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <div className="bg-black text-white p-2 rounded-full shadow-lg">
+                      <MapPin className="w-6 h-6" />
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Competitor Pins */}
+                <AnimatePresence>
+                  {competitors.map((competitor, index) => (
+                    <motion.div
+                      key={competitor.id}
+                      className="absolute z-10"
+                      style={{
+                        left: `${50 + (competitor.lng - (selectedMedspa?.geometry?.location?.lng || -74.0060)) * 1000}%`,
+                        top: `${50 - (competitor.lat - (selectedMedspa?.geometry?.location?.lat || 40.7128)) * 1000}%`
+                      }}
+                      initial={{ scale: 0, y: -50 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0, y: -50 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 300, 
+                        damping: 20,
+                        delay: index * 0.2 
+                      }}
+                    >
+                      <div className="relative group">
+                        <div className="bg-red-500 text-white p-2 rounded-full shadow-lg cursor-pointer transform hover:scale-110 transition-transform">
+                          <MapPin className="w-5 h-5" />
+                        </div>
+                        
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          Competitor
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+
+                {/* Google Maps Attribution */}
+                <div className="absolute bottom-4 right-4 text-xs text-gray-500 bg-white px-2 py-1 rounded">
+                  Map data ©2025 Google
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
