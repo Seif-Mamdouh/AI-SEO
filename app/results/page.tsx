@@ -25,7 +25,8 @@ import {
   Users,
   Search,
   Eye,
-  Smartphone
+  Smartphone,
+  RefreshCw
 } from 'lucide-react'
 
 interface SEOAnalysisData {
@@ -92,12 +93,302 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
   medSpaData: any 
 }) => {
   const router = useRouter()
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState(0)
+  const [generationStep, setGenerationStep] = useState('')
+  const [generatedWebsite, setGeneratedWebsite] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
   
   const needsImprovement = currentSEOScore < 80 || currentSEOScore < competitorAverage
 
-  const handleRebuildWebsite = () => {
-    localStorage.setItem('medSpaContextData', JSON.stringify(medSpaData))
-    router.push('/ai-builder?context=medspa')
+  const generateContextualPrompt = (medSpaData: any) => {
+    const { name, formatted_address, rating, user_ratings_total, phone, formatted_phone_number, website_data, pagespeed_data, photos } = medSpaData
+    
+    let prompt = `Create a professional medical spa landing page for "${name}"\n\n`
+    prompt += `BUSINESS DETAILS:\n`
+    prompt += `• Business Name: ${name} (use this exact name throughout)\n`
+    prompt += `• Location: ${formatted_address}\n`
+    prompt += `• Phone: ${phone || formatted_phone_number || '(555) 123-4567'}\n`
+    prompt += `• Google Rating: ${rating || 4.8} stars (${user_ratings_total || 'many'} reviews)\n`
+    
+    if (website_data) {
+      if (website_data.title) {
+        prompt += `• Current Website Title: "${website_data.title}"\n`
+      }
+      if (website_data.description) {
+        prompt += `• Current Description: "${website_data.description}"\n`
+      }
+    }
+    
+    if (pagespeed_data && !pagespeed_data.error) {
+      prompt += `\nCURRENT WEBSITE PERFORMANCE TO IMPROVE:\n`
+      if (pagespeed_data.seo_score < 80) {
+        prompt += `• Current SEO score: ${pagespeed_data.seo_score}/100 - new site should achieve 90+\n`
+      }
+      if (pagespeed_data.performance_score < 80) {
+        prompt += `• Current performance score: ${pagespeed_data.performance_score}/100 - new site should load faster\n`
+      }
+    }
+    
+    prompt += `\nLANDING PAGE REQUIREMENTS:\n`
+    prompt += `• Hero Section: "${name}" prominently displayed with compelling medical spa messaging\n`
+    prompt += `• Services: Premium medical spa treatments (Botox, fillers, laser treatments, facials, etc.)\n`
+    prompt += `• About: Professional description specifically about ${name}\n`
+    prompt += `• Gallery: Use actual business photos if available\n`
+    prompt += `• Testimonials: Reference the ${rating}-star Google rating and create realistic reviews\n`
+    prompt += `• Contact: Use the exact address and phone number provided\n`
+    prompt += `• Booking: Appointment scheduling specifically for ${name}\n`
+    prompt += `• Footer: Complete ${name} business information\n`
+    
+    prompt += `\nCONTENT GUIDELINES:\n`
+    prompt += `• Every heading and section should reference "${name}" by name\n`
+    prompt += `• Write content as if you're the official ${name} website\n`
+    prompt += `• Include realistic pricing and service descriptions\n`
+    prompt += `• Make it feel like a real business website, not a template\n`
+    prompt += `• Use the business information provided above throughout\n`
+    prompt += `• Optimize for local SEO with location-based keywords\n`
+    
+    return prompt
+  }
+
+  const handleGenerateWebsite = async () => {
+    setIsGenerating(true)
+    setGenerationProgress(0)
+    setGenerationStep('Analyzing your business data...')
+    setError(null)
+    setGeneratedWebsite(null)
+
+    try {
+      console.log('🚀 Starting website generation for:', medSpaData.name)
+
+      // Generate contextual prompt
+      const prompt = generateContextualPrompt(medSpaData)
+
+      // Simulate progress updates
+      const progressUpdates = [
+        { progress: 10, step: 'Understanding your vision...' },
+        { progress: 25, step: 'Generating React components...' },
+        { progress: 50, step: 'Adding SHADCN/UI elements...' },
+        { progress: 75, step: 'Integrating business data...' },
+        { progress: 90, step: 'Finalizing website...' },
+      ]
+
+      let currentUpdateIndex = 0
+      const progressInterval = setInterval(() => {
+        if (currentUpdateIndex < progressUpdates.length) {
+          const update = progressUpdates[currentUpdateIndex]
+          setGenerationProgress(update.progress)
+          setGenerationStep(update.step)
+          currentUpdateIndex++
+        }
+      }, 1000)
+
+      // Make API call to generate website
+      const response = await fetch('/api/generate-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          medSpaData
+        })
+      })
+
+      clearInterval(progressInterval)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate website')
+      }
+
+      const result = await response.json()
+      
+      setGenerationProgress(100)
+      setGenerationStep('Website ready!')
+      
+      setTimeout(() => {
+        setGeneratedWebsite(result)
+        setIsGenerating(false)
+      }, 500)
+
+    } catch (error) {
+      console.error('💥 Generation failed:', error)
+      setError(error instanceof Error ? error.message : 'Failed to generate website')
+      setGenerationStep('Generation failed')
+      setIsGenerating(false)
+    }
+  }
+
+  const handleViewWebsite = () => {
+    // Store the generated website data and navigate to builder to view
+    localStorage.setItem('generatedWebsiteData', JSON.stringify(generatedWebsite))
+    router.push('/ai-builder?view=true')
+  }
+
+  const handleTryAgain = () => {
+    setError(null)
+    setGeneratedWebsite(null)
+    setGenerationProgress(0)
+    setGenerationStep('')
+  }
+
+  if (generatedWebsite) {
+    return (
+      <motion.div 
+        className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 shadow-md border border-green-100"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-blue-600 rounded-xl flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-green-900">
+                ✅ Website Generated Successfully!
+              </h3>
+              <p className="text-green-700 text-sm">
+                Your new website for {medSpaData.name} is ready
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-sm text-green-800">Modern React components</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-sm text-green-800">Uses your real business data</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-sm text-green-800">Mobile responsive & SEO optimized</span>
+            </div>
+          </div>
+          <div className="bg-white/60 rounded-lg p-4">
+            <div className="text-2xl font-bold text-green-600 mb-1">
+              Ready to Deploy
+            </div>
+            <div className="text-sm text-green-700">
+              Download and launch your new website
+            </div>
+            <div className="text-xs text-green-600 mt-1">
+              Built with React, TypeScript & Tailwind CSS
+            </div>
+          </div>
+        </div>
+
+        <div className="flex space-x-4">
+          <button
+            onClick={handleViewWebsite}
+            className="flex-1 px-6 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+          >
+            <Eye className="w-5 h-5" />
+            <span>View & Download Website</span>
+          </button>
+          <button
+            onClick={handleTryAgain}
+            className="px-4 py-4 bg-white text-gray-700 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+          >
+            Generate New
+          </button>
+        </div>
+      </motion.div>
+    )
+  }
+
+  if (isGenerating) {
+    return (
+      <motion.div 
+        className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 shadow-md border border-blue-100"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-blue-900">
+                🤖 Building Your Website...
+              </h3>
+              <p className="text-blue-700 text-sm">
+                Creating a professional website for {medSpaData.name}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-blue-700">{generationStep}</span>
+            <span className="text-sm text-blue-500">{generationProgress}%</span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-3">
+            <motion.div
+              className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${generationProgress}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+        </div>
+
+        <div className="text-center text-sm text-blue-600">
+          Please wait while we generate your professional website...
+        </div>
+      </motion.div>
+    )
+  }
+
+  if (error) {
+    return (
+      <motion.div 
+        className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-8 shadow-md border border-red-100"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-pink-600 rounded-xl flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-red-900">
+                ⚠️ Generation Failed
+              </h3>
+              <p className="text-red-700 text-sm">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex space-x-4">
+          <button
+            onClick={handleGenerateWebsite}
+            className="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-pink-700 transition-all duration-200 flex items-center justify-center space-x-2"
+          >
+            <RefreshCw className="w-5 h-5" />
+            <span>Try Again</span>
+          </button>
+          <button
+            onClick={handleTryAgain}
+            className="px-4 py-4 bg-white text-gray-700 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    )
   }
 
   return (
@@ -152,7 +443,7 @@ const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: 
       </div>
 
       <button
-        onClick={handleRebuildWebsite}
+        onClick={handleGenerateWebsite}
         className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
       >
         <Rocket className="w-5 h-5" />

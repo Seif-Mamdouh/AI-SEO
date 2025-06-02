@@ -160,6 +160,21 @@ export default function AIBuilder() {
   ]
 
   useEffect(() => {
+    // Check if we're viewing a pre-generated website
+    const isViewing = searchParams.get('view') === 'true'
+    if (isViewing) {
+      const generatedData = localStorage.getItem('generatedWebsiteData')
+      if (generatedData) {
+        console.log('🔍 Loading pre-generated website data')
+        const websiteData = JSON.parse(generatedData)
+        setGeneratedWebsite(websiteData)
+        setActiveTab('preview')
+        // Clear the data to prevent confusion
+        localStorage.removeItem('generatedWebsiteData')
+        return
+      }
+    }
+
     // Check if we have med spa context data
     const hasContext = searchParams.get('context') === 'medspa'
     if (hasContext) {
