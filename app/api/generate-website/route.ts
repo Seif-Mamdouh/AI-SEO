@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+import { generateText } from 'ai'
+import { vercel } from '@ai-sdk/vercel'
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
@@ -34,15 +31,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('❌ OpenAI API key not configured')
-      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
+    if (!process.env.VERCEL_API_TOKEN) {
+      console.error('❌ V0 API key not configured')
+      return NextResponse.json({ error: 'V0 API key not configured' }, { status: 500 })
     }
 
-    console.log('🤖 Starting OpenAI generation...')
+    console.log('🤖 Starting V0 generation...')
     
-    // Generate website using OpenAI with enhanced context
-    const websiteResult = await generateWebsiteWithOpenAI(prompt, medSpaData)
+    // Generate website using V0 with enhanced context
+    const websiteResult = await generateWebsiteWithV0(prompt, medSpaData)
     
     const duration = Date.now() - startTime
     console.log('✅ Website generation completed in:', duration + 'ms')
@@ -65,9 +62,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any) {
+async function generateWebsiteWithV0(prompt: string, medSpaData?: any) {
   try {
-    console.log('🎨 Preparing enhanced system prompt with React/SHADCN...')
+    console.log('🎨 Preparing enhanced prompt for V0...')
     
     // Extract images from med spa data and create proper Google Places URLs
     const medSpaImages = medSpaData?.photos || []
@@ -150,26 +147,18 @@ CONTENT REQUIREMENTS:
 
 Generate a complete, production-ready React component now:`
 
-    console.log('📡 Making OpenAI API request...')
+    console.log('📡 Making V0 API request...')
     
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 4000,
-      temperature: 0.7,
+    const { text: response } = await generateText({
+      model: vercel('v0-1.0-md'),
+      prompt: `${systemPrompt}\n\nUser Request: ${prompt}`,
     })
 
-    console.log('📨 OpenAI response received')
-    console.log('🔢 Tokens used:', completion.usage)
-
-    const response = completion.choices[0]?.message?.content
+    console.log('📨 V0 response received')
 
     if (!response) {
       console.error('❌ No response content from OpenAI')
-      throw new Error('No response generated from OpenAI')
+      throw new Error('No response generated from V0')
     }
 
     console.log('📝 Response length:', response.length)
@@ -274,13 +263,13 @@ export default function MedSpaLandingPage() {
     }
 
   } catch (error) {
-    console.error('💥 OpenAI generation error:', error)
+    console.error('💥 V0 generation error:', error)
     console.error('Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : 'No stack trace'
     })
-    throw new Error('Failed to generate website with AI: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    throw new Error('Failed to generate website with V0: ' + (error instanceof Error ? error.message : 'Unknown error'))
   }
 }
 
