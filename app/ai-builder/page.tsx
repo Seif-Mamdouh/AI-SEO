@@ -39,35 +39,79 @@ function DynamicReactPreview({ code }: { code: string }) {
   const [htmlContent, setHtmlContent] = useState<string>('')
   
   useEffect(() => {
-    // Check if we have HTML content (from preview field) or React code
-    if (code.includes('<!DOCTYPE html>')) {
-      setHtmlContent(code)
-    } else {
-      // Convert React code to HTML by extracting JSX and creating static HTML
-      try {
-        // For now, show a placeholder until the API returns proper HTML
+    console.log('🖼️ DynamicReactPreview received code:', {
+      length: code.length,
+      hasDoctype: code.includes('<!DOCTYPE html>'),
+      preview: code.substring(0, 200) + '...'
+    })
+    
+    // Always use the provided code as HTML content
+    // The API should send proper HTML in the preview field
+    if (code && code.length > 0) {
+      if (code.includes('<!DOCTYPE html>')) {
+        // Full HTML document
+        setHtmlContent(code)
+      } else {
+        // React component code - create a simple preview
         setHtmlContent(`
-          <div style="padding: 2rem; text-align: center; font-family: sans-serif;">
-            <h2 style="color: #2563eb; margin-bottom: 1rem;">AI Generated React Component</h2>
-            <p style="color: #6b7280; margin-bottom: 2rem;">This would render as a live React component in production.</p>
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
-              <h3 style="color: #1e293b; margin: 0 0 1rem 0;">Component Preview</h3>
-              <p style="color: #64748b; margin: 0;">React component generated with SHADCN/UI components, Tailwind CSS, and business data integration.</p>
-            </div>
-            <button style="background: #2563eb; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">
-              Sample Button Component
-            </button>
-          </div>
-        `)
-      } catch (err) {
-        console.error('Preview generation error:', err)
-        setHtmlContent(`
-          <div style="padding: 2rem; text-align: center;">
-            <h2 style="color: #dc2626;">Preview Unavailable</h2>
-            <p style="color: #6b7280;">Unable to generate preview. Check the React tab to view the generated code.</p>
-          </div>
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>React Component Preview</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+              <style>
+                .star-rating { color: #fbbf24; }
+                body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+              </style>
+          </head>
+          <body>
+              <div style="padding: 2rem; text-align: center; background: #f8fafc;">
+                  <h2 style="color: #2563eb; margin-bottom: 1rem;">AI Generated React Component</h2>
+                  <p style="color: #6b7280; margin-bottom: 2rem;">This shows a React component preview. Switch to REACT tab to see the full code.</p>
+                  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 2rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                      <h3 style="color: #1e293b; margin: 0 0 1rem 0;">Generated Component Features</h3>
+                      <ul style="color: #64748b; text-align: left; margin: 0; padding-left: 1.5rem;">
+                          <li>SHADCN/UI components integration</li>
+                          <li>Tailwind CSS styling</li>
+                          <li>Responsive design</li>
+                          <li>Business data integration</li>
+                          <li>Professional medical spa layout</li>
+                      </ul>
+                  </div>
+                  <button style="background: #2563eb; color: white; padding: 0.75rem 2rem; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                      Sample Generated Button
+                  </button>
+                  <p style="color: #6b7280; margin-top: 2rem; font-size: 0.875rem;">
+                      Component generated successfully! Check the REACT tab for the complete code.
+                  </p>
+              </div>
+          </body>
+          </html>
         `)
       }
+    } else {
+      // Fallback for empty/no content
+      setHtmlContent(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Preview Loading</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body>
+            <div style="padding: 2rem; text-align: center; background: #f8fafc; min-height: 400px; display: flex; align-items: center; justify-content: center;">
+                <div>
+                    <h2 style="color: #dc2626; margin-bottom: 1rem;">No Preview Available</h2>
+                    <p style="color: #6b7280;">Generate a website to see the preview here.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+      `)
     }
   }, [code])
   
@@ -76,7 +120,8 @@ function DynamicReactPreview({ code }: { code: string }) {
       srcDoc={htmlContent}
       className="w-full min-h-[500px] border-0"
       title="Website Preview"
-      sandbox="allow-scripts"
+      sandbox="allow-scripts allow-same-origin"
+      style={{ backgroundColor: '#f8fafc' }}
     />
   )
 }
@@ -326,7 +371,11 @@ export default function AIBuilder() {
       console.log('✅ Website generated successfully:', {
         hasHtml: !!result.html,
         hasCss: !!result.css,
-        type: result.type
+        hasPreview: !!result.preview,
+        type: result.type,
+        htmlLength: result.html?.length || 0,
+        previewLength: result.preview?.length || 0,
+        previewStart: result.preview?.substring(0, 100) || 'No preview'
       })
       
       setGenerationProgress(100)
@@ -507,9 +556,31 @@ ${generatedWebsite.js}
                 </h3>
                 <p className="text-sm text-green-700">
                   AI will create an actual business landing page using real data: business name, location, 
-                  {medSpaContext.photos?.length > 0 && ` ${medSpaContext.photos.length} actual photos,`} contact info, 
+                  {medSpaContext.photos?.length > 0 && ` ${medSpaContext.photos.length} actual Google Places photos,`} contact info, 
                   and performance insights. This will be a professional website specifically for {medSpaContext.name}.
                 </p>
+                {medSpaContext.photos?.length > 0 && (
+                  <div className="mt-2 flex items-center space-x-2">
+                    <div className="flex -space-x-1">
+                      {medSpaContext.photos.slice(0, 3).map((photo: any, index: number) => (
+                        <div 
+                          key={index}
+                          className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full border-2 border-white flex items-center justify-center text-xs text-white font-medium"
+                        >
+                          📷
+                        </div>
+                      ))}
+                      {medSpaContext.photos.length > 3 && (
+                        <div className="w-8 h-8 bg-gray-400 rounded-full border-2 border-white flex items-center justify-center text-xs text-white font-medium">
+                          +{medSpaContext.photos.length - 3}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-sm text-green-600 font-medium">
+                      Real business photos will be integrated into hero, gallery, and service sections
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="text-right">
                 <div className="text-sm font-medium text-green-900">
@@ -518,6 +589,11 @@ ${generatedWebsite.js}
                 <div className="text-xs text-green-600">
                   Target: 90+ with new website
                 </div>
+                {medSpaContext.photos?.length > 0 && (
+                  <div className="text-xs text-green-600 mt-1">
+                    Using {medSpaContext.photos.length} Google Places images
+                  </div>
+                )}
               </div>
             </div>
           </div>

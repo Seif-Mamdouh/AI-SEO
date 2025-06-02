@@ -69,22 +69,46 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any) {
   try {
     console.log('🎨 Preparing enhanced system prompt with React/SHADCN...')
     
-    // Extract images from med spa data
+    // Extract images from med spa data and create proper Google Places URLs
     const medSpaImages = medSpaData?.photos || []
     console.log('🖼️ Available images:', medSpaImages.length)
     
-    // Create image context for AI
+    // Create proper Google Places photo URLs
+    const imageUrls = medSpaImages.map((photo: any, index: number) => {
+      // Use a working Google Places photo URL (you might need to replace with your API key)
+      const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY || 'DEMO_KEY'}`
+      return {
+        url: photoUrl,
+        reference: photo.photo_reference,
+        index: index + 1
+      }
+    })
+    
+    // Create enhanced image context for AI
     let imageContext = ''
-    if (medSpaImages.length > 0) {
-      imageContext = `\n\nAVAILABLE BUSINESS IMAGES TO USE:
-${medSpaImages.map((photo: any, index: number) => 
-  `${index + 1}. ${photo.photo_reference} - Use this URL: https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=YOUR_API_KEY`
-).join('\n')}
+    if (imageUrls.length > 0) {
+      imageContext = `\n\nREAL BUSINESS IMAGES TO USE IN THE WEBSITE:
+${imageUrls.map((img: { url: string; reference: string; index: number }) => 
+  `Image ${img.index}: ${img.url}
+   - This is a real photo of ${medSpaData?.name || 'the business'}
+   - Use this exact URL in img src attributes
+   - Perfect for: hero section, gallery, about section, or service showcases`
+).join('\n\n')}
 
-IMPORTANT: Use these REAL business images instead of placeholders. These are actual photos of the business.`
+CRITICAL IMAGE REQUIREMENTS:
+- You MUST use these real business photos instead of placeholder images
+- Use the exact URLs provided above in your img tags
+- These photos show the actual business, treatments, and facilities
+- Integrate them naturally throughout the website (hero, gallery, services, about)
+- Add proper alt text describing what's shown in each business photo
+- Make images responsive with proper CSS classes
+
+Example usage:
+<img src="${imageUrls[0]?.url}" alt="${medSpaData?.name || 'Medical Spa'} - Professional Treatment Room" className="w-full h-64 object-cover rounded-lg" />
+`
     }
 
-    const systemPrompt = `You are a React developer. Create a complete landing page React component.
+    const systemPrompt = `You are a React developer creating a professional medical spa landing page.
 
 CRITICAL: You MUST respond EXACTLY in this format:
 
@@ -99,21 +123,32 @@ TYPES:
 
 DO NOT include any other text, explanations, or markdown. Just provide the code in the exact format above.
 
-Requirements:
-- Create a landing page for: ${medSpaData?.name || 'Medical Spa'}
-- Use Next.js 13+ with TypeScript
-- Use SHADCN/UI components (Button, Card, Badge, Input, Textarea, etc.)
-- Use Tailwind CSS for styling
-- Make it responsive and professional
-- Include hero section, services, testimonials, contact form
-- Use the business name "${medSpaData?.name}" throughout
-${medSpaData?.formatted_address ? `- Include address: ${medSpaData.formatted_address}` : ''}
-${medSpaData?.phone ? `- Include phone: ${medSpaData.phone}` : ''}
-${medSpaData?.rating ? `- Reference ${medSpaData.rating} star rating` : ''}
+BUSINESS INFORMATION:
+- Business Name: ${medSpaData?.name || 'Premium Medical Spa'} (use this exact name)
+- Address: ${medSpaData?.formatted_address || 'Professional Location'}
+- Phone: ${medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567'}
+- Rating: ${medSpaData?.rating || 4.8} stars (${medSpaData?.user_ratings_total || 'many'} reviews)
+
+TECHNICAL REQUIREMENTS:
+- Create a complete Next.js 13+ React component with TypeScript
+- Use SHADCN/UI components (Button, Card, Badge, Input, Textarea, Dialog, etc.)
+- Use Tailwind CSS for all styling
+- Make it fully responsive (mobile, tablet, desktop)
+- Include these sections: Hero, Services, About, Gallery, Testimonials, Contact
+- Add smooth animations and professional design
+- Use the business information provided above throughout
 
 ${imageContext}
 
-Generate a complete, functional React component now:`
+CONTENT REQUIREMENTS:
+- Write as if you're the official ${medSpaData?.name || 'Medical Spa'} website
+- Include realistic medical spa services (Botox, fillers, laser treatments, facials, etc.)
+- Add professional pricing and service descriptions
+- Include booking/consultation CTAs
+- Reference the Google rating and location throughout
+- Make it feel like a real business website, not a template
+
+Generate a complete, production-ready React component now:`
 
     console.log('📡 Making OpenAI API request...')
     
@@ -198,7 +233,34 @@ ${types}
 
 ${reactComponent}
 
-export default MedSpaLandingPage`
+export default function MedSpaLandingPage() {
+  const [isBookingOpen, setIsBookingOpen] = useState(false)
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-gray-900">${medSpaData?.name || 'Premium Medical Spa'}</h1>
+            </div>
+            <nav className="hidden md:flex space-x-8">
+              <a href="#services" className="text-gray-500 hover:text-gray-900">Services</a>
+              <a href="#about" className="text-gray-500 hover:text-gray-900">About</a>
+              <a href="#contact" className="text-gray-500 hover:text-gray-900">Contact</a>
+            </nav>
+            <Button onClick={() => setIsBookingOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+              Book Consultation
+            </Button>
+          </div>
+        </div>
+      </header>
+      {/* Rest of component... */}
+    </div>
+  )
+}
+`
 
     // Generate HTML preview for iframe
     const htmlPreview = generateFallbackReactComponent(medSpaData).html
@@ -238,6 +300,16 @@ function generateFallbackReactComponent(medSpaData?: any) {
   const phone = medSpaData?.phone || '(555) 123-4567'
   const rating = medSpaData?.rating || 4.8
 
+  // Create Google Places photo URLs for fallback component
+  const medSpaImages = medSpaData?.photos || []
+  const imageUrls = medSpaImages.map((photo: any, index: number) => {
+    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY || 'DEMO_KEY'}`
+  })
+
+  // Generate hero image and gallery images
+  const heroImage = imageUrls[0] || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80'
+  const galleryImages = imageUrls.slice(0, 6) // Use up to 6 real images
+
   // Generate actual HTML for preview
   const htmlPreview = `
     <!DOCTYPE html>
@@ -249,6 +321,11 @@ function generateFallbackReactComponent(medSpaData?: any) {
         <script src="https://cdn.tailwindcss.com"></script>
         <style>
           .star-rating { color: #fbbf24; }
+          .hero-bg {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('${heroImage}');
+            background-size: cover;
+            background-position: center;
+          }
         </style>
     </head>
     <body class="bg-white">
@@ -262,6 +339,7 @@ function generateFallbackReactComponent(medSpaData?: any) {
                     <nav class="hidden md:flex space-x-8">
                         <a href="#services" class="text-gray-500 hover:text-gray-900">Services</a>
                         <a href="#about" class="text-gray-500 hover:text-gray-900">About</a>
+                        <a href="#gallery" class="text-gray-500 hover:text-gray-900">Gallery</a>
                         <a href="#contact" class="text-gray-500 hover:text-gray-900">Contact</a>
                     </nav>
                     <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
@@ -271,22 +349,20 @@ function generateFallbackReactComponent(medSpaData?: any) {
             </div>
         </header>
 
-        <!-- Hero Section -->
-        <section class="bg-gradient-to-r from-blue-50 to-purple-50 py-20">
+        <!-- Hero Section with Real Business Image -->
+        <section class="hero-bg py-32 text-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center">
-                    <h2 class="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-                        Welcome to <span class="text-blue-600">${businessName}</span>
+                    <h2 class="text-4xl font-extrabold sm:text-5xl md:text-6xl">
+                        Welcome to <span class="text-blue-400">${businessName}</span>
                     </h2>
-                    <p class="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+                    <p class="mt-3 max-w-md mx-auto text-base text-gray-200 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
                         Experience premium medical spa treatments in a luxury environment. Our certified professionals deliver exceptional results.
                     </p>
-                    <div class="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-                        <div class="rounded-md shadow">
-                            <button class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10">
-                                Book Your Treatment
-                            </button>
-                        </div>
+                    <div class="mt-8">
+                        <button class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg transition-colors">
+                            Book Your Treatment
+                        </button>
                     </div>
                 </div>
             </div>
@@ -298,23 +374,26 @@ function generateFallbackReactComponent(medSpaData?: any) {
                 <div class="text-center">
                     <h2 class="text-3xl font-extrabold text-gray-900">Our Premium Services</h2>
                     <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-                        Professional treatments delivered by licensed medical professionals
+                        Professional treatments delivered by licensed medical professionals at ${businessName}
                     </p>
                 </div>
                 <div class="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
                     <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        ${imageUrls[1] ? `<img src="${imageUrls[1]}" alt="${businessName} Botox Treatment" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
                         <h3 class="text-lg font-semibold text-gray-900 mb-2">Botox & Fillers</h3>
                         <p class="text-sm text-gray-600 mb-4">Anti-aging injections for natural results</p>
                         <p class="text-gray-600 mb-4">Professional cosmetic injections to reduce fine lines and restore volume.</p>
                         <div class="inline-block bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">From $299</div>
                     </div>
                     <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        ${imageUrls[2] ? `<img src="${imageUrls[2]}" alt="${businessName} Laser Treatment" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
                         <h3 class="text-lg font-semibold text-gray-900 mb-2">Laser Treatments</h3>
                         <p class="text-sm text-gray-600 mb-4">Advanced laser therapy for skin rejuvenation</p>
                         <p class="text-gray-600 mb-4">State-of-the-art laser technology for hair removal, skin resurfacing, and more.</p>
                         <div class="inline-block bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">From $199</div>
                     </div>
                     <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        ${imageUrls[3] ? `<img src="${imageUrls[3]}" alt="${businessName} HydraFacial" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
                         <h3 class="text-lg font-semibold text-gray-900 mb-2">HydraFacial</h3>
                         <p class="text-sm text-gray-600 mb-4">Deep cleansing and hydrating facial treatment</p>
                         <p class="text-gray-600 mb-4">Multi-step treatment for cleaner, more beautiful skin with no downtime.</p>
@@ -324,28 +403,49 @@ function generateFallbackReactComponent(medSpaData?: any) {
             </div>
         </section>
 
+        <!-- Gallery Section with Real Business Images -->
+        ${galleryImages.length > 0 ? `
+        <section id="gallery" class="py-16 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Our Facility</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
+                        Take a look inside ${businessName}
+                    </p>
+                </div>
+                <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${galleryImages.map((imageUrl: string, index: number) => `
+                        <div class="relative overflow-hidden rounded-lg shadow-lg">
+                            <img src="${imageUrl}" alt="${businessName} Facility Photo ${index + 1}" class="w-full h-64 object-cover hover:scale-105 transition-transform duration-300">
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </section>
+        ` : ''}
+
         <!-- Testimonials -->
-        <section class="py-16 bg-gray-50">
+        <section class="py-16 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center">
                     <h2 class="text-3xl font-extrabold text-gray-900">What Our Clients Say</h2>
                     <div class="mt-6 flex justify-center items-center">
-                        <div class="flex star-rating">
+                        <div class="flex star-rating text-2xl">
                             ★★★★★
                         </div>
-                        <span class="ml-2 text-gray-600">${rating} stars from ${medSpaData?.user_ratings_total || 'over 100'} reviews</span>
+                        <span class="ml-2 text-gray-600">${rating} stars from ${medSpaData?.user_ratings_total || 'over 100'} reviews on Google</span>
                     </div>
                     <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <p class="text-gray-600 italic">"Amazing results! The staff is professional and the facility is beautiful."</p>
+                        <div class="bg-gray-50 p-6 rounded-lg">
+                            <p class="text-gray-600 italic">"Amazing results at ${businessName}! The staff is professional and the facility is beautiful."</p>
                             <p class="mt-4 font-semibold text-gray-900">- Sarah M.</p>
                         </div>
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <p class="text-gray-600 italic">"Best med spa experience I've ever had. Highly recommend!"</p>
+                        <div class="bg-gray-50 p-6 rounded-lg">
+                            <p class="text-gray-600 italic">"Best med spa experience I've ever had. ${businessName} is incredible!"</p>
                             <p class="mt-4 font-semibold text-gray-900">- Jennifer L.</p>
                         </div>
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <p class="text-gray-600 italic">"Professional service and fantastic results. Will definitely return."</p>
+                        <div class="bg-gray-50 p-6 rounded-lg">
+                            <p class="text-gray-600 italic">"Professional service and fantastic results at ${businessName}. Will definitely return."</p>
                             <p class="mt-4 font-semibold text-gray-900">- Maria R.</p>
                         </div>
                     </div>
@@ -354,17 +454,18 @@ function generateFallbackReactComponent(medSpaData?: any) {
         </section>
 
         <!-- Contact Section -->
-        <section id="contact" class="py-16 bg-white">
+        <section id="contact" class="py-16 bg-gray-50">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center">
                     <h2 class="text-3xl font-extrabold text-gray-900">Visit ${businessName}</h2>
                     <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <h3 class="text-lg font-medium text-gray-900">Location</h3>
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="text-lg font-medium text-gray-900">Location & Contact</h3>
                             <p class="mt-2 text-gray-600">${address}</p>
                             <p class="mt-2 text-gray-600">${phone}</p>
+                            <p class="mt-2 text-blue-600">Google Rating: ${rating} ⭐</p>
                         </div>
-                        <div>
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
                             <h3 class="text-lg font-medium text-gray-900">Hours</h3>
                             <p class="mt-2 text-gray-600">Monday - Friday: 9:00 AM - 6:00 PM</p>
                             <p class="text-gray-600">Saturday: 9:00 AM - 4:00 PM</p>
@@ -373,7 +474,7 @@ function generateFallbackReactComponent(medSpaData?: any) {
                     </div>
                     <div class="mt-8">
                         <button class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium text-lg">
-                            Schedule Consultation
+                            Schedule Consultation at ${businessName}
                         </button>
                     </div>
                 </div>
@@ -388,9 +489,23 @@ function generateFallbackReactComponent(medSpaData?: any) {
                     <p class="mt-2 text-gray-400">Premium Medical Spa Services</p>
                     <p class="mt-2 text-gray-400">${address}</p>
                     <p class="text-gray-400">${phone}</p>
+                    <p class="mt-2 text-gray-400">Rated ${rating} ⭐ on Google</p>
                 </div>
             </div>
         </footer>
+
+        <script>
+            // Simple smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+        </script>
     </body>
     </html>
   `

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   AnalysisProgressSidebar,
@@ -55,45 +55,12 @@ export default function AnalyzingPage() {
 
   const [steps, setSteps] = useState(analysisSteps)
 
-  useEffect(() => {
-    // Get selected med spa from localStorage
-    const storedMedspa = localStorage.getItem('analyzingMedspa')
-    if (storedMedspa) {
-      const parsedMedspa = JSON.parse(storedMedspa)
-      console.log('🏪 Med Spa Data from localStorage:', {
-        name: parsedMedspa.name,
-        hasPhotos: !!parsedMedspa.photos,
-        photosLength: parsedMedspa.photos?.length || 0,
-        photos: parsedMedspa.photos,
-        fullData: parsedMedspa
-      })
-      setSelectedMedspa(parsedMedspa)
-    } else {
-      console.log('❌ No med spa data found in localStorage')
-      router.push('/')
-      return
-    }
-
-    // Start the analysis process
-    startAnalysis()
-  }, [router])
-
-  // Timer for time remaining
-  useEffect(() => {
-    if (timeRemaining > 0) {
-      const timer = setInterval(() => {
-        setTimeRemaining(prev => Math.max(0, prev - 1))
-      }, 1000)
-      return () => clearInterval(timer)
-    }
-  }, [timeRemaining])
-
   // Simulate adding competitors as they're discovered
   const addCompetitor = (competitor: Competitor) => {
     setCompetitors(prev => [...prev, competitor])
   }
 
-  const startAnalysis = async () => {
+  const startAnalysis = useCallback(async () => {
     const selectedMedspaData = JSON.parse(localStorage.getItem('analyzingMedspa') || '{}')
     
     try {
@@ -235,7 +202,40 @@ export default function AnalyzingPage() {
       console.error('Analysis error:', error)
       router.push('/')
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    // Get selected med spa from localStorage
+    const storedMedspa = localStorage.getItem('analyzingMedspa')
+    if (storedMedspa) {
+      const parsedMedspa = JSON.parse(storedMedspa)
+      console.log('🏪 Med Spa Data from localStorage:', {
+        name: parsedMedspa.name,
+        hasPhotos: !!parsedMedspa.photos,
+        photosLength: parsedMedspa.photos?.length || 0,
+        photos: parsedMedspa.photos,
+        fullData: parsedMedspa
+      })
+      setSelectedMedspa(parsedMedspa)
+    } else {
+      console.log('❌ No med spa data found in localStorage')
+      router.push('/')
+      return
+    }
+
+    // Start the analysis process
+    startAnalysis()
+  }, [router, startAnalysis])
+
+  // Timer for time remaining
+  useEffect(() => {
+    if (timeRemaining > 0) {
+      const timer = setInterval(() => {
+        setTimeRemaining(prev => Math.max(0, prev - 1))
+      }, 1000)
+      return () => clearInterval(timer)
+    }
+  }, [timeRemaining])
 
   const handleNavigateToResults = () => {
     router.push('/results')
