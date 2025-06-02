@@ -393,7 +393,7 @@ export default function ResultsPage() {
               <p className="text-xl text-gray-700 mb-6">Get your website to the top of Google</p>
               
               <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">What's SEO?</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">What&apos;s SEO?</h3>
                 <p className="text-sm text-gray-700">
                   It means improving your website so search engines like Google can find it, rank it higher, and help more people see it.
                 </p>
@@ -401,7 +401,7 @@ export default function ResultsPage() {
 
               {/* Who's beating you on Google */}
               <div className="mb-8">
-                <h3 className="font-semibold text-gray-900 mb-4">Who's beating you on Google</h3>
+                <h3 className="font-semibold text-gray-900 mb-4">Who&apos;s beating you on Google</h3>
                 <div className="space-y-3">
                   {competitors.slice(0, 5).map((competitor: any, index: number) => (
                     <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -433,7 +433,7 @@ export default function ResultsPage() {
 
               {/* Where are you placing when customers search you, next to your competitors */}
               <div className="mb-8">
-                <h3 className="font-semibold text-gray-900 mb-4">This is how you're doing online</h3>
+                <h3 className="font-semibold text-gray-900 mb-4">This is how you&apos;re doing online</h3>
                 <p className="text-sm text-gray-600 mb-4">Where are you placing when customers search you, next to your competitors</p>
                 
                 <div className="space-y-4">

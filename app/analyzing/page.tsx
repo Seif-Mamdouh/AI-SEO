@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, TrendingUp, Globe, Zap, Users, CheckCircle, Brain, AlertCircle } from 'lucide-react'
 import WebsiteAnalysis from './components/WebsiteAnalysis'
@@ -64,23 +64,6 @@ export default function AnalyzingPage() {
   const [partialResults, setPartialResults] = useState<any>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    // Get selected med spa from localStorage
-    const storedMedspa = localStorage.getItem('analyzingMedspa')
-    if (storedMedspa) {
-      setSelectedMedspa(JSON.parse(storedMedspa))
-    } else {
-      // If no med spa data, redirect back
-      router.push('/')
-    }
-  }, [router])
-
-  useEffect(() => {
-    if (selectedMedspa && !isAnalyzing) {
-      startAnalysis()
-    }
-  }, [selectedMedspa])
-
   const updateStepStatus = (stepId: string, status: AnalysisStep['status'], progress?: number) => {
     setAnalysisSteps(prev => prev.map(step => 
       step.id === stepId 
@@ -89,7 +72,7 @@ export default function AnalyzingPage() {
     ))
   }
 
-  const startAnalysis = async () => {
+  const startAnalysis = useCallback(async () => {
     if (!selectedMedspa) return
 
     setIsAnalyzing(true)
@@ -158,7 +141,24 @@ export default function AnalyzingPage() {
     } finally {
       setIsAnalyzing(false)
     }
-  }
+  }, [selectedMedspa, includeLLMAnalysis, router])
+
+  useEffect(() => {
+    // Get selected med spa from localStorage
+    const storedMedspa = localStorage.getItem('analyzingMedspa')
+    if (storedMedspa) {
+      setSelectedMedspa(JSON.parse(storedMedspa))
+    } else {
+      // If no med spa data, redirect back
+      router.push('/')
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (selectedMedspa && !isAnalyzing) {
+      startAnalysis()
+    }
+  }, [selectedMedspa, isAnalyzing, startAnalysis])
 
   const retryAnalysis = () => {
     setError(null)

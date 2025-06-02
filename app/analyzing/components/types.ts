@@ -38,6 +38,7 @@ export interface MedSpa {
   user_ratings_total?: number
   website?: string
   phone?: string
+  types?: string[] 
   geometry?: {
     location: {
       lat: number
