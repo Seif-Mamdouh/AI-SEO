@@ -32,11 +32,23 @@ interface Competitor {
   address?: string
 }
 
+interface Review {
+  author_name: string
+  author_url?: string
+  language?: string
+  profile_photo_url?: string
+  rating: number
+  relative_time_description: string
+  text?: string
+  time: number
+}
+
 export default function AnalyzingPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState(8) // Reduced time since API runs in parallel with animations
   const [selectedMedspa, setSelectedMedspa] = useState<any>(null)
   const [competitors, setCompetitors] = useState<Competitor[]>([])
+  const [reviews, setReviews] = useState<Review[]>([])
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [showBusinessProfile, setShowBusinessProfile] = useState(false)
   const [allStepsCompleted, setAllStepsCompleted] = useState(false)
@@ -160,6 +172,17 @@ export default function AnalyzingPage() {
             }, 1000) // Show business profile after 1 second
           }
 
+          // If it's the review sentiment step, set reviews data
+          if (i === 2) {
+            setTimeout(() => {
+              // Extract reviews from selectedMedspa data if available
+              if (selectedMedspaData.reviews && selectedMedspaData.reviews.length > 0) {
+                setReviews(selectedMedspaData.reviews)
+                console.log('✅ Using real reviews data:', selectedMedspaData.reviews.length)
+              }
+            }, 500) // Set reviews after 0.5 seconds
+          }
+
           // Wait for step duration
           await new Promise(resolve => setTimeout(resolve, analysisSteps[i].duration * 1000))
 
@@ -180,22 +203,37 @@ export default function AnalyzingPage() {
         setAllStepsCompleted(true)
       })()
 
-      // Wait for both visual animations and API call to complete
-      const [apiResponse] = await Promise.all([apiCallPromise, visualAnimationsPromise])
-
-      if (apiResponse.ok) {
-        const data = await apiResponse.json()
+      // Wait for both API call and visual animations to complete
+      const [apiResult] = await Promise.all([apiCallPromise, visualAnimationsPromise])
+      
+      console.log('✅ Analysis complete!')
+      
+      if (apiResult.ok) {
+        const data = await apiResult.json()
+        console.log('📊 Analysis data received:', data)
         
-        // Store results and navigate to results page
-        localStorage.setItem('seoAnalysisResults', JSON.stringify(data))
-        localStorage.removeItem('analyzingMedspa')
+        // Store the results including reviews data
+        localStorage.setItem('analysisResults', JSON.stringify(data))
         
+        // Update selectedMedspa with reviews data for the visual components
+        if (data.selectedMedspa?.reviews) {
+          const updatedMedspaData = {
+            ...selectedMedspaData,
+            reviews: data.selectedMedspa.reviews
+          }
+          localStorage.setItem('analyzingMedspa', JSON.stringify(updatedMedspaData))
+          setSelectedMedspa(updatedMedspaData)
+          setReviews(data.selectedMedspa.reviews)
+          console.log('✅ Updated med spa data with reviews:', data.selectedMedspa.reviews.length)
+        }
+        
+        // Redirect to results after a short delay
         setTimeout(() => {
           router.push('/results')
-        }, 1000)
+        }, 2000)
       } else {
-        console.error('Analysis failed')
-        router.push('/')
+        console.error('❌ Analysis failed')
+        // Handle error - maybe redirect to error page or show error message
       }
     } catch (error) {
       console.error('Analysis error:', error)
@@ -522,15 +560,24 @@ export default function AnalyzingPage() {
                   <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
                     <div className="grid grid-cols-3 gap-6">
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-gray-900">4.3</div>
+                        <div className="text-3xl font-bold text-gray-900">
+                          {selectedMedspa?.rating?.toFixed(1) || '0.0'}
+                        </div>
                         <div className="text-sm text-gray-500">Average Rating</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-gray-900">127</div>
+                        <div className="text-3xl font-bold text-gray-900">
+                          {selectedMedspa?.user_ratings_total || reviews.length || 0}
+                        </div>
                         <div className="text-sm text-gray-500">Total Reviews</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-green-600">76%</div>
+                        <div className="text-3xl font-bold text-green-600">
+                          {reviews.length > 0 
+                            ? `${Math.round((reviews.filter(r => r.rating >= 4).length / reviews.length) * 100)}%`
+                            : '76%'
+                          }
+                        </div>
                         <div className="text-sm text-gray-500">Positive Sentiment</div>
                       </div>
                     </div>
@@ -538,12 +585,12 @@ export default function AnalyzingPage() {
 
                   {/* Recent Reviews */}
                   <div className="space-y-4">
-                    {[
-                      { name: "Sarah M.", rating: 5, text: "Amazing service! The staff was incredibly professional and the results exceeded my expectations.", time: "2 days ago" },
-                      { name: "Mike R.", rating: 4, text: "Great experience overall. Clean facility and knowledgeable staff. Will definitely come back.", time: "1 week ago" },
-                      { name: "Emily K.", rating: 5, text: "Best med spa in the area! Love the treatments and the atmosphere is so relaxing.", time: "2 weeks ago" },
-                      { name: "David L.", rating: 3, text: "Good service but the wait time was longer than expected. Staff was friendly though.", time: "3 weeks ago" }
-                    ].map((review, index) => (
+                    {(reviews.length > 0 ? reviews : [
+                      { author_name: "Sarah M.", rating: 5, text: "Amazing service! The staff was incredibly professional and the results exceeded my expectations.", relative_time_description: "2 days ago" },
+                      { author_name: "Mike R.", rating: 4, text: "Great experience overall. Clean facility and knowledgeable staff. Will definitely come back.", relative_time_description: "1 week ago" },
+                      { author_name: "Emily K.", rating: 5, text: "Best med spa in the area! Love the treatments and the atmosphere is so relaxing.", relative_time_description: "2 weeks ago" },
+                      { author_name: "David L.", rating: 3, text: "Good service but the wait time was longer than expected. Staff was friendly though.", relative_time_description: "3 weeks ago" }
+                    ]).map((review, index) => (
                       <motion.div
                         key={index}
                         className="bg-white rounded-lg p-4 shadow-sm"
@@ -553,11 +600,11 @@ export default function AnalyzingPage() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-gray-600">{review.name[0]}</span>
+                            <span className="text-sm font-medium text-gray-600">{review.author_name[0]}</span>
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
-                              <span className="font-medium text-gray-900">{review.name}</span>
+                              <span className="font-medium text-gray-900">{review.author_name}</span>
                               <div className="flex">
                                 {[1, 2, 3, 4, 5].map((star) => (
                                   <Star
@@ -570,7 +617,7 @@ export default function AnalyzingPage() {
                                   />
                                 ))}
                               </div>
-                              <span className="text-xs text-gray-500">{review.time}</span>
+                              <span className="text-xs text-gray-500">{review.relative_time_description}</span>
                             </div>
                             <p className="text-sm text-gray-600">{review.text}</p>
                           </div>

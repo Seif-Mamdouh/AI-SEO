@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+interface Review {
+  author_name: string
+  author_url?: string
+  language?: string
+  profile_photo_url?: string
+  rating: number
+  relative_time_description: string
+  text?: string
+  time: number
+}
+
 interface PlaceDetails {
   place_id: string
   name: string
@@ -14,6 +25,7 @@ interface PlaceDetails {
       lng: number
     }
   }
+  reviews?: Review[]
 }
 
 interface PageSpeedResult {
@@ -80,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (!selectedMedspa.geometry?.location) {
       console.log('🔍 Need to fetch coordinates for med spa')
       // Get place details if we don't have coordinates
-      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${selectedMedspa.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry&key=${googleApiKey}`
+      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${selectedMedspa.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry,reviews&key=${googleApiKey}`
       
       console.log('🌐 Calling Google Places Details API...')
       const detailsResponse = await fetch(detailsUrl)
@@ -268,7 +280,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       selectedMedspa: {
         ...medSpaDetails,
-        pagespeed_data: selectedMedSpaPageSpeed
+        pagespeed_data: selectedMedSpaPageSpeed,
+        reviews: medSpaDetails.reviews || []
       },
       competitors: seoAnalysis.competitors,
       analysis: {
