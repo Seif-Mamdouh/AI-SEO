@@ -33,7 +33,7 @@ interface Competitor {
 
 export default function AnalyzingPage() {
   const [currentStep, setCurrentStep] = useState(0)
-  const [timeRemaining, setTimeRemaining] = useState(15) // Total estimated time (reduced for testing)
+  const [timeRemaining, setTimeRemaining] = useState(13) // Total estimated time (reduced after removing mobile step)
   const [selectedMedspa, setSelectedMedspa] = useState<any>(null)
   const [competitors, setCompetitors] = useState<Competitor[]>([])
   const [showEmailModal, setShowEmailModal] = useState(false)
@@ -70,13 +70,7 @@ export default function AnalyzingPage() {
       id: 'website-analysis',
       title: selectedMedspa?.website || 'Website analysis',
       status: 'pending',
-      duration: 2
-    },
-    {
-      id: 'mobile-experience',
-      title: 'Mobile experience',
-      status: 'pending',
-      duration: 2
+      duration: 4
     }
   ]
 
@@ -133,10 +127,15 @@ export default function AnalyzingPage() {
             { id: '3', name: 'Competitor 3', lat: selectedMedspaData.geometry?.location?.lat + 0.02 || 40.7228, lng: selectedMedspaData.geometry?.location?.lng - 0.01 || -74.0080, rating: 3.9 }
           ]
 
+          // Add competitors with proper timing within the step duration
           for (let j = 0; j < mockCompetitors.length; j++) {
             setTimeout(() => {
               addCompetitor(mockCompetitors[j])
-            }, (j + 1) * 1000) // Add each competitor after 1 second
+              // Mark all competitors as added when the last one is added
+              if (j === mockCompetitors.length - 1) {
+                console.log('All competitors added to map')
+              }
+            }, (j + 1) * 500) // Add each competitor after 0.5 seconds (last one at 1.5s)
           }
         }
 
@@ -297,7 +296,7 @@ export default function AnalyzingPage() {
           </div>
         </div>
 
-        {/* Right Side - Map */}
+        {/* Right Side - Dynamic Content Based on Current Step */}
         <div className="flex-1 relative">
           {/* Search Bar */}
           <div className="absolute top-4 left-4 right-4 z-10">
@@ -315,191 +314,11 @@ export default function AnalyzingPage() {
             </div>
           </div>
 
-          {/* Small Business Profile Card (during scanning) */}
-          <AnimatePresence>
-            {showBusinessProfile && selectedMedspa && !allStepsCompleted && (
-              <motion.div
-                className="absolute bottom-4 left-4 z-20"
-                initial={{ opacity: 0, y: 100, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 100, scale: 0.9 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              >
-                <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-80">
-                  <div className="flex space-x-3">
-                    {/* Business Image */}
-                    <div className="flex-shrink-0">
-                      <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                          <MapPin className="w-4 h-4 text-gray-600" />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Business Details */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 text-sm mb-1 truncate">
-                        {selectedMedspa.name}
-                      </h3>
-                      
-                      {/* Rating */}
-                      <div className="flex items-center space-x-1 mb-1">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`w-3 h-3 ${
-                                star <= Math.floor(selectedMedspa.rating || 0)
-                                  ? 'text-yellow-400 fill-current'
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-600 ml-1">
-                          {selectedMedspa.rating || '4.7'}
-                        </span>
-                        <span className="text-xs text-gray-500 ml-1">
-                          Business
-                        </span>
-                        <span className="text-xs text-gray-600">•</span>
-                        <span className="text-xs text-gray-600">$$$</span>
-                      </div>
-                      
-                      {/* Business Description (only show if available) */}
-                      {selectedMedspa.editorial_summary?.overview || selectedMedspa.description ? (
-                        <div className="text-xs text-gray-600 mb-1">
-                          {selectedMedspa.editorial_summary?.overview || selectedMedspa.description}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                  
-                  {/* Map Preview */}
-                  <div className="mt-3 h-20 bg-gray-100 rounded-lg overflow-hidden relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-green-50">
-                      {/* Simulated street layout */}
-                      <div className="absolute inset-0 opacity-30">
-                        <div className="absolute top-2 left-2 right-2 h-px bg-gray-300"></div>
-                        <div className="absolute top-8 left-2 right-2 h-px bg-gray-300"></div>
-                        <div className="absolute top-2 left-8 bottom-2 w-px bg-gray-300"></div>
-                        <div className="absolute top-2 right-8 bottom-2 w-px bg-gray-300"></div>
-                      </div>
-                      
-                      {/* Pin */}
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                        <div className="bg-red-500 text-white p-1 rounded-full shadow-sm">
-                          <MapPin className="w-3 h-3" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Map Container */}
-          <div className="w-full h-full bg-gradient-to-br from-blue-100 to-green-100 relative overflow-hidden">
-            {allStepsCompleted && selectedMedspa ? (
-              /* Large Business Profile View */
-              <div className="w-full h-full bg-white flex items-center justify-center p-8">
-                <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 w-full max-w-2xl">
-                  <div className="flex space-x-6">
-                    {/* Business Image */}
-                    <div className="flex-shrink-0">
-                      <div className="w-48 h-32 bg-gray-100 rounded-lg overflow-hidden">
-                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                          <div className="text-center">
-                            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                            <div className="text-xs text-gray-500">Business Photo</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Business Details */}
-                    <div className="flex-1">
-                      <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                        {selectedMedspa.name}
-                      </h2>
-                      
-                      {/* Rating */}
-                      <div className="flex items-center space-x-2 mb-3">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`w-4 h-4 ${
-                                star <= Math.floor(selectedMedspa.rating || 4.5)
-                                  ? 'text-yellow-400 fill-current'
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-700 font-medium">
-                          {selectedMedspa.rating || '4.5'}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {selectedMedspa.types?.[0]?.replace(/_/g, ' ') || 'Business'}
-                        </span>
-                        <span className="text-sm text-gray-500">•</span>
-                        <span className="text-sm text-gray-600">$$$</span>
-                      </div>
-                      
-                      {/* Warning/Status */}
-                      <div className="flex items-center space-x-2 mb-4">
-                        <AlertTriangle className="w-4 h-4 text-orange-500" />
-                        <span className="text-sm text-orange-600">
-                          No description found
-                        </span>
-                      </div>
-                      
-                      {/* Business Description (if available) */}
-                      {selectedMedspa.editorial_summary?.overview || selectedMedspa.description ? (
-                        <div className="text-sm text-gray-600 mb-4">
-                          {selectedMedspa.editorial_summary?.overview || selectedMedspa.description}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                  
-                  {/* Large Map Preview */}
-                  <div className="mt-6 h-40 bg-gray-100 rounded-lg overflow-hidden relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-green-50">
-                      {/* Simulated street layout */}
-                      <div className="absolute inset-0 opacity-40">
-                        <div className="absolute top-4 left-4 right-4 h-px bg-gray-400"></div>
-                        <div className="absolute top-12 left-4 right-4 h-px bg-gray-400"></div>
-                        <div className="absolute top-20 left-4 right-4 h-px bg-gray-400"></div>
-                        <div className="absolute top-28 left-4 right-4 h-px bg-gray-400"></div>
-                        <div className="absolute top-4 left-12 bottom-4 w-px bg-gray-400"></div>
-                        <div className="absolute top-4 left-24 bottom-4 w-px bg-gray-400"></div>
-                        <div className="absolute top-4 right-12 bottom-4 w-px bg-gray-400"></div>
-                        <div className="absolute top-4 right-24 bottom-4 w-px bg-gray-400"></div>
-                      </div>
-                      
-                      {/* Street labels */}
-                      <div className="absolute top-2 left-16 text-xs text-gray-600 font-medium">41st St</div>
-                      <div className="absolute top-14 left-16 text-xs text-gray-600 font-medium">40th St</div>
-                      <div className="absolute top-26 left-16 text-xs text-gray-600 font-medium">39th St</div>
-                      <div className="absolute top-6 left-2 text-xs text-gray-600 font-medium transform -rotate-90 origin-left">9th Ave</div>
-                      <div className="absolute top-6 left-20 text-xs text-gray-600 font-medium transform -rotate-90 origin-left">8th Ave</div>
-                      
-                      {/* Pin */}
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                        <div className="bg-red-500 text-white p-2 rounded-full shadow-lg">
-                          <MapPin className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Regular Map View During Scanning */
-              <>
+          {/* Dynamic Content Container */}
+          <div className="w-full h-full relative overflow-hidden">
+            {/* Step 0: Med spa & competitors - Show Map */}
+            {currentStep === 0 && (
+              <div className="w-full h-full bg-gradient-to-br from-blue-100 to-green-100 relative">
                 {/* Simulated Map Background */}
                 <div className="absolute inset-0 opacity-20">
                   <svg width="100%" height="100%" className="text-blue-200">
@@ -580,7 +399,325 @@ export default function AnalyzingPage() {
                 <div className="absolute bottom-4 right-4 text-xs text-gray-500 bg-white px-2 py-1 rounded">
                   Map data ©2025 Google
                 </div>
-              </>
+              </div>
+            )}
+
+            {/* Step 1: Google business profile - Show Business Profile Card */}
+            {currentStep === 1 && selectedMedspa && (
+              <motion.div
+                className="w-full h-full bg-white flex items-center justify-center p-8"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 w-full max-w-2xl">
+                  <div className="flex space-x-6">
+                    {/* Business Image */}
+                    <div className="flex-shrink-0">
+                      <div className="w-48 h-32 bg-gray-100 rounded-lg overflow-hidden">
+                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                          <div className="text-center">
+                            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                            <div className="text-xs text-gray-500">Business Photo</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Business Details */}
+                    <div className="flex-1">
+                      <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                        {selectedMedspa.name}
+                      </h2>
+                      
+                      {/* Rating */}
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${
+                                star <= Math.floor(selectedMedspa.rating || 4.5)
+                                  ? 'text-yellow-400 fill-current'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-700 font-medium">
+                          {selectedMedspa.rating || '4.5'}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {selectedMedspa.types?.[0]?.replace(/_/g, ' ') || 'Business'}
+                        </span>
+                        <span className="text-sm text-gray-500">•</span>
+                        <span className="text-sm text-gray-600">$$$</span>
+                      </div>
+                      
+                      {/* Warning/Status */}
+                      <div className="flex items-center space-x-2 mb-4">
+                        <AlertTriangle className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm text-orange-600">
+                          No description found
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Large Map Preview */}
+                  <div className="mt-6 h-40 bg-gray-100 rounded-lg overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-green-50">
+                      {/* Simulated street layout */}
+                      <div className="absolute inset-0 opacity-40">
+                        <div className="absolute top-4 left-4 right-4 h-px bg-gray-400"></div>
+                        <div className="absolute top-12 left-4 right-4 h-px bg-gray-400"></div>
+                        <div className="absolute top-20 left-4 right-4 h-px bg-gray-400"></div>
+                        <div className="absolute top-28 left-4 right-4 h-px bg-gray-400"></div>
+                        <div className="absolute top-4 left-12 bottom-4 w-px bg-gray-400"></div>
+                        <div className="absolute top-4 left-24 bottom-4 w-px bg-gray-400"></div>
+                        <div className="absolute top-4 right-12 bottom-4 w-px bg-gray-400"></div>
+                        <div className="absolute top-4 right-24 bottom-4 w-px bg-gray-400"></div>
+                      </div>
+                      
+                      {/* Street labels */}
+                      <div className="absolute top-2 left-16 text-xs text-gray-600 font-medium">41st St</div>
+                      <div className="absolute top-14 left-16 text-xs text-gray-600 font-medium">40th St</div>
+                      <div className="absolute top-26 left-16 text-xs text-gray-600 font-medium">39th St</div>
+                      
+                      {/* Pin */}
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="bg-red-500 text-white p-2 rounded-full shadow-lg">
+                          <MapPin className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 2: Google review sentiment - Show Reviews */}
+            {currentStep === 2 && (
+              <motion.div
+                className="w-full h-full bg-gray-50 p-8 overflow-y-auto"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="max-w-4xl mx-auto">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-6">Google Reviews Analysis</h2>
+                  
+                  {/* Review Stats */}
+                  <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-gray-900">4.3</div>
+                        <div className="text-sm text-gray-500">Average Rating</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-gray-900">127</div>
+                        <div className="text-sm text-gray-500">Total Reviews</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-green-600">76%</div>
+                        <div className="text-sm text-gray-500">Positive Sentiment</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recent Reviews */}
+                  <div className="space-y-4">
+                    {[
+                      { name: "Sarah M.", rating: 5, text: "Amazing service! The staff was incredibly professional and the results exceeded my expectations.", time: "2 days ago" },
+                      { name: "Mike R.", rating: 4, text: "Great experience overall. Clean facility and knowledgeable staff. Will definitely come back.", time: "1 week ago" },
+                      { name: "Emily K.", rating: 5, text: "Best med spa in the area! Love the treatments and the atmosphere is so relaxing.", time: "2 weeks ago" },
+                      { name: "David L.", rating: 3, text: "Good service but the wait time was longer than expected. Staff was friendly though.", time: "3 weeks ago" }
+                    ].map((review, index) => (
+                      <motion.div
+                        key={index}
+                        className="bg-white rounded-lg p-4 shadow-sm"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-gray-600">{review.name[0]}</span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="font-medium text-gray-900">{review.name}</span>
+                              <div className="flex">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-3 h-3 ${
+                                      star <= review.rating
+                                        ? 'text-yellow-400 fill-current'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs text-gray-500">{review.time}</span>
+                            </div>
+                            <p className="text-sm text-gray-600">{review.text}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 3: Photo quality and quantity - Show Photos */}
+            {currentStep === 3 && (
+              <motion.div
+                className="w-full h-full bg-gray-50 p-8 overflow-y-auto"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="max-w-4xl mx-auto">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-6">Photo Analysis</h2>
+                  
+                  {/* Photo Stats */}
+                  <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-gray-900">23</div>
+                        <div className="text-sm text-gray-500">Total Photos</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-orange-600">C+</div>
+                        <div className="text-sm text-gray-500">Quality Score</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-red-600">Low</div>
+                        <div className="text-sm text-gray-500">Quantity Rating</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Photo Grid */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((photo, index) => (
+                      <motion.div
+                        key={index}
+                        className="aspect-square bg-gray-200 rounded-lg overflow-hidden"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+                          <div className="text-center">
+                            <MapPin className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                            <div className="text-xs text-gray-600">Photo {photo}</div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Recommendations */}
+                  <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 className="font-medium text-yellow-800 mb-2">Recommendations</h3>
+                    <ul className="text-sm text-yellow-700 space-y-1">
+                      <li>• Add more high-quality exterior photos</li>
+                      <li>• Include photos of treatment rooms</li>
+                      <li>• Add before/after photos (with consent)</li>
+                      <li>• Include staff photos for personal touch</li>
+                    </ul>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 4: Website analysis - Show Website Preview */}
+            {currentStep === 4 && (
+              <motion.div
+                className="w-full h-full bg-gray-50 p-8 overflow-y-auto"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="max-w-4xl mx-auto">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-6">Website Analysis</h2>
+                  
+                  {/* Website Stats */}
+                  <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
+                    <div className="grid grid-cols-4 gap-6">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-red-600">2.3s</div>
+                        <div className="text-sm text-gray-500">Load Time</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-orange-600">68</div>
+                        <div className="text-sm text-gray-500">SEO Score</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-green-600">92</div>
+                        <div className="text-sm text-gray-500">Mobile Score</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-yellow-600">B-</div>
+                        <div className="text-sm text-gray-500">Overall Grade</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Website Screenshot Mockup */}
+                  <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div className="bg-gray-100 px-4 py-2 flex items-center space-x-2">
+                      <div className="flex space-x-1">
+                        <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                        <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                      </div>
+                      <div className="bg-white rounded px-3 py-1 text-xs text-gray-600 flex-1">
+                        {selectedMedspa?.website || 'helloskinfmedspa.com'}
+                      </div>
+                    </div>
+                    <div className="h-96 bg-gradient-to-br from-blue-50 to-purple-50 p-8">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-gray-800 mb-4">{selectedMedspa?.name}</div>
+                        <div className="text-lg text-gray-600 mb-8">Premium Medical Spa Services</div>
+                        
+                        {/* Mock Navigation */}
+                        <div className="flex justify-center space-x-8 mb-8">
+                          <div className="text-sm text-gray-700">Services</div>
+                          <div className="text-sm text-gray-700">About</div>
+                          <div className="text-sm text-gray-700">Contact</div>
+                          <div className="text-sm text-gray-700">Book Now</div>
+                        </div>
+                        
+                        {/* Mock Content */}
+                        <div className="grid grid-cols-3 gap-4">
+                          {[1, 2, 3].map((item) => (
+                            <div key={item} className="bg-white rounded-lg p-4 shadow-sm">
+                              <div className="w-full h-20 bg-gray-200 rounded mb-3"></div>
+                              <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                              <div className="h-3 bg-gray-100 rounded"></div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Issues */}
+                  <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h3 className="font-medium text-red-800 mb-2">Issues Found</h3>
+                    <ul className="text-sm text-red-700 space-y-1">
+                      <li>• Slow page load speed (2.3s)</li>
+                      <li>• Missing meta descriptions on 3 pages</li>
+                      <li>• No Google Analytics tracking</li>
+                      <li>• Missing contact schema markup</li>
+                    </ul>
+                  </div>
+                </div>
+              </motion.div>
             )}
           </div>
         </div>
