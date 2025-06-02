@@ -26,8 +26,8 @@ export interface Review {
 }
 
 export interface Photo {
-  photo_reference?: string  // Old API format
-  name?: string            // New API v1 format
+  photo_reference?: string  
+  name?: string           
 }
 
 export interface MedSpa {

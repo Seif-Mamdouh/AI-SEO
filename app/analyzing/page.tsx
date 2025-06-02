@@ -172,7 +172,7 @@ export default function AnalyzingPage() {
 
   const getStepIcon = (step: AnalysisStep) => {
     const IconComponent = step.icon
-    return <IconComponent className="w-6 h-6" />
+    return <IconComponent className="w-5 h-5 sm:w-6 sm:h-6" />
   }
 
   const getStepStatusIcon = (status: AnalysisStep['status']) => {
@@ -205,12 +205,12 @@ export default function AnalyzingPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
       <motion.div 
-        className="bg-white shadow-sm border-b border-gray-200"
+        className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
@@ -218,37 +218,37 @@ export default function AnalyzingPage() {
                 className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
-                <span>Back</span>
+                <span className="hidden sm:inline">Back</span>
               </button>
-              <div className="h-6 w-px bg-gray-300"></div>
-              <h1 className="text-2xl font-bold text-gray-900">SEO Analysis</h1>
+              <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">SEO Analysis</h1>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-xs sm:text-sm text-gray-500 max-w-xs truncate">
               {selectedMedspa.name}
             </div>
           </div>
         </div>
       </motion.div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-200px)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
           {/* Left Panel - Analysis Progress */}
           <motion.div
-            className="space-y-6"
+            className="space-y-6 order-2 xl:order-1"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
           >
             {/* Business Info Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Analyzing</h2>
-              <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-md border border-gray-100">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Analyzing</h2>
+              <div className="flex items-start space-x-3 sm:space-x-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-lg flex-shrink-0">
                   {selectedMedspa.name.charAt(0)}
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{selectedMedspa.name}</h3>
-                  <p className="text-gray-600 text-sm">{selectedMedspa.formatted_address}</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 truncate">{selectedMedspa.name}</h3>
+                  <p className="text-gray-600 text-sm line-clamp-2 sm:line-clamp-none">{selectedMedspa.formatted_address}</p>
                   {selectedMedspa.rating && (
                     <div className="flex items-center mt-2">
                       <span className="text-yellow-500 text-sm">★</span>
@@ -265,33 +265,33 @@ export default function AnalyzingPage() {
             </div>
 
             {/* Analysis Options */}
-            <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-md border border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Analysis Options</h3>
               
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Zap className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <div className="font-medium text-gray-900">Fast Analysis</div>
-                      <div className="text-sm text-gray-600">Basic SEO metrics & competitor comparison</div>
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-start sm:items-center justify-between p-3 sm:p-4 bg-blue-50 rounded-lg">
+                  <div className="flex items-start sm:items-center space-x-3 flex-1 min-w-0">
+                    <Zap className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-900 text-sm sm:text-base">Fast Analysis</div>
+                      <div className="text-xs sm:text-sm text-gray-600 line-clamp-2">Basic SEO metrics & competitor comparison</div>
                     </div>
                   </div>
-                  <div className="text-green-600 font-medium">✓ Included</div>
+                  <div className="text-green-600 font-medium text-sm ml-2 flex-shrink-0">✓ Included</div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <div className="flex items-center space-x-3">
-                    <Brain className="w-5 h-5 text-purple-600" />
-                    <div>
-                      <div className="font-medium text-gray-900 flex items-center space-x-2">
+                <div className="flex items-start sm:items-center justify-between p-3 sm:p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="flex items-start sm:items-center space-x-3 flex-1 min-w-0">
+                    <Brain className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-900 flex flex-col sm:flex-row sm:items-center sm:space-x-2 text-sm sm:text-base">
                         <span>AI Deep Analysis</span>
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">Recommended</span>
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full w-fit mt-1 sm:mt-0">Recommended</span>
                       </div>
-                      <div className="text-sm text-gray-600">Detailed insights & actionable recommendations (+30-60s)</div>
+                      <div className="text-xs sm:text-sm text-gray-600 line-clamp-2">Detailed insights & actionable recommendations (+30-60s)</div>
                     </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-pointer ml-2 flex-shrink-0">
                     <input
                       type="checkbox"
                       checked={includeLLMAnalysis}
@@ -299,15 +299,15 @@ export default function AnalyzingPage() {
                       disabled={isAnalyzing}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    <div className="w-9 h-5 sm:w-11 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                   </label>
                 </div>
               </div>
 
               <div className="mt-4 p-3 bg-green-50 rounded-lg">
                 <div className="flex items-start space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                  <div className="text-xs text-green-700">
+                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-xs sm:text-sm text-green-700">
                     <strong>Recommended:</strong> AI analysis provides personalized insights and specific recommendations to outrank your competitors.
                   </div>
                 </div>
@@ -315,14 +315,14 @@ export default function AnalyzingPage() {
             </div>
 
             {/* Analysis Steps */}
-            <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Analysis Progress</h3>
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-md border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Analysis Progress</h3>
               
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {analysisSteps.map((step, index) => (
                   <motion.div
                     key={step.id}
-                    className={`flex items-center space-x-4 p-4 rounded-xl transition-all duration-300 ${
+                    className={`flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl transition-all duration-300 ${
                       step.status === 'active' 
                         ? 'bg-blue-50 border border-blue-200' 
                         : step.status === 'completed'
@@ -335,7 +335,7 @@ export default function AnalyzingPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.4, delay: index * 0.1 }}
                   >
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                       step.status === 'active'
                         ? 'bg-blue-500 text-white'
                         : step.status === 'completed'
@@ -347,12 +347,14 @@ export default function AnalyzingPage() {
                       {getStepIcon(step)}
                     </div>
                     
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-gray-900">{step.title}</h4>
-                        {getStepStatusIcon(step.status)}
+                        <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{step.title}</h4>
+                        <div className="ml-2 flex-shrink-0">
+                          {getStepStatusIcon(step.status)}
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">{step.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{step.description}</p>
                       
                       {step.status === 'active' && (
                         <motion.div 
@@ -375,19 +377,19 @@ export default function AnalyzingPage() {
                 {/* LLM Analysis Step (conditional) */}
                 {includeLLMAnalysis && (
                   <motion.div
-                    className="flex items-center space-x-4 p-4 rounded-xl bg-purple-50 border border-purple-200"
+                    className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl bg-purple-50 border border-purple-200"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                   >
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-500 text-white">
-                      <Brain className="w-6 h-6" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center bg-purple-500 text-white flex-shrink-0">
+                      <Brain className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">AI Deep Analysis</h4>
-                      <p className="text-sm text-gray-600 mt-1">Generating comprehensive insights</p>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 text-sm sm:text-base">AI Deep Analysis</h4>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1">Generating comprehensive insights</p>
                     </div>
-                    <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                   </motion.div>
                 )}
               </div>
@@ -397,14 +399,14 @@ export default function AnalyzingPage() {
             <AnimatePresence>
               {error && (
                 <motion.div
-                  className="bg-red-50 border border-red-200 rounded-2xl p-6"
+                  className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-6"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                 >
-                  <h3 className="font-semibold text-red-800 mb-2">Analysis Failed</h3>
+                  <h3 className="font-semibold text-red-800 mb-2 text-sm sm:text-base">Analysis Failed</h3>
                   <p className="text-red-700 text-sm mb-4">{error}</p>
-                  <div className="flex space-x-3">
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                     <button
                       onClick={retryAnalysis}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
@@ -428,12 +430,14 @@ export default function AnalyzingPage() {
 
           {/* Right Panel - Website Analysis */}
           <motion.div
-            className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden"
+            className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden order-1 xl:order-2 max-h-[70vh] xl:max-h-[calc(100vh-180px)]"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <WebsiteAnalysis selectedMedspa={selectedMedspa} />
+            <div className="h-full overflow-auto">
+              <WebsiteAnalysis selectedMedspa={selectedMedspa} />
+            </div>
           </motion.div>
         </div>
       </div>
