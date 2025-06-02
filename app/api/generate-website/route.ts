@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
     }
 
-    if (!process.env.VERCEL_API_TOKEN) {
+    if (!process.env.VERCEL_API_KEY) {
       console.error('❌ V0 API key not configured')
       return NextResponse.json({ error: 'V0 API key not configured' }, { status: 500 })
     }
@@ -150,7 +150,9 @@ Generate a complete, production-ready React component now:`
     console.log('📡 Making V0 API request...')
     
     const { text: response } = await generateText({
-      model: vercel('v0-1.0-md'),
+      model: vercel('v0-1.0-md', {
+        apiKey: process.env.VERCEL_API_KEY,
+      }),
       prompt: `${systemPrompt}\n\nUser Request: ${prompt}`,
     })
 
