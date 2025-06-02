@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { 
   Sparkles, 
   Code, 
@@ -29,13 +31,14 @@ interface GeneratedWebsite {
   css: string
   js: string
   preview?: string
+  type?: string
 }
 
 export default function AIBuilder() {
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedWebsite, setGeneratedWebsite] = useState<GeneratedWebsite | null>(null)
-  const [activeTab, setActiveTab] = useState<'preview' | 'html' | 'css' | 'js'>('preview')
+  const [activeTab, setActiveTab] = useState<'preview' | 'react' | 'css' | 'types'>('preview')
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [generationProgress, setGenerationProgress] = useState(0)
   const [generationStep, setGenerationStep] = useState('')
@@ -75,70 +78,135 @@ export default function AIBuilder() {
     const hasContext = searchParams.get('context') === 'medspa'
     if (hasContext) {
       const contextData = localStorage.getItem('medSpaContextData')
+      console.log('🔍 AI Builder context check:', {
+        hasContextParam: hasContext,
+        hasStoredData: !!contextData,
+        storedDataLength: contextData?.length || 0
+      })
+      
       if (contextData) {
         const medSpaData = JSON.parse(contextData)
+        console.log('📊 Loaded med spa context data:', {
+          name: medSpaData.name,
+          hasPhotos: !!medSpaData.photos,
+          photosLength: medSpaData.photos?.length || 0,
+          photos: medSpaData.photos,
+          keys: Object.keys(medSpaData),
+          fullData: medSpaData
+        })
+        
         setMedSpaContext(medSpaData)
         
         // Generate contextual prompt based on med spa data
         const contextualPrompt = generateContextualPrompt(medSpaData)
         setPrompt(contextualPrompt)
+      } else {
+        console.log('❌ No med spa context data found in localStorage')
       }
+    } else {
+      console.log('ℹ️ No medspa context parameter found')
     }
   }, [searchParams])
 
   const generateContextualPrompt = (medSpaData: any) => {
-    const { name, address, rating, website_data, pagespeed_data } = medSpaData
+    const { name, address, rating, website_data, pagespeed_data, photos, formatted_address, phone } = medSpaData
     
-    let prompt = `Create a modern, SEO-optimized landing page for ${name}, a medical spa`
+    console.log('🎨 Generating contextual prompt for:', name)
+    console.log('📸 Available photos:', photos?.length || 0)
     
-    if (address) {
-      prompt += ` located in ${address}`
+    let prompt = `Create a professional, conversion-optimized landing page for ${name}, a medical spa business`
+    
+    if (formatted_address || address) {
+      const location = formatted_address || address
+      prompt += ` located at ${location}`
+      
+      // Extract city for location-specific content
+      const cityMatch = location.match(/,\s*([^,]+),\s*[A-Z]{2}/)
+      const city = cityMatch ? cityMatch[1].trim() : ''
+      if (city) {
+        prompt += `. This is a real business serving the ${city} area`
+      }
     }
     
-    prompt += `. Here's the context about the business:\n\n`
+    prompt += `.\n\nIMPORTANT: This must be a REAL landing page for the actual business "${name}", not a template or demo.\n\n`
+    
+    prompt += `BUSINESS INFORMATION TO USE:\n`
     
     // Add business details
     if (rating) {
-      prompt += `• Current Google rating: ${rating} stars\n`
+      prompt += `• Business Name: ${name} (use this exact name throughout)\n`
+      prompt += `• Google Rating: ${rating} stars (${medSpaData.user_ratings_total || 'many'} reviews)\n`
+    }
+    
+    if (formatted_address || address) {
+      prompt += `• Address: ${formatted_address || address} (use this exact address)\n`
+    }
+    
+    if (phone || medSpaData.formatted_phone_number) {
+      prompt += `• Phone: ${phone || medSpaData.formatted_phone_number}\n`
+    }
+    
+    // Add photo information
+    if (photos && photos.length > 0) {
+      prompt += `• Photos: ${photos.length} actual business photos available (use these real images)\n`
+      prompt += `• Image URLs: Use Google Places API photo references provided\n`
     }
     
     // Add website analysis context
     if (website_data) {
       if (website_data.title) {
-        prompt += `• Current website title: "${website_data.title}"\n`
+        prompt += `• Current Website Title: "${website_data.title}"\n`
       }
       if (website_data.description) {
-        prompt += `• Current description: "${website_data.description}"\n`
+        prompt += `• Current Description: "${website_data.description}"\n`
       }
       if (website_data.contactInfo?.phone) {
-        prompt += `• Phone: ${website_data.contactInfo.phone}\n`
+        prompt += `• Contact Phone: ${website_data.contactInfo.phone}\n`
       }
       if (website_data.contactInfo?.email) {
-        prompt += `• Email: ${website_data.contactInfo.email}\n`
+        prompt += `• Contact Email: ${website_data.contactInfo.email}\n`
       }
     }
     
     // Add performance context
     if (pagespeed_data && !pagespeed_data.error) {
-      prompt += `\nCurrent website performance issues to address:\n`
+      prompt += `\nCURRENT WEBSITE PERFORMANCE TO IMPROVE:\n`
       if (pagespeed_data.seo_score < 80) {
-        prompt += `• SEO score is ${pagespeed_data.seo_score}/100 - needs improvement\n`
+        prompt += `• Current SEO score: ${pagespeed_data.seo_score}/100 - new site should achieve 90+\n`
       }
       if (pagespeed_data.performance_score < 80) {
-        prompt += `• Performance score is ${pagespeed_data.performance_score}/100 - needs optimization\n`
+        prompt += `• Current performance score: ${pagespeed_data.performance_score}/100 - new site should load faster\n`
       }
     }
     
-    prompt += `\nCreate a high-converting landing page that:\n`
-    prompt += `• Features premium medical spa services (Botox, fillers, laser treatments, facials)\n`
-    prompt += `• Has a strong hero section with clear call-to-action\n`
-    prompt += `• Includes before/after galleries and testimonials\n`
-    prompt += `• Has an appointment booking section\n`
-    prompt += `• Is mobile-responsive and fast-loading\n`
-    prompt += `• Uses modern design with medical spa aesthetic\n`
-    prompt += `• Includes contact information and location details\n`
-    prompt += `• Has proper SEO optimization to outrank competitors`
+    prompt += `\nLANDING PAGE REQUIREMENTS:\n`
+    prompt += `• Hero Section: "${name}" prominently displayed with compelling medical spa messaging\n`
+    prompt += `• Services: Premium medical spa treatments (Botox, fillers, laser treatments, facials, etc.)\n`
+    prompt += `• About: Professional description specifically about ${name}\n`
+    prompt += `• Gallery: Use the ${photos?.length || 0} actual business photos provided\n`
+    prompt += `• Testimonials: Reference the ${rating}-star Google rating and create realistic reviews\n`
+    prompt += `• Contact: Use the exact address and phone number provided\n`
+    prompt += `• Booking: Appointment scheduling specifically for ${name}\n`
+    prompt += `• Footer: Complete ${name} business information\n`
     
+    prompt += `\nCONTENT GUIDELINES:\n`
+    prompt += `• Every heading and section should reference "${name}" by name\n`
+    prompt += `• Write content as if you're the ${name} marketing team\n`
+    prompt += `• Include location-specific references to make it feel local\n`
+    prompt += `• Use professional medical spa language and terminology\n`
+    prompt += `• Include realistic pricing for premium medical spa services\n`
+    prompt += `• Make it feel like a real business website, not a template\n`
+    
+    if (photos && photos.length > 0) {
+      prompt += `\nIMAGE INTEGRATION:\n`
+      prompt += `• Use the ${photos.length} real photos of ${name} throughout the page\n`
+      prompt += `• These are actual business photos that should be integrated naturally\n`
+      prompt += `• Use them in hero section, gallery, about section, etc.\n`
+    }
+    
+    prompt += `\nRemember: This is a real business landing page for "${name}" - make it feel authentic and professional, as if ${name} hired you to build their website.`
+    
+    console.log('✅ Generated contextual prompt length:', prompt.length)
     return prompt
   }
 
@@ -151,12 +219,23 @@ export default function AIBuilder() {
     setError(null)
 
     try {
+      console.log('🚀 Starting website generation...')
+      console.log('📝 Prompt length:', prompt.length)
+      
+      if (medSpaContext) {
+        console.log('🎯 Using med spa context:', {
+          name: medSpaContext.name,
+          hasPhotos: !!medSpaContext.photos?.length,
+          photoCount: medSpaContext.photos?.length || 0
+        })
+      }
+
       // Simulate progress updates
       const progressUpdates = [
         { progress: 10, step: 'Understanding your vision...' },
-        { progress: 25, step: 'Generating HTML structure...' },
-        { progress: 50, step: 'Creating CSS styles...' },
-        { progress: 75, step: 'Adding JavaScript functionality...' },
+        { progress: 25, step: 'Generating React components...' },
+        { progress: 50, step: 'Adding SHADCN/UI elements...' },
+        { progress: 75, step: 'Integrating business images...' },
         { progress: 90, step: 'Finalizing website...' },
       ]
 
@@ -171,20 +250,37 @@ export default function AIBuilder() {
       }, 1000)
 
       // Make actual API call to generate website
+      const requestBody = {
+        prompt,
+        ...(medSpaContext && { medSpaData: medSpaContext })
+      }
+
+      console.log('📡 Making API request with data:', {
+        promptLength: prompt.length,
+        hasMedSpaData: !!medSpaContext,
+        imageCount: medSpaContext?.photos?.length || 0
+      })
+
       const response = await fetch('/api/generate-website', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify(requestBody)
       })
 
       clearInterval(progressInterval)
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('❌ API Error:', errorData)
         throw new Error(errorData.error || 'Failed to generate website')
       }
 
       const result = await response.json()
+      console.log('✅ Website generated successfully:', {
+        hasHtml: !!result.html,
+        hasCss: !!result.css,
+        type: result.type
+      })
       
       setGenerationProgress(100)
       setGenerationStep('Website ready!')
@@ -196,7 +292,7 @@ export default function AIBuilder() {
       }, 500)
 
     } catch (error) {
-      console.error('Generation failed:', error)
+      console.error('💥 Generation failed:', error)
       setError(error instanceof Error ? error.message : 'Failed to generate website')
       setGenerationStep('Generation failed')
       setIsGenerating(false)
@@ -220,8 +316,64 @@ export default function AIBuilder() {
   const downloadWebsite = () => {
     if (!generatedWebsite) return
 
-    // Create a complete HTML file with embedded CSS and JS
-    const completeHtml = `<!DOCTYPE html>
+    if (generatedWebsite.type === 'react') {
+      // Download React component files
+      downloadFile(generatedWebsite.html, 'MedSpaLandingPage.tsx')
+      if (generatedWebsite.css) {
+        downloadFile(generatedWebsite.css, 'globals.css')
+      }
+      if (generatedWebsite.js) {
+        downloadFile(generatedWebsite.js, 'types.ts')
+      }
+      
+      // Create a README with setup instructions
+      const readme = `# AI Generated Med Spa Landing Page
+
+## Setup Instructions
+
+1. Install dependencies:
+\`\`\`bash
+pnpm add framer-motion lucide-react
+pnpm add @shadcn/ui
+\`\`\`
+
+2. Set up SHADCN/UI:
+\`\`\`bash
+npx shadcn-ui@latest init
+\`\`\`
+
+3. Add required SHADCN components:
+\`\`\`bash
+npx shadcn-ui@latest add button card badge input textarea label separator dialog tabs avatar alert
+\`\`\`
+
+4. Copy the generated files:
+   - \`MedSpaLandingPage.tsx\` - Main React component
+   - \`globals.css\` - Global styles (if any)
+   - \`types.ts\` - TypeScript interfaces (if any)
+
+5. Import and use the component in your Next.js app:
+\`\`\`tsx
+import MedSpaLandingPage from './components/MedSpaLandingPage'
+
+export default function Home() {
+  return <MedSpaLandingPage />
+}
+\`\`\`
+
+## Features
+- Modern React components with TypeScript
+- SHADCN/UI component library
+- Tailwind CSS styling
+- Framer Motion animations
+- Mobile-responsive design
+- SEO optimized
+- Medical spa industry best practices
+`
+      downloadFile(readme, 'README.md')
+    } else {
+      // Legacy HTML download
+      const completeHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -239,9 +391,10 @@ ${generatedWebsite.js}
 </body>
 </html>`
 
-    downloadFile(completeHtml, 'website.html')
-    downloadFile(generatedWebsite.css, 'styles.css')
-    downloadFile(generatedWebsite.js, 'script.js')
+      downloadFile(completeHtml, 'website.html')
+      downloadFile(generatedWebsite.css, 'styles.css')
+      downloadFile(generatedWebsite.js, 'script.js')
+    }
   }
 
   const getViewportClass = () => {
@@ -303,11 +456,12 @@ ${generatedWebsite.js}
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-green-900">
-                  🎯 Using {medSpaContext.name} Analysis Data
+                  🎯 Building Real Website for {medSpaContext.name}
                 </h3>
                 <p className="text-sm text-green-700">
-                  AI will create a personalized landing page using your business information, location, 
-                  current website analysis, and performance insights to maximize SEO results.
+                  AI will create an actual business landing page using real data: business name, location, 
+                  {medSpaContext.photos?.length > 0 && ` ${medSpaContext.photos.length} actual photos,`} contact info, 
+                  and performance insights. This will be a professional website specifically for {medSpaContext.name}.
                 </p>
               </div>
               <div className="text-right">
@@ -474,17 +628,17 @@ ${generatedWebsite.js}
 
                   {/* Tabs */}
                   <div className="flex space-x-1">
-                    {(['preview', 'html', 'css', 'js'] as const).map((tab) => (
+                    {(['preview', 'react', 'css', 'types'] as const).map((tab) => (
                       <button
                         key={tab}
-                        onClick={() => setActiveTab(tab)}
+                        onClick={() => setActiveTab(tab as any)}
                         className={`px-3 py-1 text-sm font-medium rounded ${
                           activeTab === tab
                             ? 'bg-blue-100 text-blue-700'
                             : 'text-gray-600 hover:text-gray-900'
                         }`}
                       >
-                        {tab.toUpperCase()}
+                        {tab === 'react' ? 'REACT' : tab.toUpperCase()}
                       </button>
                     ))}
                   </div>
@@ -512,11 +666,14 @@ ${generatedWebsite.js}
 
                   {/* Action Buttons */}
                   <button
-                    onClick={() => copyToClipboard(
-                      activeTab === 'html' ? generatedWebsite.html :
-                      activeTab === 'css' ? generatedWebsite.css :
-                      activeTab === 'js' ? generatedWebsite.js : ''
-                    )}
+                    onClick={() => {
+                      const content = 
+                        activeTab === 'react' ? generatedWebsite.html :
+                        activeTab === 'css' ? generatedWebsite.css :
+                        activeTab === 'types' ? (generatedWebsite.js || '') :
+                        generatedWebsite.html
+                      copyToClipboard(content)
+                    }}
                     className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
                     title="Copy to clipboard"
                   >
@@ -556,12 +713,71 @@ ${generatedWebsite.js}
                     exit={{ opacity: 0 }}
                     className="p-6 h-full"
                   >
-                    <div className={`mx-auto bg-white rounded-lg shadow-lg overflow-hidden ${getViewportClass()}`}>
-                      <div 
-                        className="w-full min-h-[500px]"
-                        dangerouslySetInnerHTML={{ __html: generatedWebsite.html }}
-                      />
-                    </div>
+                    {generatedWebsite.type === 'react' ? (
+                      <div className="mx-auto bg-white rounded-lg shadow-lg overflow-hidden max-w-4xl">
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 text-center">
+                          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                            <Code className="w-8 h-8 text-white" />
+                          </div>
+                          <h3 className="text-2xl font-bold text-gray-900 mb-4">React Component Generated!</h3>
+                          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                            Your modern React component with SHADCN/UI has been generated. Click the <strong>REACT</strong> tab to view the code, 
+                            or download the files to integrate into your Next.js project.
+                          </p>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="bg-white rounded-lg p-4 shadow-sm">
+                              <FileCode className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                              <h4 className="font-semibold text-gray-900">TypeScript</h4>
+                              <p className="text-sm text-gray-600">Full type safety</p>
+                            </div>
+                            <div className="bg-white rounded-lg p-4 shadow-sm">
+                              <Layout className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                              <h4 className="font-semibold text-gray-900">SHADCN/UI</h4>
+                              <p className="text-sm text-gray-600">Modern components</p>
+                            </div>
+                            <div className="bg-white rounded-lg p-4 shadow-sm">
+                              <Sparkles className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                              <h4 className="font-semibold text-gray-900">Responsive</h4>
+                              <p className="text-sm text-gray-600">Mobile-first design</p>
+                            </div>
+                          </div>
+
+                          {medSpaContext && medSpaContext.photos?.length > 0 && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                              <h4 className="font-semibold text-yellow-800 mb-2">
+                                🖼️ Real Business Images Integrated
+                              </h4>
+                              <p className="text-sm text-yellow-700">
+                                {medSpaContext.photos.length} actual photos from {medSpaContext.name} have been integrated into the component using Google Places API.
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            <button
+                              onClick={() => setActiveTab('react')}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              View React Code
+                            </button>
+                            <button
+                              onClick={downloadWebsite}
+                              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                            >
+                              Download Project
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`mx-auto bg-white rounded-lg shadow-lg overflow-hidden ${getViewportClass()}`}>
+                        <div 
+                          className="w-full min-h-[500px]"
+                          dangerouslySetInnerHTML={{ __html: generatedWebsite.html }}
+                        />
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
@@ -573,13 +789,30 @@ ${generatedWebsite.js}
                     exit={{ opacity: 0 }}
                     className="h-full"
                   >
-                    <pre className="p-6 text-sm font-mono bg-gray-900 text-green-400 h-full overflow-auto">
-                      <code>
-                        {activeTab === 'html' ? generatedWebsite.html :
-                         activeTab === 'css' ? generatedWebsite.css :
-                         generatedWebsite.js}
-                      </code>
-                    </pre>
+                    <SyntaxHighlighter
+                      language={
+                        activeTab === 'react' ? 'jsx' :
+                        activeTab === 'css' ? 'css' :
+                        activeTab === 'types' ? 'typescript' : 'javascript'
+                      }
+                      style={tomorrow}
+                      customStyle={{
+                        backgroundColor: '#1e1e1e',
+                        padding: '1.5rem',
+                        borderRadius: '0',
+                        overflow: 'auto',
+                        height: '100%',
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                      }}
+                      showLineNumbers={true}
+                      wrapLines={true}
+                    >
+                      {activeTab === 'react' ? generatedWebsite.html :
+                       activeTab === 'css' ? generatedWebsite.css :
+                       activeTab === 'types' ? (generatedWebsite.js || '// TypeScript interfaces will appear here') :
+                       generatedWebsite.html}
+                    </SyntaxHighlighter>
                   </motion.div>
                 )}
               </AnimatePresence>

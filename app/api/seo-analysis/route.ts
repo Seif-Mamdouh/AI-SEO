@@ -26,6 +26,15 @@ interface PlaceDetails {
     }
   }
   reviews?: Review[]
+  photos?: Photo[]
+}
+
+interface Photo {
+  height: number
+  html_attributions: string[]
+  photo_reference: string
+  width: number
+  name?: string
 }
 
 interface PageSpeedResult {
@@ -129,7 +138,7 @@ export async function POST(request: NextRequest) {
     if (!selectedMedspa.geometry?.location) {
       console.log('🔍 Need to fetch coordinates for med spa')
       // Get place details if we don't have coordinates
-      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${selectedMedspa.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry,reviews&key=${googleApiKey}`
+      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${selectedMedspa.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry,reviews,photos&key=${googleApiKey}`
       
       console.log('🌐 Calling Google Places Details API...')
       const detailsResponse = await fetch(detailsUrl)
@@ -163,7 +172,9 @@ export async function POST(request: NextRequest) {
         userRatingsTotal: medSpaDetails.user_ratings_total,
         hasReviews: !!medSpaDetails.reviews,
         reviewsCount: medSpaDetails.reviews?.length || 0,
-        reviewsData: medSpaDetails.reviews
+        hasPhotos: !!medSpaDetails.photos,
+        photosCount: medSpaDetails.photos?.length || 0,
+        photos: medSpaDetails.photos
       })
     } else {
       medSpaDetails = selectedMedspa
@@ -405,7 +416,9 @@ export async function POST(request: NextRequest) {
       selectedMedspaUserRatingsTotal: responseData.selectedMedspa.user_ratings_total,
       hasReviews: !!responseData.selectedMedspa.reviews,
       reviewsLength: responseData.selectedMedspa.reviews?.length || 0,
-      reviewsArray: responseData.selectedMedspa.reviews,
+      hasPhotos: !!responseData.selectedMedspa.photos,
+      photosLength: responseData.selectedMedspa.photos?.length || 0,
+      photos: responseData.selectedMedspa.photos,
       fullSelectedMedspa: responseData.selectedMedspa
     })
 

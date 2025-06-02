@@ -6,67 +6,159 @@ const openai = new OpenAI({
 })
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  console.log('🚀 Website generation request started at:', new Date().toISOString())
+  
   try {
-    const { prompt } = await request.json()
+    const { prompt, medSpaData } = await request.json()
+    
+    console.log('📝 Received prompt length:', prompt?.length || 0)
+    console.log('🏥 Med spa data received:', !!medSpaData)
+    
+    if (medSpaData) {
+      console.log('🎯 Med spa context:', {
+        name: medSpaData.name,
+        hasImages: !!medSpaData.photos?.length,
+        imageCount: medSpaData.photos?.length || 0,
+        hasWebsiteData: !!medSpaData.website_data,
+        hasPerformanceData: !!medSpaData.pagespeed_data
+      })
+    }
 
     if (!prompt) {
+      console.error('❌ No prompt provided')
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
     }
 
     if (!process.env.OPENAI_API_KEY) {
+      console.error('❌ OpenAI API key not configured')
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
     }
 
-    // Generate website using OpenAI
-    const websiteResult = await generateWebsiteWithOpenAI(prompt)
+    console.log('🤖 Starting OpenAI generation...')
+    
+    // Generate website using OpenAI with enhanced context
+    const websiteResult = await generateWebsiteWithOpenAI(prompt, medSpaData)
+    
+    const duration = Date.now() - startTime
+    console.log('✅ Website generation completed in:', duration + 'ms')
+    console.log('📊 Generated code sizes:', {
+      html: websiteResult.html?.length || 0,
+      css: websiteResult.css?.length || 0,
+      js: websiteResult.js?.length || 0
+    })
 
     return NextResponse.json(websiteResult)
   } catch (error) {
-    console.error('Website generation error:', error)
+    const duration = Date.now() - startTime
+    console.error('💥 Website generation error after', duration + 'ms:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
     return NextResponse.json(
-      { error: 'Failed to generate website' },
+      { error: error instanceof Error ? error.message : 'Failed to generate website' },
       { status: 500 }
     )
   }
 }
 
-async function generateWebsiteWithOpenAI(prompt: string) {
+async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any) {
   try {
-    const systemPrompt = `You are an expert web developer and medical spa marketing specialist. Create a complete, modern website with HTML, CSS, and JavaScript.
+    console.log('🎨 Preparing enhanced system prompt with React/SHADCN...')
+    
+    // Extract images from med spa data
+    const medSpaImages = medSpaData?.photos || []
+    console.log('🖼️ Available images:', medSpaImages.length)
+    
+    // Create image context for AI
+    let imageContext = ''
+    if (medSpaImages.length > 0) {
+      imageContext = `\n\nAVAILABLE BUSINESS IMAGES TO USE:
+${medSpaImages.map((photo: any, index: number) => 
+  `${index + 1}. ${photo.photo_reference} - Use this URL: https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=YOUR_API_KEY`
+).join('\n')}
 
-IMPORTANT REQUIREMENTS:
-- Generate COMPLETE, functional code that can be immediately deployed
-- Use modern CSS with gradients, animations, and responsive design
-- Include interactive JavaScript for smooth scrolling, form handling, and animations
-- Make it mobile-responsive with proper viewport meta tags
-- Include proper SEO meta tags, schema markup for local business
-- Use medical spa industry best practices for conversion optimization
-- Include compelling call-to-actions and trust signals
-- Make the design premium and professional for medical spa clientele
+IMPORTANT: Use these REAL business images instead of placeholders. These are actual photos of the business.`
+    }
+
+    const systemPrompt = `You are an expert React developer and medical spa marketing specialist. Create a complete, ACTUAL landing page for the specific medical spa business provided.
+
+CRITICAL INSTRUCTIONS:
+- This is NOT a template or demo - create a REAL landing page for the actual business
+- Use ALL the specific business information provided (name, location, photos, contact details)
+- Generate actual content specific to this med spa, not placeholder text
+- Include real business information throughout the entire page
+- Make it feel like a legitimate business website, not a template
+
+TECHNICAL REQUIREMENTS:
+- Generate COMPLETE React components using Next.js 13+ App Router
+- Use SHADCN/UI components (Button, Card, Badge, Input, Textarea, etc.)
+- Use Tailwind CSS for styling with modern design patterns
+- Include TypeScript interfaces where appropriate
+- Make it fully responsive with mobile-first design
+- Use React hooks (useState, useEffect) for interactivity
+- Include proper SEO meta tags and schema markup for the specific business
+- Implement smooth animations with Framer Motion
+- Add form validation and error handling
+
+SHADCN COMPONENTS TO USE:
+- Button, Card, CardContent, CardDescription, CardHeader, CardTitle
+- Badge, Input, Textarea, Label, Separator
+- Sheet, Dialog, Tabs, TabsContent, TabsList, TabsTrigger
+- Avatar, AvatarFallback, AvatarImage
+- Alert, AlertDescription, AlertTitle
 
 STRUCTURE YOUR RESPONSE EXACTLY AS:
-HTML:
-[Complete HTML code here]
+REACT_COMPONENT:
+[Complete React component code]
 
-CSS:
-[Complete CSS code here]
+STYLES:
+[Additional Tailwind classes or custom CSS if needed]
 
-JAVASCRIPT:
-[Complete JavaScript code here]
+TYPES:
+[TypeScript interfaces and types]
 
-Focus on:
-- High-converting hero sections with clear value propositions
-- Service showcases with pricing and benefits
-- Before/after galleries (use placeholder images with proper descriptions)
-- Patient testimonials and reviews
-- Clear contact information and appointment booking
-- Trust signals (certifications, years of experience, etc.)
-- Local SEO optimization
-- Fast loading and mobile-first design
-- Accessibility and user experience best practices
+CONTENT REQUIREMENTS FOR THE ACTUAL BUSINESS:
+- Use the EXACT business name provided throughout the page
+- Include the ACTUAL address and location information
+- Use REAL contact information (phone, email) if provided
+- Reference the ACTUAL Google rating and reviews
+- Create content that feels authentic to this specific business
+- Include location-specific references (neighborhood, city landmarks, etc.)
+- Write compelling copy that feels like it was written FOR this specific med spa
 
-If the prompt mentions specific business details (name, location, contact info, current performance issues), incorporate ALL of them naturally into the website design and content.`
+LANDING PAGE SECTIONS TO INCLUDE:
+1. Hero Section: Business name, compelling headline about their services, location
+2. About Section: Professional description of the specific med spa
+3. Services Section: Premium medical spa services with realistic pricing
+4. Gallery Section: Use the actual business photos provided
+5. Testimonials: Reference their actual Google rating and create realistic testimonials
+6. Location & Contact: Real address, phone, business hours
+7. Booking Section: Appointment scheduling with the business name
+8. Footer: Complete business information
 
+MEDICAL SPA CONTENT FOCUS:
+- Premium services: Botox, Dermal Fillers, Laser Treatments, Chemical Peels, Hydrafacials, Microneedling
+- Professional certifications and licensed practitioners
+- Before/after galleries showcasing results
+- Patient testimonials reflecting their actual rating
+- Online booking system branded with their business name
+- Special offers and package deals
+- Safety protocols and medical-grade equipment
+- Actual location information and contact details
+
+${imageContext}
+
+BUSINESS-SPECIFIC REQUIREMENTS:
+- Every mention should use the actual business name, not "MedSpa" or generic terms
+- Include specific location references (the actual city/neighborhood they're in)
+- Reference their actual Google rating in testimonials
+- Use real contact information throughout
+- Make it feel like this business actually owns and operates this website
+
+Generate a production-ready React component that looks like it was professionally built FOR this specific medical spa business.`
+
+    console.log('📡 Making OpenAI API request...')
+    
     const completion = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
       messages: [
@@ -77,54 +169,79 @@ If the prompt mentions specific business details (name, location, contact info, 
       temperature: 0.7,
     })
 
+    console.log('📨 OpenAI response received')
+    console.log('🔢 Tokens used:', completion.usage)
+
     const response = completion.choices[0]?.message?.content
 
     if (!response) {
+      console.error('❌ No response content from OpenAI')
       throw new Error('No response generated from OpenAI')
     }
 
-    // Parse the response to extract HTML, CSS, and JavaScript
-    const htmlMatch = response.match(/HTML:\s*([\s\S]*?)(?=CSS:|JAVASCRIPT:|$)/i)
-    const cssMatch = response.match(/CSS:\s*([\s\S]*?)(?=HTML:|JAVASCRIPT:|$)/i)
-    const jsMatch = response.match(/JAVASCRIPT:\s*([\s\S]*?)(?=HTML:|CSS:|$)/i)
+    console.log('📝 Response length:', response.length)
 
-    if (!htmlMatch) {
-      throw new Error('Could not extract HTML from OpenAI response')
+    // Parse the response to extract React component, styles, and types
+    const reactMatch = response.match(/REACT_COMPONENT:\s*([\s\S]*?)(?=STYLES:|TYPES:|$)/i)
+    const stylesMatch = response.match(/STYLES:\s*([\s\S]*?)(?=REACT_COMPONENT:|TYPES:|$)/i)
+    const typesMatch = response.match(/TYPES:\s*([\s\S]*?)(?=REACT_COMPONENT:|STYLES:|$)/i)
+
+    if (!reactMatch) {
+      console.error('❌ Could not extract React component from response')
+      console.log('📄 Response preview:', response.substring(0, 500) + '...')
+      throw new Error('Could not extract React component from OpenAI response')
     }
 
-    const html = htmlMatch[1].trim()
-    const css = cssMatch ? cssMatch[1].trim() : ''
-    const js = jsMatch ? jsMatch[1].trim() : ''
+    const reactComponent = reactMatch[1].trim()
+    const styles = stylesMatch ? stylesMatch[1].trim() : ''
+    const types = typesMatch ? typesMatch[1].trim() : ''
 
-    // Create a complete HTML document
-    const completeHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medical Spa Website</title>
-    <style>
-${css}
-    </style>
-</head>
-<body>
-${html}
-    <script>
-${js}
-    </script>
-</body>
-</html>`
+    console.log('✅ Successfully parsed response sections:', {
+      hasReactComponent: !!reactComponent,
+      hasStyles: !!styles,
+      hasTypes: !!types,
+      componentLength: reactComponent.length
+    })
+
+    // Create a complete Next.js page component
+    const completeReactCode = `'use client'
+
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+
+${types}
+
+${reactComponent}
+
+export default MedSpaLandingPage`
 
     return {
-      html: completeHtml,
-      css,
-      js,
-      preview: completeHtml
+      html: completeReactCode,
+      css: styles,
+      js: '', // React components don't need separate JS
+      preview: completeReactCode,
+      type: 'react'
     }
 
   } catch (error) {
-    console.error('OpenAI generation error:', error)
-    throw new Error('Failed to generate website with AI')
+    console.error('💥 OpenAI generation error:', error)
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace'
+    })
+    throw new Error('Failed to generate website with AI: ' + (error instanceof Error ? error.message : 'Unknown error'))
   }
 }
 
