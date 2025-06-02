@@ -64,202 +64,49 @@ export async function POST(request: NextRequest) {
 
 async function generateWebsiteWithV0(prompt: string, medSpaData?: any) {
   try {
-    console.log('🎨 Preparing enhanced prompt for V0...')
+    console.log('🎨 Preparing simple prompt for V0...')
     
-    // Extract images from med spa data and create proper Google Places URLs
-    const medSpaImages = medSpaData?.photos || []
-    console.log('🖼️ Available images:', medSpaImages.length)
-    
-    // Create proper Google Places photo URLs
-    const imageUrls = medSpaImages.map((photo: any, index: number) => {
-      // Use a working Google Places photo URL (you might need to replace with your API key)
-      const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY || 'DEMO_KEY'}`
-      return {
-        url: photoUrl,
-        reference: photo.photo_reference,
-        index: index + 1
-      }
-    })
-    
-    // Create enhanced image context for AI
-    let imageContext = ''
-    if (imageUrls.length > 0) {
-      imageContext = `\n\nREAL BUSINESS IMAGES TO USE IN THE WEBSITE:
-${imageUrls.map((img: { url: string; reference: string; index: number }) => 
-  `Image ${img.index}: ${img.url}
-   - This is a real photo of ${medSpaData?.name || 'the business'}
-   - Use this exact URL in img src attributes
-   - Perfect for: hero section, gallery, about section, or service showcases`
-).join('\n\n')}
+    const businessName = medSpaData?.name || 'Premium Medical Spa'
+    const address = medSpaData?.formatted_address || 'Professional Location'
+    const phone = medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567'
+    const rating = medSpaData?.rating || 4.8
 
-CRITICAL IMAGE REQUIREMENTS:
-- You MUST use these real business photos instead of placeholder images
-- Use the exact URLs provided above in your img tags
-- These photos show the actual business, treatments, and facilities
-- Integrate them naturally throughout the website (hero, gallery, services, about)
-- Add proper alt text describing what's shown in each business photo
-- Make images responsive with proper CSS classes
-
-Example usage:
-<img src="${imageUrls[0]?.url}" alt="${medSpaData?.name || 'Medical Spa'} - Professional Treatment Room" className="w-full h-64 object-cover rounded-lg" />
-`
-    }
-
-    const systemPrompt = `You are a React developer creating a professional medical spa landing page.
-
-CRITICAL: You MUST respond EXACTLY in this format:
-
-REACT_COMPONENT:
-[Complete React component code here]
-
-STYLES:
-[Any additional CSS styles if needed]
-
-TYPES:
-[TypeScript interfaces if needed]
-
-DO NOT include any other text, explanations, or markdown. Just provide the code in the exact format above.
-
-BUSINESS INFORMATION:
-- Business Name: ${medSpaData?.name || 'Premium Medical Spa'} (use this exact name)
-- Address: ${medSpaData?.formatted_address || 'Professional Location'}
-- Phone: ${medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567'}
-- Rating: ${medSpaData?.rating || 4.8} stars (${medSpaData?.user_ratings_total || 'many'} reviews)
-
-TECHNICAL REQUIREMENTS:
-- Create a complete Next.js 13+ React component with TypeScript
-- Use SHADCN/UI components (Button, Card, Badge, Input, Textarea, Dialog, etc.)
-- Use Tailwind CSS for all styling
-- Make it fully responsive (mobile, tablet, desktop)
-- Include these sections: Hero, Services, About, Gallery, Testimonials, Contact
-- Add smooth animations and professional design
-- Use the business information provided above throughout
-
-${imageContext}
-
-CONTENT REQUIREMENTS:
-- Write as if you're the official ${medSpaData?.name || 'Medical Spa'} website
-- Include realistic medical spa services (Botox, fillers, laser treatments, facials, etc.)
-- Add professional pricing and service descriptions
-- Include booking/consultation CTAs
-- Reference the Google rating and location throughout
-- Make it feel like a real business website, not a template
-
-Generate a complete, production-ready React component now:`
+    // Simple, focused prompt for V0
+    const simplePrompt = `Create a modern medical spa website for "${businessName}" located at ${address}. Include hero section, services (Botox, laser treatments, facials), testimonials, and contact info. Phone: ${phone}, Rating: ${rating} stars. Use Next.js, React, and Tailwind CSS. Make it professional and responsive.`
 
     console.log('📡 Making V0 API request...')
+    console.log('📊 Request details:', {
+      promptLength: simplePrompt.length,
+      modelUsed: 'v0-1.0-md',
+      businessName: businessName
+    })
     
     const { text: response } = await generateText({
-      model: vercel('v0-1.0-md', {
-        apiKey: process.env.VERCEL_API_KEY,
-      }),
-      prompt: `${systemPrompt}\n\nUser Request: ${prompt}`,
+      model: vercel('v0-1.0-md'),
+      prompt: simplePrompt,
     })
 
     console.log('📨 V0 response received')
 
     if (!response) {
-      console.error('❌ No response content from OpenAI')
+      console.error('❌ No response content from V0')
       throw new Error('No response generated from V0')
     }
 
     console.log('📝 Response length:', response.length)
 
-    // Parse the response to extract React component, styles, and types
-    const reactMatch = response.match(/REACT_COMPONENT:\s*([\s\S]*?)(?=STYLES:|TYPES:|$)/i)
-    const stylesMatch = response.match(/STYLES:\s*([\s\S]*?)(?=REACT_COMPONENT:|TYPES:|$)/i)
-    const typesMatch = response.match(/TYPES:\s*([\s\S]*?)(?=REACT_COMPONENT:|STYLES:|$)/i)
-
-    let reactComponent = ''
-    let styles = ''
-    let types = ''
-
-    if (reactMatch) {
-      reactComponent = reactMatch[1].trim()
-    } else {
-      console.log('⚠️ No REACT_COMPONENT section found, using entire response as component')
-      // If no structured format, treat the entire response as React component
-      reactComponent = cleanCodeResponse(response)
-    }
-
-    if (stylesMatch) {
-      styles = stylesMatch[1].trim()
-    }
-
-    if (typesMatch) {
-      types = typesMatch[1].trim()
-    }
-
-    console.log('✅ Successfully parsed response sections:', {
-      hasReactComponent: !!reactComponent,
-      hasStyles: !!styles,
-      hasTypes: !!types,
-      componentLength: reactComponent.length
-    })
-
-    // If we still don't have a component, use fallback
-    if (!reactComponent || reactComponent.length < 100) {
-      console.log('⚠️ Component too short or missing, generating fallback')
-      return generateFallbackReactComponent(medSpaData)
-    }
-
-    // Create a complete Next.js page component
-    const completeReactCode = `'use client'
-
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-
-${types}
-
-${reactComponent}
-
-export default function MedSpaLandingPage() {
-  const [isBookingOpen, setIsBookingOpen] = useState(false)
-
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">${medSpaData?.name || 'Premium Medical Spa'}</h1>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <a href="#services" className="text-gray-500 hover:text-gray-900">Services</a>
-              <a href="#about" className="text-gray-500 hover:text-gray-900">About</a>
-              <a href="#contact" className="text-gray-500 hover:text-gray-900">Contact</a>
-            </nav>
-            <Button onClick={() => setIsBookingOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-              Book Consultation
-            </Button>
-          </div>
-        </div>
-      </header>
-      {/* Rest of component... */}
-    </div>
-  )
-}
-`
-
-    // Generate HTML preview for iframe
+    // V0 returns clean React code, so use it directly
+    const cleanedResponse = cleanCodeResponse(response)
+    
+    // Generate HTML preview for iframe using fallback
     const htmlPreview = generateFallbackReactComponent(medSpaData).html
     
+    console.log('🎉 V0 generation completed successfully!')
+    
     return {
-      html: completeReactCode,
-      css: styles,
-      js: '', // React components don't need separate JS
+      html: cleanedResponse,
+      css: '',
+      js: '',
       preview: htmlPreview,
       type: 'react'
     }
