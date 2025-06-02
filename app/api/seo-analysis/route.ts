@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json()
-    const { selectedMedspa } = body
+    const { selectedMedspa, generate_llm_report = false } = body
     console.log('📍 Selected MedSpa:', selectedMedspa?.name, selectedMedspa?.place_id)
 
     if (!selectedMedspa) {
@@ -410,19 +410,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('🔍 Final API Response Debug:', {
-      selectedMedspaName: responseData.selectedMedspa.name,
-      selectedMedspaRating: responseData.selectedMedspa.rating,
-      selectedMedspaUserRatingsTotal: responseData.selectedMedspa.user_ratings_total,
-      hasReviews: !!responseData.selectedMedspa.reviews,
-      reviewsLength: responseData.selectedMedspa.reviews?.length || 0,
-      hasPhotos: !!responseData.selectedMedspa.photos,
-      photosLength: responseData.selectedMedspa.photos?.length || 0,
-      photos: responseData.selectedMedspa.photos,
-      fullSelectedMedspa: responseData.selectedMedspa
-    })
+    // Step 7: Generate LLM analysis report if requested
+    let llmReport = null
+    if (generate_llm_report) {
+      console.log('🤖 Step 7: Generating LLM analysis report...')
+      try {
+        const llmResponse = await fetch(`${request.nextUrl.origin}/api/llm-seo-analysis`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seoData: responseData })
+        })
 
-    return NextResponse.json(responseData)
+        if (llmResponse.ok) {
+          const llmData = await llmResponse.json()
+          if (llmData.success) {
+            llmReport = llmData.report
+            console.log('✅ LLM analysis report generated successfully')
+          } else {
+            console.log('❌ LLM analysis failed:', llmData.error)
+          }
+        } else {
+          console.log('❌ LLM analysis request failed with status:', llmResponse.status)
+        }
+      } catch (llmError) {
+        console.error('❌ LLM analysis error:', llmError)
+        // Don't fail the main request if LLM analysis fails
+      }
+    }
+
+    const finalResponseData = {
+      ...responseData,
+      ...(llmReport && { llm_report: llmReport })
+    }
+
+    const finalTime = Date.now() - startTime
+    console.log(`🎉 Complete SEO Analysis (with LLM: ${!!llmReport}) finished in ${finalTime}ms`)
+
+    return NextResponse.json(finalResponseData)
 
   } catch (error) {
     const totalTime = Date.now() - startTime
