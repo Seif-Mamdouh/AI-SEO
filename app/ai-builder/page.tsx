@@ -19,8 +19,10 @@ import {
   Save,
   Upload,
   FileCode,
-  Globe
+  Globe,
+  CheckCircle
 } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 
 interface GeneratedWebsite {
   html: string
@@ -36,7 +38,9 @@ export default function AIBuilder() {
   const [activeTab, setActiveTab] = useState<'preview' | 'html' | 'css' | 'js'>('preview')
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [generationProgress, setGenerationProgress] = useState(0)
-  const [currentStep, setCurrentStep] = useState('')
+  const [generationStep, setGenerationStep] = useState('')
+  const [medSpaContext, setMedSpaContext] = useState<any>(null)
+  const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
 
   const templates = [
@@ -66,12 +70,84 @@ export default function AIBuilder() {
     }
   ]
 
+  useEffect(() => {
+    // Check if we have med spa context data
+    const hasContext = searchParams.get('context') === 'medspa'
+    if (hasContext) {
+      const contextData = localStorage.getItem('medSpaContextData')
+      if (contextData) {
+        const medSpaData = JSON.parse(contextData)
+        setMedSpaContext(medSpaData)
+        
+        // Generate contextual prompt based on med spa data
+        const contextualPrompt = generateContextualPrompt(medSpaData)
+        setPrompt(contextualPrompt)
+      }
+    }
+  }, [searchParams])
+
+  const generateContextualPrompt = (medSpaData: any) => {
+    const { name, address, rating, website_data, pagespeed_data } = medSpaData
+    
+    let prompt = `Create a modern, SEO-optimized landing page for ${name}, a medical spa`
+    
+    if (address) {
+      prompt += ` located in ${address}`
+    }
+    
+    prompt += `. Here's the context about the business:\n\n`
+    
+    // Add business details
+    if (rating) {
+      prompt += `• Current Google rating: ${rating} stars\n`
+    }
+    
+    // Add website analysis context
+    if (website_data) {
+      if (website_data.title) {
+        prompt += `• Current website title: "${website_data.title}"\n`
+      }
+      if (website_data.description) {
+        prompt += `• Current description: "${website_data.description}"\n`
+      }
+      if (website_data.contactInfo?.phone) {
+        prompt += `• Phone: ${website_data.contactInfo.phone}\n`
+      }
+      if (website_data.contactInfo?.email) {
+        prompt += `• Email: ${website_data.contactInfo.email}\n`
+      }
+    }
+    
+    // Add performance context
+    if (pagespeed_data && !pagespeed_data.error) {
+      prompt += `\nCurrent website performance issues to address:\n`
+      if (pagespeed_data.seo_score < 80) {
+        prompt += `• SEO score is ${pagespeed_data.seo_score}/100 - needs improvement\n`
+      }
+      if (pagespeed_data.performance_score < 80) {
+        prompt += `• Performance score is ${pagespeed_data.performance_score}/100 - needs optimization\n`
+      }
+    }
+    
+    prompt += `\nCreate a high-converting landing page that:\n`
+    prompt += `• Features premium medical spa services (Botox, fillers, laser treatments, facials)\n`
+    prompt += `• Has a strong hero section with clear call-to-action\n`
+    prompt += `• Includes before/after galleries and testimonials\n`
+    prompt += `• Has an appointment booking section\n`
+    prompt += `• Is mobile-responsive and fast-loading\n`
+    prompt += `• Uses modern design with medical spa aesthetic\n`
+    prompt += `• Includes contact information and location details\n`
+    prompt += `• Has proper SEO optimization to outrank competitors`
+    
+    return prompt
+  }
+
   const generateWebsite = async () => {
     if (!prompt.trim()) return
 
     setIsGenerating(true)
     setGenerationProgress(0)
-    setCurrentStep('Analyzing your requirements...')
+    setGenerationStep('Analyzing your requirements...')
     setError(null)
 
     try {
@@ -89,7 +165,7 @@ export default function AIBuilder() {
         if (currentUpdateIndex < progressUpdates.length) {
           const update = progressUpdates[currentUpdateIndex]
           setGenerationProgress(update.progress)
-          setCurrentStep(update.step)
+          setGenerationStep(update.step)
           currentUpdateIndex++
         }
       }, 1000)
@@ -111,7 +187,7 @@ export default function AIBuilder() {
       const result = await response.json()
       
       setGenerationProgress(100)
-      setCurrentStep('Website ready!')
+      setGenerationStep('Website ready!')
       
       setTimeout(() => {
         setGeneratedWebsite(result)
@@ -122,7 +198,7 @@ export default function AIBuilder() {
     } catch (error) {
       console.error('Generation failed:', error)
       setError(error instanceof Error ? error.message : 'Failed to generate website')
-      setCurrentStep('Generation failed')
+      setGenerationStep('Generation failed')
       setIsGenerating(false)
     }
   }
@@ -179,37 +255,75 @@ ${generatedWebsite.js}
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <motion.div 
+        className="bg-white shadow-sm border-b border-gray-200"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
+            <div className="flex items-center space-x-4">
+              <motion.div 
+                className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center"
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Sparkles className="w-5 h-5 text-white" />
+              </motion.div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
                   MedSpa GPT Builder
                 </h1>
-                <p className="text-sm text-gray-600">AI-Powered Website Generator</p>
+                <p className="text-sm text-gray-600">AI-powered website generator</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
-              <button className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
-                Templates
-              </button>
-              <button className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors">
-                Examples
-              </button>
-              <button className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity">
-                Pro Version
-              </button>
+              <div className="text-sm text-gray-500">
+                Build your landing page in 60 seconds
+              </div>
             </div>
           </div>
         </div>
-      </header>
+      </motion.div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Context Banner - appears when using med spa data */}
+      {medSpaContext && (
+        <motion.div 
+          className="bg-gradient-to-r from-green-50 to-blue-50 border-b border-green-200"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center space-x-4">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-900">
+                  🎯 Using {medSpaContext.name} Analysis Data
+                </h3>
+                <p className="text-sm text-green-700">
+                  AI will create a personalized landing page using your business information, location, 
+                  current website analysis, and performance insights to maximize SEO results.
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium text-green-900">
+                  Current SEO Score: {medSpaContext.pagespeed_data?.seo_score || 'N/A'}
+                </div>
+                <div className="text-xs text-green-600">
+                  Target: 90+ with new website
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {!generatedWebsite ? (
           /* Initial Interface */
           <motion.div
@@ -321,7 +435,7 @@ ${generatedWebsite.js}
                   >
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">{currentStep}</span>
+                        <span className="text-sm font-medium text-gray-700">{generationStep}</span>
                         <span className="text-sm text-gray-500">{generationProgress}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">

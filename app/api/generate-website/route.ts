@@ -32,119 +32,99 @@ export async function POST(request: NextRequest) {
 
 async function generateWebsiteWithOpenAI(prompt: string) {
   try {
-    // Generate HTML
-    const htmlCompletion = await openai.chat.completions.create({
-      model: "gpt-4o",
+    const systemPrompt = `You are an expert web developer and medical spa marketing specialist. Create a complete, modern website with HTML, CSS, and JavaScript.
+
+IMPORTANT REQUIREMENTS:
+- Generate COMPLETE, functional code that can be immediately deployed
+- Use modern CSS with gradients, animations, and responsive design
+- Include interactive JavaScript for smooth scrolling, form handling, and animations
+- Make it mobile-responsive with proper viewport meta tags
+- Include proper SEO meta tags, schema markup for local business
+- Use medical spa industry best practices for conversion optimization
+- Include compelling call-to-actions and trust signals
+- Make the design premium and professional for medical spa clientele
+
+STRUCTURE YOUR RESPONSE EXACTLY AS:
+HTML:
+[Complete HTML code here]
+
+CSS:
+[Complete CSS code here]
+
+JAVASCRIPT:
+[Complete JavaScript code here]
+
+Focus on:
+- High-converting hero sections with clear value propositions
+- Service showcases with pricing and benefits
+- Before/after galleries (use placeholder images with proper descriptions)
+- Patient testimonials and reviews
+- Clear contact information and appointment booking
+- Trust signals (certifications, years of experience, etc.)
+- Local SEO optimization
+- Fast loading and mobile-first design
+- Accessibility and user experience best practices
+
+If the prompt mentions specific business details (name, location, contact info, current performance issues), incorporate ALL of them naturally into the website design and content.`
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4-turbo-preview",
       messages: [
-        {
-          role: "system",
-          content: `You are an expert web developer. Generate clean, modern, responsive HTML code based on the user's requirements. 
-
-IMPORTANT GUIDELINES:
-- Create a complete, professional website with semantic HTML5
-- Use inline styles for all styling (no external CSS references)
-- Make it fully responsive with mobile-first design
-- Include proper navigation, sections, and footer
-- Use modern design principles with good spacing and typography
-- Include placeholder content that's relevant to the business type
-- Make sure all elements are properly structured and accessible
-- Use professional color schemes and layouts
-- Include interactive elements like forms, buttons, etc.
-- Add proper meta tags in the head section
-- Make it production-ready and visually appealing
-
-Return ONLY the HTML code without any explanations or markdown formatting.`
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
       ],
       max_tokens: 4000,
-      temperature: 0.7
+      temperature: 0.7,
     })
 
-    // Generate CSS
-    const cssCompletion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system", 
-          content: `You are an expert CSS developer. Generate clean, modern CSS code that complements the website described in the prompt.
+    const response = completion.choices[0]?.message?.content
 
-IMPORTANT GUIDELINES:
-- Create modern, responsive CSS with mobile-first approach
-- Use CSS Grid and Flexbox for layouts
-- Include smooth transitions and hover effects
-- Use modern CSS features like custom properties (CSS variables)
-- Ensure great typography and spacing
-- Include responsive breakpoints for mobile, tablet, and desktop
-- Use professional color schemes with good contrast
-- Add subtle animations and micro-interactions
-- Make it visually appealing and user-friendly
-- Include CSS reset/normalize styles
+    if (!response) {
+      throw new Error('No response generated from OpenAI')
+    }
 
-Return ONLY the CSS code without any explanations or markdown formatting.`
-        },
-        {
-          role: "user",
-          content: `Generate CSS for: ${prompt}`
-        }
-      ],
-      max_tokens: 3000,
-      temperature: 0.7
-    })
+    // Parse the response to extract HTML, CSS, and JavaScript
+    const htmlMatch = response.match(/HTML:\s*([\s\S]*?)(?=CSS:|JAVASCRIPT:|$)/i)
+    const cssMatch = response.match(/CSS:\s*([\s\S]*?)(?=HTML:|JAVASCRIPT:|$)/i)
+    const jsMatch = response.match(/JAVASCRIPT:\s*([\s\S]*?)(?=HTML:|CSS:|$)/i)
 
-    // Generate JavaScript
-    const jsCompletion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert JavaScript developer. Generate clean, modern JavaScript code to enhance the website's functionality.
+    if (!htmlMatch) {
+      throw new Error('Could not extract HTML from OpenAI response')
+    }
 
-IMPORTANT GUIDELINES:
-- Write vanilla JavaScript (no external libraries)
-- Add interactive functionality like form handling, smooth scrolling, animations
-- Include proper event listeners and DOM manipulation
-- Add mobile-friendly touch interactions
-- Implement form validation where applicable
-- Add loading states and user feedback
-- Include error handling for better user experience
-- Use modern ES6+ syntax
-- Make it performant and lightweight
-- Add accessibility enhancements
+    const html = htmlMatch[1].trim()
+    const css = cssMatch ? cssMatch[1].trim() : ''
+    const js = jsMatch ? jsMatch[1].trim() : ''
 
-Return ONLY the JavaScript code without any explanations or markdown formatting.`
-        },
-        {
-          role: "user", 
-          content: `Generate JavaScript for: ${prompt}`
-        }
-      ],
-      max_tokens: 2000,
-      temperature: 0.7
-    })
-
-    const html = htmlCompletion.choices[0]?.message?.content?.trim() || ''
-    const css = cssCompletion.choices[0]?.message?.content?.trim() || ''
-    const js = jsCompletion.choices[0]?.message?.content?.trim() || ''
-
-    // Clean up the responses to remove any markdown formatting
-    const cleanHtml = cleanCodeResponse(html)
-    const cleanCss = cleanCodeResponse(css)
-    const cleanJs = cleanCodeResponse(js)
+    // Create a complete HTML document
+    const completeHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Spa Website</title>
+    <style>
+${css}
+    </style>
+</head>
+<body>
+${html}
+    <script>
+${js}
+    </script>
+</body>
+</html>`
 
     return {
-      html: cleanHtml,
-      css: cleanCss,
-      js: cleanJs
+      html: completeHtml,
+      css,
+      js,
+      preview: completeHtml
     }
 
   } catch (error) {
-    console.error('OpenAI API error:', error)
-    // Fallback to a basic template if OpenAI fails
-    return generateFallbackWebsite(prompt)
+    console.error('OpenAI generation error:', error)
+    throw new Error('Failed to generate website with AI')
   }
 }
 

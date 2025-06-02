@@ -26,13 +26,19 @@ interface SEOAnalysisData {
 }
 
 // AI Builder Promotion Component
-const AIBuilderPromotion = ({ currentSEOScore, competitorAverage }: { currentSEOScore: number, competitorAverage: number }) => {
+const AIBuilderPromotion = ({ currentSEOScore, competitorAverage, medSpaData }: { 
+  currentSEOScore: number, 
+  competitorAverage: number, 
+  medSpaData: any 
+}) => {
   const router = useRouter()
   
   const needsImprovement = currentSEOScore < 80 || currentSEOScore < competitorAverage
 
   const handleRebuildWebsite = () => {
-    router.push('/ai-builder')
+    // Store the med spa data for the AI builder
+    localStorage.setItem('medSpaContextData', JSON.stringify(medSpaData))
+    router.push('/ai-builder?context=medspa')
   }
 
   return (
@@ -491,6 +497,7 @@ export default function ResultsPage() {
               <AIBuilderPromotion 
                 currentSEOScore={pageSpeedData.seo_score || 0}
                 competitorAverage={competitorAverage}
+                medSpaData={selectedMedspa}
               />
             )}
           </div>
