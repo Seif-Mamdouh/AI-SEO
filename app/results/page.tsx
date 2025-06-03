@@ -34,12 +34,6 @@ interface SEOAnalysisData {
   selectedMedspa: any
   competitors: any[]
   analysis: any
-  llm_report?: {
-    content: string
-    generatedAt: string
-    model: string
-    tokensUsed: number
-  }
 }
 
 // Calculate overall health score based on all metrics
@@ -414,7 +408,7 @@ export default function ResultsPage() {
     )
   }
 
-  const { selectedMedspa, competitors, analysis, llm_report } = seoData
+  const { selectedMedspa, competitors, analysis } = seoData
   const pageSpeedData = selectedMedspa.pagespeed_data
   const overallScore = calculateOverallScore(seoData)
   const scoreGrade = getScoreGrade(overallScore)

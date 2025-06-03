@@ -371,43 +371,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Step 6: Generate LLM analysis report ONLY if explicitly requested (OPTIMIZED)
-    let llmReport = null
-    if (generate_llm_report) {
-      console.log('🤖 Step 6: Generating LLM analysis report...')
-      try {
-        const llmResponse = await fetch(`${request.nextUrl.origin}/api/llm-seo-analysis`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ seoData: responseData })
-        })
+    // Remove LLM functionality
+    console.log(`🎉 Complete SEO Analysis finished in ${totalTime}ms`)
 
-        if (llmResponse.ok) {
-          const llmData = await llmResponse.json()
-          if (llmData.success) {
-            llmReport = llmData.report
-            console.log('✅ LLM analysis report generated successfully')
-          } else {
-            console.log('❌ LLM analysis failed:', llmData.error)
-          }
-        } else {
-          console.log('❌ LLM analysis request failed with status:', llmResponse.status)
-        }
-      } catch (llmError) {
-        console.error('❌ LLM analysis error:', llmError)
-        // Don't fail the main request if LLM analysis fails
-      }
-    }
-
-    const finalResponseData = {
-      ...responseData,
-      ...(llmReport && { llm_report: llmReport })
-    }
-
-    const finalTime = Date.now() - startTime
-    console.log(`🎉 Complete SEO Analysis (with LLM: ${!!llmReport}) finished in ${finalTime}ms`)
-
-    return NextResponse.json(finalResponseData)
+    return NextResponse.json(responseData)
 
   } catch (error) {
     const totalTime = Date.now() - startTime
@@ -647,4 +614,4 @@ function generateSEORecommendations(analysis: any, selectedPageSpeed?: PageSpeed
   }
 
   return recommendations
-} 
+}
