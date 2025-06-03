@@ -1,9 +1,10 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ExternalLink, Globe, Clock, Star, AlertTriangle, CheckCircle, XCircle, Eye, Link, Mail, Phone, TrendingUp, Image as ImageIcon } from 'lucide-react'
 import { MedSpa } from './types'
-import { ExternalLink, Globe, Clock, Star, AlertTriangle, CheckCircle, XCircle, Eye, Link, Mail, Phone } from 'lucide-react'
+import DetailedSEOAnalysis from './DetailedSEOAnalysis'
 
 interface WebsiteAnalysisProps {
   selectedMedspa: MedSpa | null
@@ -56,6 +57,7 @@ interface WebsiteData {
     }
     screenshot?: string
     error?: string
+    seoAnalysis?: any
   }
 }
 
@@ -288,6 +290,21 @@ export default function WebsiteAnalysis({ selectedMedspa }: WebsiteAnalysisProps
             </div>
           </div>
         </div>
+
+        {/* Detailed SEO Analysis */}
+        {websiteParseData?.seoAnalysis && !isLoading && (
+          <motion.div
+            className="mt-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <DetailedSEOAnalysis 
+              seoData={websiteParseData.seoAnalysis}
+              businessName={selectedMedspa?.name || 'Your Business'}
+            />
+          </motion.div>
+        )}
 
         {/* Website Screenshot */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">

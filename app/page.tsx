@@ -141,7 +141,9 @@ export default function Home() {
         },
         body: JSON.stringify({ 
           medspa: medspa,
-          location: medspa.formatted_address || 'nearby'
+          location: medspa.formatted_address || 'nearby',
+          businessLocation: medspa.formatted_address,
+          businessName: medspa.name
         }),
       })
 
@@ -447,7 +449,10 @@ export default function Home() {
                             Visit Website
                           </a>
                         )}
-                        <button className="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                        <button 
+                          onClick={() => handleSuggestionClick(place)}
+                          className="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                        >
                           Analyze SEO
                         </button>
                       </div>

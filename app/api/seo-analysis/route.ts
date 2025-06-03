@@ -298,12 +298,17 @@ export async function POST(request: NextRequest) {
           fetch(`${request.nextUrl.origin}/api/website-parse`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: medSpaDetails.website })
+            body: JSON.stringify({ 
+              url: medSpaDetails.website,
+              businessLocation: medSpaDetails.formatted_address,
+              businessName: medSpaDetails.name
+            })
           }).then(res => res.json()).catch(() => ({
             url: medSpaDetails.website,
             headings: { h1: [], h2: [], h3: [] },
             images: [], links: [], socialLinks: [], contactInfo: {},
             structure: { hasNavigation: false, hasFooter: false, hasContactForm: false, hasBookingForm: false },
+            seoAnalysis: { overallScore: 0, totalChecks: 0, passedChecks: 0, headlines: [], metadata: [], technicalSEO: [] },
             error: 'Website parsing failed'
           }))
         ]).then(([pageSpeed, websiteData]) => ({ pageSpeed, websiteData }))

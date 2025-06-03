@@ -28,6 +28,7 @@ import {
   Smartphone,
   RefreshCw
 } from 'lucide-react'
+import DetailedSEOAnalysis from '../analyzing/components/DetailedSEOAnalysis'
 
 interface SEOAnalysisData {
   selectedMedspa: any
@@ -731,6 +732,21 @@ export default function ResultsPage() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Detailed SEO Analysis */}
+              {selectedMedspa.website_data?.seoAnalysis && (
+                <motion.div 
+                  className="mt-8"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                  <DetailedSEOAnalysis 
+                    seoData={selectedMedspa.website_data.seoAnalysis}
+                    businessName={selectedMedspa.name}
+                  />
+                </motion.div>
               )}
             </motion.div>
 
