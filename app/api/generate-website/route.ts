@@ -328,14 +328,14 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, templ
                 <div class="hidden sm:flex items-center space-x-2 text-sm text-gray-700">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-rose-600"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                   <span class="font-medium">${medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567'}</span>
-                </div>
+            </div>
                 <button class="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white shadow-lg px-4 py-2 rounded-lg font-medium flex items-center space-x-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 mr-2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                  Book Consultation
+              Book Consultation
                 </button>
-              </div>
-            </div>
-          </header>
+          </div>
+        </div>
+      </header>
 
           <main class="flex-1">
             <!-- Hero Section -->
@@ -368,7 +368,7 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, templ
                         Explore Treatments
                       </button>
                     </div>
-                  </div>
+    </div>
                   <div class="relative">
                     <div class="relative">
                       ${medSpaImages.length > 0 
@@ -398,12 +398,46 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, templ
               </div>
             </section>
 
-            <!-- Service Preview -->
-            <section class="py-10 bg-gradient-to-br from-gray-50 to-rose-50">
+            <!-- Services Section -->
+            <section class="py-16 bg-gradient-to-br from-gray-50 to-rose-50">
               <div class="container mx-auto px-4">
                 <div class="text-center mb-10">
-                  <p class="text-lg text-rose-600 font-medium">Preview showing the template layout</p>
-                  <h2 class="text-3xl font-bold mt-2">This is a template preview. The full React component will be generated using ${medSpaData?.name || 'your medical spa'}'s data.</h2>
+                  <h2 class="text-3xl font-bold text-gray-900">Our Premium Services</h2>
+                  <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-600">
+                    Professional treatments delivered by licensed medical professionals at ${medSpaData?.name || 'our med spa'}
+                  </p>
+                </div>
+                <div class="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+                  ${medSpaData?.website_data?.services && medSpaData.website_data.services.length > 0 ? 
+                    medSpaData.website_data.services.slice(0, 3).map((service: any, index: number) => `
+                      <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        ${medSpaImages[index+1] ? `<img src="${imageUrls[index+1].url}" alt="${service.name}" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">${service.name || `Premium Service ${index+1}`}</h3>
+                        <p class="text-sm text-gray-600 mb-4">${service.description || 'Professional treatment for elite results'}</p>
+                        <div class="inline-block bg-gradient-to-r from-rose-100 to-purple-100 text-rose-700 px-3 py-1 rounded-full">From $${199 + (index * 100)}</div>
+                      </div>
+                    `).join('') : 
+                    `
+                      <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        ${medSpaImages[1] ? `<img src="${imageUrls[1].url}" alt="Premium Treatment" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Premium Facial</h3>
+                        <p class="text-sm text-gray-600 mb-4">Luxury facial treatment for radiant skin</p>
+                        <div class="inline-block bg-gradient-to-r from-rose-100 to-purple-100 text-rose-700 px-3 py-1 rounded-full">From $199</div>
+                      </div>
+                      <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        ${medSpaImages[2] ? `<img src="${imageUrls[2].url}" alt="Botox Treatment" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Botox & Fillers</h3>
+                        <p class="text-sm text-gray-600 mb-4">Anti-aging injections for natural results</p>
+                        <div class="inline-block bg-gradient-to-r from-rose-100 to-purple-100 text-rose-700 px-3 py-1 rounded-full">From $299</div>
+                      </div>
+                      <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                        ${medSpaImages[3] ? `<img src="${imageUrls[3].url}" alt="Laser Treatment" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Laser Treatments</h3>
+                        <p class="text-sm text-gray-600 mb-4">Advanced technology for skin rejuvenation</p>
+                        <div class="inline-block bg-gradient-to-r from-rose-100 to-purple-100 text-rose-700 px-3 py-1 rounded-full">From $399</div>
+                      </div>
+                    `
+                  }
                 </div>
               </div>
             </section>
@@ -424,16 +458,6 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, templ
     console.error('❌ Template generation error:', error)
     return generateFallbackReactComponent(medSpaData)
   }
-}
-
-function cleanCodeResponse(code: string): string {
-  // Remove markdown code blocks if present
-  return code
-    .replace(/^```[\w]*\n/g, '')
-    .replace(/\n```$/g, '')
-    .replace(/^```/g, '')
-    .replace(/```$/g, '')
-    .trim()
 }
 
 function generateFallbackReactComponent(medSpaData?: any) {

@@ -65,6 +65,27 @@ function DynamicReactPreview({ code }: { code: string }) {
                 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
                 .bg-gradient-to-r { background: linear-gradient(to right, #ec4899, #8b5cf6); }
                 .text-transparent.bg-clip-text { -webkit-background-clip: text; background-clip: text; }
+                .backdrop-blur-xl { backdrop-filter: blur(24px); }
+                
+                /* Add template styles for proper preview */
+                .hero-gradient {
+                  background: linear-gradient(135deg, #fdf2f8, #f5f3ff);
+                }
+                .premium-badge {
+                  background: linear-gradient(90deg, #f59e0b, #db2777);
+                }
+                .service-card {
+                  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+                  transition: all 0.3s ease;
+                }
+                .service-card:hover {
+                  transform: translateY(-5px);
+                  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+                }
+                .testimonial-card {
+                  border-radius: 1rem;
+                  background: rgba(255, 255, 255, 0.9);
+                }
               </style>
           </head>
           <body>
@@ -100,7 +121,7 @@ function DynamicReactPreview({ code }: { code: string }) {
   return (
     <iframe
       srcDoc={htmlContent}
-      className="w-full min-h-[600px] border-0"
+      className="w-full min-h-[800px] border-0"
       title="Website Preview"
       sandbox="allow-scripts allow-same-origin"
       style={{ backgroundColor: '#f8fafc' }}
