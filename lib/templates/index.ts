@@ -2,7 +2,7 @@ export interface MedSpaTemplate {
   id: string
   name: string
   description: string
-  category: 'luxury' | 'modern' | 'medical' | 'wellness'
+  category: 'luxury' | 'modern' | 'elegant' | 'wellness'
   html: string
   css: string
   js?: string
@@ -52,22 +52,22 @@ const TEMPLATE_CONFIGS = {
       accent: '#F1F5F9'
     }
   },
-  wellness: {
-    name: 'Wellness & Rejuvenation',
-    description: 'Holistic wellness approach with calming aesthetics',
-    category: 'wellness' as const,
+  elegant: {
+    name: 'Elegant Beauty Center',
+    description: 'Sophisticated rose-themed design with elegant aesthetics',
+    category: 'elegant' as const,
     features: [
-      'Serene hero with nature imagery',
-      'Wellness journey timeline',
-      'Treatment packages display',
-      'Mindfulness and self-care focus',
-      'Client transformation stories',
-      'Virtual consultation options'
+      'Beautiful rose gradient hero section',
+      'Elegant service showcase cards',
+      'Client testimonials with ratings',
+      'Contact information display',
+      'Results gallery section',
+      'Professional about section'
     ],
     colorScheme: {
-      primary: '#059669',
-      secondary: '#10B981',
-      accent: '#F0FDF4'
+      primary: '#F43F5E',
+      secondary: '#EC4899',
+      accent: '#FDF2F8'
     }
   }
 }
@@ -75,7 +75,7 @@ const TEMPLATE_CONFIGS = {
 // Import template files
 import luxuryTemplate from './medspa/luxury-template'
 import modernTemplate from './medspa/modern-template'
-import wellnessTemplate from './medspa/wellness-template'
+import template1 from './medspa/template1'
 
 const TEMPLATES: MedSpaTemplate[] = [
   {
@@ -89,9 +89,9 @@ const TEMPLATES: MedSpaTemplate[] = [
     ...modernTemplate
   },
   {
-    id: 'wellness',
-    ...TEMPLATE_CONFIGS.wellness,
-    ...wellnessTemplate
+    id: 'elegant',
+    ...TEMPLATE_CONFIGS.elegant,
+    ...template1
   }
 ]
 
@@ -128,34 +128,14 @@ export function getTemplatesByCategory(category: MedSpaTemplate['category']): Me
  * Generate contextual prompt with template
  */
 export function generateTemplatePrompt(template: MedSpaTemplate, medSpaData: any): string {
+  // Since we're using the exact template HTML, this function now just provides context info
+  // The actual template application happens in the API route
   const { name, formatted_address, rating, photos } = medSpaData
   
-  let prompt = `Using the "${template.name}" template style, create a professional medical spa landing page for ${name}.`
-  
-  if (formatted_address) {
-    prompt += ` This business is located at ${formatted_address}.`
-  }
-  
-  prompt += `\n\nTEMPLATE STYLE: ${template.description}\n`
-  prompt += `FEATURES TO INCLUDE:\n${template.features.map(feature => `• ${feature}`).join('\n')}\n`
-  
-  prompt += `\nCOLOR SCHEME:\n`
-  prompt += `• Primary: ${template.colorScheme.primary}\n`
-  prompt += `• Secondary: ${template.colorScheme.secondary}\n`
-  prompt += `• Accent: ${template.colorScheme.accent}\n`
-  
-  prompt += `\nBUSINESS INFORMATION:\n`
-  prompt += `• Business Name: ${name} (use this exact name)\n`
-  
-  if (rating) {
-    prompt += `• Google Rating: ${rating} stars\n`
-  }
-  
-  if (photos?.length > 0) {
-    prompt += `• Photos: ${photos.length} actual business photos available\n`
-  }
-  
-  prompt += `\nIMPORTANT: Follow the ${template.name} template style closely while customizing all content for ${name}. Make it feel like a real business website, not a template demo.`
-  
-  return prompt
+  return `Using exact template: "${template.name}" (${template.category}) for ${name || 'Medical Spa'}.
+Template features: ${template.features.join(', ')}.
+Business data will be automatically inserted into template variables.
+Location: ${formatted_address || 'Not specified'}
+Rating: ${rating || 'Not specified'}
+Photos available: ${photos?.length || 0}`
 } 

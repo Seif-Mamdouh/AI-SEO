@@ -32,98 +32,341 @@ interface GeneratedWebsite {
   js: string
   preview?: string
   type?: string
+  template?: {
+    id: string
+    name: string
+    category: string
+    colorScheme: {
+      primary: string
+      secondary: string
+      accent: string
+    }
+  }
 }
 
 // Dynamic React component preview
 function DynamicReactPreview({ code }: { code: string }) {
-  const [htmlContent, setHtmlContent] = useState<string>('')
+  const [renderContent, setRenderContent] = useState<JSX.Element | null>(null)
+  const [error, setError] = useState<string | null>(null)
   
   useEffect(() => {
     console.log('🖼️ DynamicReactPreview received code:', {
       length: code.length,
       hasDoctype: code.includes('<!DOCTYPE html>'),
+      isReactComponent: code.includes('export default function'),
       preview: code.substring(0, 200) + '...'
     })
     
-    // Always use the provided code as HTML content
-    // The API should send proper HTML in the preview field
-    if (code && code.length > 0) {
-      if (code.includes('<!DOCTYPE html>')) {
-        // Full HTML document
-        setHtmlContent(code)
-      } else {
-        // React component code - create a simple preview
-        setHtmlContent(`
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>React Component Preview</title>
-              <script src="https://cdn.tailwindcss.com"></script>
-              <style>
-                .star-rating { color: #fbbf24; }
-                body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
-              </style>
-          </head>
-          <body>
-              <div style="padding: 2rem; text-align: center; background: #f8fafc;">
-                  <h2 style="color: #2563eb; margin-bottom: 1rem;">AI Generated React Component</h2>
-                  <p style="color: #6b7280; margin-bottom: 2rem;">This shows a React component preview. Switch to REACT tab to see the full code.</p>
-                  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 2rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                      <h3 style="color: #1e293b; margin: 0 0 1rem 0;">Generated Component Features</h3>
-                      <ul style="color: #64748b; text-align: left; margin: 0; padding-left: 1.5rem;">
-                          <li>SHADCN/UI components integration</li>
-                          <li>Tailwind CSS styling</li>
-                          <li>Responsive design</li>
-                          <li>Business data integration</li>
-                          <li>Professional medical spa layout</li>
-                      </ul>
-                  </div>
-                  <button style="background: #2563eb; color: white; padding: 0.75rem 2rem; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                      Sample Generated Button
-                  </button>
-                  <p style="color: #6b7280; margin-top: 2rem; font-size: 0.875rem;">
-                      Component generated successfully! Check the REACT tab for the complete code.
-                  </p>
-              </div>
-          </body>
-          </html>
-        `)
+    if (!code || code.length === 0) {
+      setRenderContent(
+        <div className="flex items-center justify-center min-h-[400px] bg-gray-50">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-gray-600 mb-2">No Preview Available</h2>
+            <p className="text-gray-500">Generate a website to see the preview here.</p>
+          </div>
+        </div>
+      )
+      return
+    }
+
+    // If it's a full HTML document, render it in an iframe
+    if (code.includes('<!DOCTYPE html>')) {
+      setRenderContent(
+        <iframe
+          srcDoc={code}
+          className="w-full min-h-[500px] border-0"
+          title="Website Preview"
+          sandbox="allow-scripts allow-same-origin"
+        />
+      )
+      return
+    }
+
+    // If it's React component code, try to render it
+    if (code.includes('export default function') || code.includes('export default')) {
+      try {
+        // Create a safe React component renderer
+        // For now, we'll create a styled preview that looks like the component would render
+        const previewElement = (
+          <div className="w-full min-h-[500px] bg-white">
+            {/* Try to extract and render the React component */}
+            <ReactComponentRenderer code={code} />
+          </div>
+        )
+        setRenderContent(previewElement)
+        setError(null)
+      } catch (err) {
+        console.error('Error rendering React component:', err)
+        setError('Failed to render the React component')
+        setRenderContent(
+          <div className="flex items-center justify-center min-h-[400px] bg-red-50">
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-red-600 mb-2">Render Error</h2>
+              <p className="text-red-500">Failed to render the React component</p>
+              <p className="text-sm text-red-400 mt-2">Check the REACT tab for the code</p>
+            </div>
+          </div>
+        )
       }
     } else {
-      // Fallback for empty/no content
-      setHtmlContent(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Preview Loading</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body>
-            <div style="padding: 2rem; text-align: center; background: #f8fafc; min-height: 400px; display: flex; align-items: center; justify-content: center;">
-                <div>
-                    <h2 style="color: #dc2626; margin-bottom: 1rem;">No Preview Available</h2>
-                    <p style="color: #6b7280;">Generate a website to see the preview here.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-      `)
+      // Fallback for unknown content
+      setRenderContent(
+        <div className="flex items-center justify-center min-h-[400px] bg-gray-50">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-gray-600 mb-2">Preview Unavailable</h2>
+            <p className="text-gray-500">Switch to REACT tab to view the code</p>
+          </div>
+        </div>
+      )
     }
   }, [code])
   
-  return (
-    <iframe
-      srcDoc={htmlContent}
-      className="w-full min-h-[500px] border-0"
-      title="Website Preview"
-      sandbox="allow-scripts allow-same-origin"
-      style={{ backgroundColor: '#f8fafc' }}
-    />
-  )
+  return <div className="w-full">{renderContent}</div>
+}
+
+// Component to actually render React code
+function ReactComponentRenderer({ code }: { code: string }) {
+  const [renderedComponent, setRenderedComponent] = useState<JSX.Element | null>(null)
+  
+  useEffect(() => {
+    try {
+      // For safety and since we can't execute arbitrary code in the browser,
+      // we'll create a visual representation based on the template structure
+      
+      // Extract key information from the code
+      const businessName = extractValue(code, '[BUSINESS_NAME]') || 'Medical Spa'
+      const phoneNumber = extractValue(code, '[PHONE_NUMBER]') || '(555) 123-4567'
+      const rating = extractValue(code, '[RATING]') || '4.8'
+      const address = extractValue(code, '[FULL_ADDRESS]') || 'Professional Location'
+      
+      // Determine template type based on code content
+      let templateType = 'default'
+      if (code.includes('luxury') || code.includes('Crown') || code.includes('Gem')) {
+        templateType = 'luxury'
+      } else if (code.includes('modern') || code.includes('Elite') || code.includes('VIP')) {
+        templateType = 'modern'
+      } else if (code.includes('elegant') || code.includes('rose')) {
+        templateType = 'elegant'
+      }
+      
+      // Create a visual representation
+      const component = (
+        <div className="min-h-screen bg-white overflow-hidden">
+          {/* Header */}
+          <header className={`${getHeaderClasses(templateType)} shadow-sm border-b`}>
+            <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                {templateType === 'luxury' && <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white">👑</div>}
+                {templateType === 'modern' && <div className="w-8 h-8 bg-rose-600 rounded-lg flex items-center justify-center text-white">💎</div>}
+                {templateType === 'elegant' && <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center text-white">✨</div>}
+                <h1 className={`text-2xl font-bold ${getTextClasses(templateType)}`}>
+                  {businessName}
+                </h1>
+              </div>
+              <div className="hidden md:flex items-center space-x-6">
+                <nav className="flex space-x-6">
+                  <a href="#" className="text-gray-600 hover:text-gray-900">Services</a>
+                  <a href="#" className="text-gray-600 hover:text-gray-900">About</a>
+                  <a href="#" className="text-gray-600 hover:text-gray-900">Contact</a>
+                </nav>
+                <button className={`${getButtonClasses(templateType)} px-6 py-2 text-white rounded-lg font-medium`}>
+                  Book Consultation
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Hero Section */}
+          <section className={`${getHeroClasses(templateType)} py-20`}>
+            <div className="max-w-7xl mx-auto px-4 text-center">
+              <h2 className="text-5xl font-bold text-white mb-6">
+                Welcome to {businessName}
+              </h2>
+              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+                Premium Medical Spa Services for Ultimate Beauty and Wellness
+              </p>
+              <div className="flex justify-center items-center mb-8">
+                <span className="text-yellow-400 text-2xl">★★★★★</span>
+                <span className="ml-2 text-white">{rating} stars on Google</span>
+              </div>
+              <button className={`${getButtonClasses(templateType)} px-8 py-4 text-white rounded-lg font-medium text-lg`}>
+                Begin Your Journey
+              </button>
+            </div>
+          </section>
+
+          {/* Services Section */}
+          <section className="py-16 bg-white">
+            <div className="max-w-7xl mx-auto px-4">
+              <h3 className={`text-3xl font-bold text-center mb-12 ${getTextClasses(templateType)}`}>
+                Our Premium Services
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {['Botox & Fillers', 'Laser Treatments', 'HydraFacial'].map((service, index) => (
+                  <div key={service} className="bg-white p-6 rounded-xl shadow-lg border hover:shadow-xl transition-shadow">
+                    <div className={`w-12 h-12 ${getServiceIconClasses(templateType)} rounded-lg flex items-center justify-center mb-4`}>
+                      {index === 0 && '💉'}
+                      {index === 1 && '✨'}
+                      {index === 2 && '💧'}
+                    </div>
+                    <h4 className="text-xl font-semibold mb-3">{service}</h4>
+                    <p className="text-gray-600 mb-4">Professional {service.toLowerCase()} treatments</p>
+                    <div className={`${getAccentClasses(templateType)} text-sm px-3 py-1 rounded-full inline-block`}>
+                      From ${index === 0 ? '$299' : index === 1 ? '$199' : '$149'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Contact Section */}
+          <section className={`py-16 ${getContactClasses(templateType)}`}>
+            <div className="max-w-7xl mx-auto px-4 text-center">
+              <h3 className="text-3xl font-bold text-white mb-8">Contact Us</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl">
+                  <div className="flex items-center justify-center space-x-3 text-white">
+                    <span>📞</span>
+                    <span className="font-medium">{phoneNumber}</span>
+                  </div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl">
+                  <div className="flex items-center justify-center space-x-3 text-white">
+                    <span>📍</span>
+                    <span className="font-medium text-sm">{address}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )
+      
+      setRenderedComponent(component)
+    } catch (error) {
+      console.error('Error creating component preview:', error)
+      setRenderedComponent(
+        <div className="flex items-center justify-center min-h-[400px] bg-gray-50">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-gray-600 mb-2">Preview Error</h2>
+            <p className="text-gray-500">Unable to render component preview</p>
+          </div>
+        </div>
+      )
+    }
+  }, [code])
+  
+  return renderedComponent
+}
+
+// Helper functions for styling based on template type
+function extractValue(code: string, placeholder: string): string | null {
+  // Look for the actual replaced values in the code
+  const lines = code.split('\n')
+  
+  // Try different patterns to find the business data
+  if (placeholder === '[BUSINESS_NAME]') {
+    // Look for business name in various contexts
+    for (const line of lines) {
+      if (line.includes('businessName') && !line.includes('Premium Medical Spa')) {
+        const match = line.match(/['"`]([^'"`]+)['"`]/)
+        if (match && match[1] !== 'Premium Medical Spa') return match[1]
+      }
+      if (line.includes('Welcome to ') && !line.includes('[BUSINESS_NAME]')) {
+        const match = line.match(/Welcome to ([^}]+)/)
+        if (match) return match[1].trim()
+      }
+    }
+  }
+  
+  if (placeholder === '[PHONE_NUMBER]') {
+    for (const line of lines) {
+      const phoneMatch = line.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)
+      if (phoneMatch && !line.includes('555-123-4567')) return phoneMatch[0]
+    }
+  }
+  
+  if (placeholder === '[RATING]') {
+    for (const line of lines) {
+      const ratingMatch = line.match(/(\d\.\d+)\s*stars/)
+      if (ratingMatch) return ratingMatch[1]
+    }
+  }
+  
+  if (placeholder === '[FULL_ADDRESS]') {
+    for (const line of lines) {
+      if (line.includes('address') && !line.includes('Professional Location')) {
+        const match = line.match(/['"`]([^'"`]+)['"`]/)
+        if (match && match[1] !== 'Professional Location') return match[1]
+      }
+    }
+  }
+  
+  return null
+}
+
+function getHeaderClasses(type: string): string {
+  switch (type) {
+    case 'luxury': return 'bg-white'
+    case 'modern': return 'bg-white'
+    case 'elegant': return 'bg-white'
+    default: return 'bg-white'
+  }
+}
+
+function getTextClasses(type: string): string {
+  switch (type) {
+    case 'luxury': return 'text-purple-600'
+    case 'modern': return 'text-rose-600'
+    case 'elegant': return 'text-pink-600'
+    default: return 'text-blue-600'
+  }
+}
+
+function getButtonClasses(type: string): string {
+  switch (type) {
+    case 'luxury': return 'bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700'
+    case 'modern': return 'bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700'
+    case 'elegant': return 'bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700'
+    default: return 'bg-blue-600 hover:bg-blue-700'
+  }
+}
+
+function getHeroClasses(type: string): string {
+  switch (type) {
+    case 'luxury': return 'bg-gradient-to-br from-purple-900 via-violet-900 to-purple-800'
+    case 'modern': return 'bg-gradient-to-br from-gray-900 via-rose-900 to-pink-900'
+    case 'elegant': return 'bg-gradient-to-br from-pink-900 via-rose-900 to-pink-800'
+    default: return 'bg-gradient-to-br from-blue-900 to-blue-800'
+  }
+}
+
+function getServiceIconClasses(type: string): string {
+  switch (type) {
+    case 'luxury': return 'bg-purple-100 text-purple-600'
+    case 'modern': return 'bg-rose-100 text-rose-600'
+    case 'elegant': return 'bg-pink-100 text-pink-600'
+    default: return 'bg-blue-100 text-blue-600'
+  }
+}
+
+function getAccentClasses(type: string): string {
+  switch (type) {
+    case 'luxury': return 'bg-purple-100 text-purple-800'
+    case 'modern': return 'bg-rose-100 text-rose-800'
+    case 'elegant': return 'bg-pink-100 text-pink-800'
+    default: return 'bg-blue-100 text-blue-800'
+  }
+}
+
+function getContactClasses(type: string): string {
+  switch (type) {
+    case 'luxury': return 'bg-gradient-to-br from-purple-900 to-violet-900'
+    case 'modern': return 'bg-gradient-to-br from-gray-900 to-rose-900'
+    case 'elegant': return 'bg-gradient-to-br from-pink-900 to-rose-900'
+    default: return 'bg-gradient-to-br from-blue-900 to-blue-800'
+  }
 }
 
 export default function AIBuilder() {
@@ -334,8 +577,8 @@ export default function AIBuilder() {
       // Simulate progress updates
       const progressUpdates = [
         { progress: 10, step: 'Understanding your vision...' },
-        { progress: 25, step: 'Generating React components...' },
-        { progress: 50, step: 'Adding SHADCN/UI elements...' },
+        { progress: 25, step: medSpaContext ? 'Selecting optimal template...' : 'Generating React components...' },
+        { progress: 50, step: medSpaContext ? 'Generating React components with template...' : 'Adding SHADCN/UI elements...' },
         { progress: 75, step: 'Integrating business images...' },
         { progress: 90, step: 'Finalizing website...' },
       ]
@@ -564,7 +807,7 @@ ${generatedWebsite.js}
                   🎯 Building Real Website for {medSpaContext.name}
                 </h3>
                 <p className="text-sm text-green-700">
-                  AI will create an actual business landing page using real data: business name, location, 
+                  AI will randomly select a professional template and create an actual business landing page using real data: business name, location, 
                   {medSpaContext.photos?.length > 0 && ` ${medSpaContext.photos.length} actual Google Places photos,`} contact info, 
                   and performance insights. This will be a professional website specifically for {medSpaContext.name}.
                 </p>
@@ -603,6 +846,58 @@ ${generatedWebsite.js}
                     Using {medSpaContext.photos.length} Google Places images
                   </div>
                 )}
+                <div className="text-xs text-green-600 mt-1">
+                  🎨 Template: Will be randomly selected
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Template Selection Banner - appears when website is generated with template */}
+      {generatedWebsite?.template && (
+        <motion.div 
+          className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-200"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center space-x-4">
+              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                <Palette className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-purple-900">
+                  🎨 Template Applied: {generatedWebsite.template.name}
+                </h3>
+                <p className="text-sm text-purple-700">
+                  Category: {generatedWebsite.template.category.charAt(0).toUpperCase() + generatedWebsite.template.category.slice(1)} • 
+                  AI randomly selected this template design for optimal aesthetic appeal and conversion optimization.
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-purple-600 font-medium">Color Scheme:</span>
+                  <div className="flex space-x-1">
+                    <div 
+                      className="w-4 h-4 rounded-full border border-gray-300" 
+                      style={{ backgroundColor: generatedWebsite.template.colorScheme.primary }}
+                      title="Primary Color"
+                    ></div>
+                    <div 
+                      className="w-4 h-4 rounded-full border border-gray-300" 
+                      style={{ backgroundColor: generatedWebsite.template.colorScheme.secondary }}
+                      title="Secondary Color"
+                    ></div>
+                    <div 
+                      className="w-4 h-4 rounded-full border border-gray-300" 
+                      style={{ backgroundColor: generatedWebsite.template.colorScheme.accent }}
+                      title="Accent Color"
+                    ></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { getRandomTemplate, generateTemplatePrompt, type MedSpaTemplate } from '@/lib/templates'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -15,7 +16,21 @@ export async function POST(request: NextRequest) {
     console.log('📝 Received prompt length:', prompt?.length || 0)
     console.log('🏥 Med spa data received:', !!medSpaData)
     
+    // Select template and generate contextual prompt if med spa data is available
+    let selectedTemplate: MedSpaTemplate | null = null
+    let enhancedPrompt = prompt
+    
     if (medSpaData) {
+      selectedTemplate = getRandomTemplate()
+      enhancedPrompt = generateTemplatePrompt(selectedTemplate, medSpaData)
+      
+      console.log('🎨 Template selected:', {
+        templateId: selectedTemplate.id,
+        templateName: selectedTemplate.name,
+        templateCategory: selectedTemplate.category,
+        colorScheme: selectedTemplate.colorScheme
+      })
+      
       console.log('🎯 Med spa context detailed analysis:', {
         name: medSpaData.name,
         hasImages: !!medSpaData.photos?.length,
@@ -23,13 +38,11 @@ export async function POST(request: NextRequest) {
         hasWebsiteData: !!medSpaData.website_data,
         hasPerformanceData: !!medSpaData.pagespeed_data,
         allKeys: Object.keys(medSpaData),
-        photosData: medSpaData.photos,
-        websiteData: medSpaData.website_data,
-        pagespeedData: medSpaData.pagespeed_data
+        selectedTemplate: selectedTemplate.name
       })
     }
 
-    if (!prompt) {
+    if (!enhancedPrompt) {
       console.error('❌ No prompt provided')
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
     }
@@ -39,20 +52,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
     }
 
-    console.log('🤖 Starting OpenAI generation...')
+    console.log('🤖 Starting OpenAI generation with template integration...')
     
-    // Generate website using OpenAI with enhanced context
-    const websiteResult = await generateWebsiteWithOpenAI(prompt, medSpaData)
+    // Generate website using OpenAI with enhanced context and template
+    const websiteResult = await generateWebsiteWithOpenAI(enhancedPrompt, medSpaData, selectedTemplate)
     
     const duration = Date.now() - startTime
     console.log('✅ Website generation completed in:', duration + 'ms')
     console.log('📊 Generated code sizes:', {
       html: websiteResult.html?.length || 0,
       css: websiteResult.css?.length || 0,
-      js: websiteResult.js?.length || 0
+      js: websiteResult.js?.length || 0,
+      template: selectedTemplate?.name || 'none'
     })
 
-    return NextResponse.json(websiteResult)
+    // Include template information in response
+    const finalResult = {
+      ...websiteResult,
+      template: selectedTemplate ? {
+        id: selectedTemplate.id,
+        name: selectedTemplate.name,
+        category: selectedTemplate.category,
+        colorScheme: selectedTemplate.colorScheme
+      } : null
+    }
+
+    return NextResponse.json(finalResult)
   } catch (error) {
     const duration = Date.now() - startTime
     console.error('💥 Website generation error after', duration + 'ms:', error)
@@ -65,9 +90,50 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any) {
+async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, selectedTemplate?: MedSpaTemplate | null) {
   try {
-    console.log('🎨 Preparing enhanced system prompt with React/SHADCN...')
+    console.log('🎨 Using exact template format instead of AI generation...')
+    
+    // If we have a selected template, use its EXACT HTML code
+    if (selectedTemplate && selectedTemplate.html) {
+      console.log('✅ Using exact template HTML:', selectedTemplate.name)
+      
+      // Replace template variables with actual business data
+      let templateHtml = selectedTemplate.html
+      let templateCss = selectedTemplate.css || ''
+      
+      const templateVariables = {
+        '[BUSINESS_NAME]': medSpaData?.name || 'Premium Medical Spa',
+        '[PHONE_NUMBER]': medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567',
+        '[RATING]': (medSpaData?.rating || 4.8).toString(),
+        '[REVIEW_COUNT]': (medSpaData?.user_ratings_total || 100).toString(),
+        '[FULL_ADDRESS]': medSpaData?.formatted_address || 'Professional Location',
+        '[CITY]': (medSpaData?.formatted_address || 'Your City').split(',')[1]?.trim() || 'Your City',
+        '[EMAIL]': `info@${(medSpaData?.name || 'business').toLowerCase().replace(/\s+/g, '')}.com`
+      }
+
+      // Replace all template variables in HTML
+      Object.entries(templateVariables).forEach(([variable, value]) => {
+        const regex = new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+        templateHtml = templateHtml.replace(regex, value)
+        templateCss = templateCss.replace(regex, value)
+      })
+
+      // Return the exact template code with business data inserted
+      return {
+        html: templateHtml,
+        css: templateCss,
+        js: '',
+        template: {
+          id: selectedTemplate.id,
+          name: selectedTemplate.name,
+          used: true
+        }
+      }
+    }
+
+    // Fallback: If no template, use AI generation (but this shouldn't happen with med spa data)
+    console.log('⚠️ No template available, falling back to AI generation...')
     
     // Extract images from med spa data and create proper Google Places URLs
     const medSpaImages = medSpaData?.photos || []
@@ -146,141 +212,50 @@ CONTENT REQUIREMENTS:
 - Add professional pricing and service descriptions
 - Include booking/consultation CTAs
 - Reference the Google rating and location throughout
-- Make it feel like a real business website, not a template
-
-Generate a complete, production-ready React component now:`
-
-    console.log('📡 Making OpenAI API request...')
-    
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 4000,
-      temperature: 0.7,
-    })
-
-    console.log('📨 OpenAI response received')
-    console.log('🔢 Tokens used:', completion.usage)
-
-    const response = completion.choices[0]?.message?.content
-
-    if (!response) {
-      console.error('❌ No response content from OpenAI')
-      throw new Error('No response generated from OpenAI')
-    }
-
-    console.log('📝 Response length:', response.length)
-
-    // Parse the response to extract React component, styles, and types
-    const reactMatch = response.match(/REACT_COMPONENT:\s*([\s\S]*?)(?=STYLES:|TYPES:|$)/i)
-    const stylesMatch = response.match(/STYLES:\s*([\s\S]*?)(?=REACT_COMPONENT:|TYPES:|$)/i)
-    const typesMatch = response.match(/TYPES:\s*([\s\S]*?)(?=REACT_COMPONENT:|STYLES:|$)/i)
-
-    let reactComponent = ''
-    let styles = ''
-    let types = ''
-
-    if (reactMatch) {
-      reactComponent = reactMatch[1].trim()
-    } else {
-      console.log('⚠️ No REACT_COMPONENT section found, using entire response as component')
-      // If no structured format, treat the entire response as React component
-      reactComponent = cleanCodeResponse(response)
-    }
-
-    if (stylesMatch) {
-      styles = stylesMatch[1].trim()
-    }
-
-    if (typesMatch) {
-      types = typesMatch[1].trim()
-    }
-
-    console.log('✅ Successfully parsed response sections:', {
-      hasReactComponent: !!reactComponent,
-      hasStyles: !!styles,
-      hasTypes: !!types,
-      componentLength: reactComponent.length
-    })
-
-    // If we still don't have a component, use fallback
-    if (!reactComponent || reactComponent.length < 100) {
-      console.log('⚠️ Component too short or missing, generating fallback')
-      return generateFallbackReactComponent(medSpaData)
-    }
-
-    // Create a complete Next.js page component
-    const completeReactCode = `'use client'
-
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-
-${types}
-
-${reactComponent}
-
-export default function MedSpaLandingPage() {
-  const [isBookingOpen, setIsBookingOpen] = useState(false)
-
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">${medSpaData?.name || 'Premium Medical Spa'}</h1>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <a href="#services" className="text-gray-500 hover:text-gray-900">Services</a>
-              <a href="#about" className="text-gray-500 hover:text-gray-900">About</a>
-              <a href="#contact" className="text-gray-500 hover:text-gray-900">Contact</a>
-            </nav>
-            <Button onClick={() => setIsBookingOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-              Book Consultation
-            </Button>
-          </div>
-        </div>
-      </header>
-      {/* Rest of component... */}
-    </div>
-  )
-}
 `
 
-    // Generate HTML preview for iframe
-    const htmlPreview = generateFallbackReactComponent(medSpaData).html
-    
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 4000,
+      temperature: 0.7
+    })
+
+    const response = completion.choices[0]?.message?.content
+    if (!response) {
+      throw new Error('No response from OpenAI')
+    }
+
+    console.log('🤖 OpenAI response received, length:', response.length)
+
+    // Parse the structured response
+    const reactMatch = response.match(/REACT_COMPONENT:\s*([\s\S]*?)(?=\n\n(?:STYLES|TYPES)|$)/i)
+    const stylesMatch = response.match(/STYLES:\s*([\s\S]*?)(?=\n\n(?:TYPES|REACT_COMPONENT)|$)/i)
+    const typesMatch = response.match(/TYPES:\s*([\s\S]*?)(?=\n\n(?:STYLES|REACT_COMPONENT)|$)/i)
+
+    const htmlCode = reactMatch ? cleanCodeResponse(reactMatch[1]) : ''
+    const cssCode = stylesMatch ? cleanCodeResponse(stylesMatch[1]) : ''
+    const jsCode = typesMatch ? cleanCodeResponse(typesMatch[1]) : ''
+
+    if (!htmlCode) {
+      console.warn('⚠️ No HTML code found in response, using fallback')
+      return generateTemplateBasedFallback(medSpaData, selectedTemplate)
+    }
+
+    console.log('✅ Successfully parsed OpenAI response')
     return {
-      html: completeReactCode,
-      css: styles,
-      js: '', // React components don't need separate JS
-      preview: htmlPreview,
-      type: 'react'
+      html: htmlCode,
+      css: cssCode,
+      js: jsCode
     }
 
   } catch (error) {
-    console.error('💥 OpenAI generation error:', error)
-    console.error('Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : 'No stack trace'
-    })
-    throw new Error('Failed to generate website with AI: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    console.error('💥 Error in generateWebsiteWithOpenAI:', error)
+    console.log('🔄 Falling back to template-based generation')
+    return generateTemplateBasedFallback(medSpaData, selectedTemplate)
   }
 }
 
@@ -294,255 +269,147 @@ function cleanCodeResponse(code: string): string {
     .trim()
 }
 
-function generateFallbackReactComponent(medSpaData?: any) {
+function generateTemplateBasedFallback(medSpaData?: any, selectedTemplate?: MedSpaTemplate | null) {
   const businessName = medSpaData?.name || 'Premium Medical Spa'
   const address = medSpaData?.formatted_address || 'Your Location'
   const phone = medSpaData?.phone || '(555) 123-4567'
   const rating = medSpaData?.rating || 4.8
 
-  // Create Google Places photo URLs for fallback component
-  const medSpaImages = medSpaData?.photos || []
-  const imageUrls = medSpaImages.map((photo: any, index: number) => {
-    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY || 'DEMO_KEY'}`
-  })
+  // If we have a template with HTML, use it EXACTLY
+  if (selectedTemplate && selectedTemplate.html) {
+    console.log('🎨 Using exact template HTML in fallback:', selectedTemplate.name)
+    
+    // Replace template variables with actual business data
+    let templateHtml = selectedTemplate.html
+    let templateCss = selectedTemplate.css || ''
+    
+    const templateVariables = {
+      '[BUSINESS_NAME]': businessName,
+      '[PHONE_NUMBER]': phone,
+      '[RATING]': rating.toString(),
+      '[REVIEW_COUNT]': (medSpaData?.user_ratings_total || 100).toString(),
+      '[FULL_ADDRESS]': address,
+      '[CITY]': address.split(',')[1]?.trim() || 'Your City',
+      '[EMAIL]': `info@${businessName.toLowerCase().replace(/\s+/g, '')}.com`
+    }
 
-  // Generate hero image and gallery images
-  const heroImage = imageUrls[0] || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80'
-  const galleryImages = imageUrls.slice(0, 6) // Use up to 6 real images
+    // Replace all template variables in HTML and CSS
+    Object.entries(templateVariables).forEach(([variable, value]) => {
+      const regex = new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+      templateHtml = templateHtml.replace(regex, value)
+      templateCss = templateCss.replace(regex, value)
+    })
 
-  // Generate actual HTML for preview
-  const htmlPreview = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${businessName} - Premium Medical Spa</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>
-          .star-rating { color: #fbbf24; }
-          .hero-bg {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('${heroImage}');
-            background-size: cover;
-            background-position: center;
-          }
-        </style>
-    </head>
-    <body class="bg-white">
-        <!-- Header -->
-        <header class="bg-white shadow-sm border-b border-gray-200">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center py-6">
-                    <div class="flex items-center">
-                        <h1 class="text-2xl font-bold text-gray-900">${businessName}</h1>
-                    </div>
-                    <nav class="hidden md:flex space-x-8">
-                        <a href="#services" class="text-gray-500 hover:text-gray-900">Services</a>
-                        <a href="#about" class="text-gray-500 hover:text-gray-900">About</a>
-                        <a href="#gallery" class="text-gray-500 hover:text-gray-900">Gallery</a>
-                        <a href="#contact" class="text-gray-500 hover:text-gray-900">Contact</a>
-                    </nav>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
-                        Book Consultation
-                    </button>
-                </div>
-            </div>
-        </header>
+    // Return the exact template code with business data
+    return {
+      html: templateHtml,
+      css: templateCss,
+      js: '',
+      template: {
+        id: selectedTemplate.id,
+        name: selectedTemplate.name,
+        used: true
+      }
+    }
+  }
 
-        <!-- Hero Section with Real Business Image -->
-        <section class="hero-bg py-32 text-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center">
-                    <h2 class="text-4xl font-extrabold sm:text-5xl md:text-6xl">
-                        Welcome to <span class="text-blue-400">${businessName}</span>
-                    </h2>
-                    <p class="mt-3 max-w-md mx-auto text-base text-gray-200 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-                        Experience premium medical spa treatments in a luxury environment. Our certified professionals deliver exceptional results.
-                    </p>
-                    <div class="mt-8">
-                        <button class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg transition-colors">
-                            Book Your Treatment
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
+  // If no template available, generate basic fallback (shouldn't happen with med spa data)
+  console.log('⚠️ No template available, generating basic fallback')
+  
+  const basicHtml = `"use client"
 
-        <!-- Services Section -->
-        <section id="services" class="py-16 bg-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center">
-                    <h2 class="text-3xl font-extrabold text-gray-900">Our Premium Services</h2>
-                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-                        Professional treatments delivered by licensed medical professionals at ${businessName}
-                    </p>
-                </div>
-                <div class="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                        ${imageUrls[1] ? `<img src="${imageUrls[1]}" alt="${businessName} Botox Treatment" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Botox & Fillers</h3>
-                        <p class="text-sm text-gray-600 mb-4">Anti-aging injections for natural results</p>
-                        <p class="text-gray-600 mb-4">Professional cosmetic injections to reduce fine lines and restore volume.</p>
-                        <div class="inline-block bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">From $299</div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                        ${imageUrls[2] ? `<img src="${imageUrls[2]}" alt="${businessName} Laser Treatment" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Laser Treatments</h3>
-                        <p class="text-sm text-gray-600 mb-4">Advanced laser therapy for skin rejuvenation</p>
-                        <p class="text-gray-600 mb-4">State-of-the-art laser technology for hair removal, skin resurfacing, and more.</p>
-                        <div class="inline-block bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">From $199</div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                        ${imageUrls[3] ? `<img src="${imageUrls[3]}" alt="${businessName} HydraFacial" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">HydraFacial</h3>
-                        <p class="text-sm text-gray-600 mb-4">Deep cleansing and hydrating facial treatment</p>
-                        <p class="text-gray-600 mb-4">Multi-step treatment for cleaner, more beautiful skin with no downtime.</p>
-                        <div class="inline-block bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">From $149</div>
-                    </div>
-                </div>
-            </div>
-        </section>
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Phone, Mail, MapPin, Star, Calendar } from "lucide-react"
 
-        <!-- Gallery Section with Real Business Images -->
-        ${galleryImages.length > 0 ? `
-        <section id="gallery" class="py-16 bg-gray-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center">
-                    <h2 class="text-3xl font-extrabold text-gray-900">Our Facility</h2>
-                    <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-                        Take a look inside ${businessName}
-                    </p>
-                </div>
-                <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    ${galleryImages.map((imageUrl: string, index: number) => `
-                        <div class="relative overflow-hidden rounded-lg shadow-lg">
-                            <img src="${imageUrl}" alt="${businessName} Facility Photo ${index + 1}" class="w-full h-64 object-cover hover:scale-105 transition-transform duration-300">
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        </section>
-        ` : ''}
-
-        <!-- Testimonials -->
-        <section class="py-16 bg-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center">
-                    <h2 class="text-3xl font-extrabold text-gray-900">What Our Clients Say</h2>
-                    <div class="mt-6 flex justify-center items-center">
-                        <div class="flex star-rating text-2xl">
-                            ★★★★★
-                        </div>
-                        <span class="ml-2 text-gray-600">${rating} stars from ${medSpaData?.user_ratings_total || 'over 100'} reviews on Google</span>
-                    </div>
-                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="bg-gray-50 p-6 rounded-lg">
-                            <p class="text-gray-600 italic">"Amazing results at ${businessName}! The staff is professional and the facility is beautiful."</p>
-                            <p class="mt-4 font-semibold text-gray-900">- Sarah M.</p>
-                        </div>
-                        <div class="bg-gray-50 p-6 rounded-lg">
-                            <p class="text-gray-600 italic">"Best med spa experience I've ever had. ${businessName} is incredible!"</p>
-                            <p class="mt-4 font-semibold text-gray-900">- Jennifer L.</p>
-                        </div>
-                        <div class="bg-gray-50 p-6 rounded-lg">
-                            <p class="text-gray-600 italic">"Professional service and fantastic results at ${businessName}. Will definitely return."</p>
-                            <p class="mt-4 font-semibold text-gray-900">- Maria R.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Contact Section -->
-        <section id="contact" class="py-16 bg-gray-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center">
-                    <h2 class="text-3xl font-extrabold text-gray-900">Visit ${businessName}</h2>
-                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h3 class="text-lg font-medium text-gray-900">Location & Contact</h3>
-                            <p class="mt-2 text-gray-600">${address}</p>
-                            <p class="mt-2 text-gray-600">${phone}</p>
-                            <p class="mt-2 text-blue-600">Google Rating: ${rating} ⭐</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h3 class="text-lg font-medium text-gray-900">Hours</h3>
-                            <p class="mt-2 text-gray-600">Monday - Friday: 9:00 AM - 6:00 PM</p>
-                            <p class="text-gray-600">Saturday: 9:00 AM - 4:00 PM</p>
-                            <p class="text-gray-600">Sunday: Closed</p>
-                        </div>
-                    </div>
-                    <div class="mt-8">
-                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium text-lg">
-                            Schedule Consultation at ${businessName}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Footer -->
-        <footer class="bg-gray-900 text-white py-8">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center">
-                    <h3 class="text-xl font-bold">${businessName}</h3>
-                    <p class="mt-2 text-gray-400">Premium Medical Spa Services</p>
-                    <p class="mt-2 text-gray-400">${address}</p>
-                    <p class="text-gray-400">${phone}</p>
-                    <p class="mt-2 text-gray-400">Rated ${rating} ⭐ on Google</p>
-                </div>
-            </div>
-        </footer>
-
-        <script>
-            // Simple smooth scrolling for anchor links
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({ behavior: 'smooth' });
-                    }
-                });
-            });
-        </script>
-    </body>
-    </html>
-  `
-
-  const reactComponent = `function MedSpaLandingPage() {
-  const [isBookingOpen, setIsBookingOpen] = React.useState(false)
-
+export default function Component() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
+    <div className="flex flex-col min-h-screen bg-white">
       <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">${businessName}</h1>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <a href="#services" className="text-gray-500 hover:text-gray-900">Services</a>
-              <a href="#about" className="text-gray-500 hover:text-gray-900">About</a>
-              <a href="#contact" className="text-gray-500 hover:text-gray-900">Contact</a>
-            </nav>
-            <Button onClick={() => setIsBookingOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-              Book Consultation
-            </Button>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-blue-600">${businessName}</h1>
+          <Button className="bg-blue-600 text-white">
+            <Calendar className="w-4 h-4 mr-2" />
+            Book Consultation
+          </Button>
         </div>
       </header>
-      {/* Rest of component... */}
+
+      <main className="flex-1">
+        <section className="py-20 bg-gradient-to-br from-blue-50 to-white">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Welcome to ${businessName}
+            </h2>
+            <p className="text-xl text-gray-600 mb-6">Premium Medical Spa Services</p>
+            <div className="flex justify-center items-center mb-8">
+              <Star className="w-5 h-5 text-yellow-400 fill-current" />
+              <span className="ml-2 text-gray-600">${rating} stars on Google</span>
+            </div>
+            <Button className="bg-blue-600 text-white px-8 py-3">
+              Book Your Treatment
+            </Button>
+          </div>
+        </section>
+
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4">
+            <h3 className="text-3xl font-bold text-center mb-12">Our Services</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <Card>
+                <CardContent className="p-6">
+                  <h4 className="font-semibold mb-2">Botox & Fillers</h4>
+                  <p className="text-gray-600 mb-4">Professional anti-aging treatments</p>
+                  <div className="text-blue-600 font-medium">From $299</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <h4 className="font-semibold mb-2">Laser Treatments</h4>
+                  <p className="text-gray-600 mb-4">Advanced laser therapy</p>
+                  <div className="text-blue-600 font-medium">From $199</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <h4 className="font-semibold mb-2">HydraFacial</h4>
+                  <p className="text-gray-600 mb-4">Deep cleansing facial treatment</p>
+                  <div className="text-blue-600 font-medium">From $149</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <h3 className="text-3xl font-bold mb-8">Contact Us</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-center">
+                <Phone className="w-5 h-5 text-blue-600 mr-2" />
+                <span>${phone}</span>
+              </div>
+              <div className="flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-blue-600 mr-2" />
+                <span>${address}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   )
 }`
 
   return {
-    html: htmlPreview,
+    html: basicHtml,
     css: '',
     js: '',
-    preview: htmlPreview,
-    type: 'html'
+    template: {
+      id: 'fallback',
+      name: 'Basic Fallback',
+      used: true
+    }
   }
 }

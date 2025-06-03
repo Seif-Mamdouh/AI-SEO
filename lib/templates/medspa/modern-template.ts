@@ -1,504 +1,512 @@
 const modernTemplate = {
-  html: `'use client'
+  html: `"use client"
 
-import React, { useState } from 'react'
-import { motion } from 'framer-motion'
-import { 
-  Star, Phone, MapPin, Clock, ArrowRight, Users, TrendingUp, 
-  Award, Microscope, Calendar, CheckCircle, Zap, Target 
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Star,
+  Clock,
+  Shield,
+  Award,
+  Sparkles,
+  Crown,
+  Gem,
+  Zap,
+  Target,
+  CheckCircle,
+  ArrowRight,
+  Calendar,
+} from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
 
-export default function ModernMedicalCenterLandingPage() {
+export default function Component() {
   const [activeService, setActiveService] = useState(0)
 
   const services = [
     {
-      title: 'Advanced Dermatology',
-      description: 'State-of-the-art dermatological treatments and procedures',
-      price: 'Starting at $299',
-      icon: <Microscope className="w-8 h-8" />,
-      features: ['Medical Botox', 'Dermal Fillers', 'Laser Therapy', 'Skin Analysis'],
-      technology: 'FDA-approved technology',
-      results: '95% patient satisfaction'
+      title: "Platinum Botox & Fillers",
+      description:
+        "Premium anti-aging treatments with the world's finest injectables, administered by master aestheticians.",
+      price: "Starting at $599",
+      icon: <Sparkles className="w-8 h-8" />,
+      features: ["Premium Botox", "Luxury Fillers", "Diamond Lift", "Platinum Touch"],
+      technology: "Swiss Precision Technology",
+      results: "99% client satisfaction",
+      image: "luxury botox treatment premium spa",
+      premium: true,
     },
     {
-      title: 'Laser Medicine',
-      description: 'Precision laser treatments for optimal results',
-      price: 'Starting at $399',
+      title: "Diamond Laser Treatments",
+      description: "State-of-the-art laser technology for flawless skin transformation and permanent hair removal.",
+      price: "Starting at $399",
+      icon: <Gem className="w-8 h-8" />,
+      features: ["Diamond Laser", "Crystal Clear IPL", "Platinum Hair Removal", "Gold Standard Resurfacing"],
+      technology: "Medical-Grade Lasers",
+      results: "95% first-session improvement",
+      image: "diamond laser treatment luxury medical spa",
+      premium: true,
+    },
+    {
+      title: "Royal HydraFacial",
+      description: "The ultimate luxury facial experience with premium serums and diamond-tip exfoliation.",
+      price: "Starting at $299",
+      icon: <Crown className="w-8 h-8" />,
+      features: ["Diamond Exfoliation", "Platinum Serums", "Gold Infusion", "Crystal Hydration"],
+      technology: "Luxury HydraFacial MD",
+      results: "Instant luminous glow",
+      image: "royal hydrafacial luxury spa treatment",
+      premium: false,
+    },
+    {
+      title: "Elite CoolSculpting",
+      description: "Premium body contouring with the latest CoolSculpting Elite technology for sculpted perfection.",
+      price: "Starting at $999",
       icon: <Zap className="w-8 h-8" />,
-      features: ['CO2 Laser', 'IPL Therapy', 'Laser Hair Removal', 'Scar Treatment'],
-      technology: 'Latest laser systems',
-      results: '90% first-session improvement'
+      features: ["CoolSculpting Elite", "Dual Applicators", "Precision Contouring", "VIP Recovery"],
+      technology: "CoolSculpting Elite System",
+      results: "25% fat reduction per session",
+      image: "elite coolsculpting luxury body contouring",
+      premium: true,
     },
     {
-      title: 'Injectable Treatments',
-      description: 'Expert administration of premium injectables',
-      price: 'Starting at $499',
+      title: "Platinum Chemical Peels",
+      description: "Luxury chemical peels using premium formulations for dramatic skin transformation.",
+      price: "Starting at $249",
       icon: <Target className="w-8 h-8" />,
-      features: ['Botox', 'Juvederm', 'Restylane', 'Sculptra'],
-      technology: 'Medical-grade products',
-      results: 'Natural-looking outcomes'
+      features: ["Medical-Grade Peels", "Custom Formulations", "Luxury Aftercare", "Premium Recovery"],
+      technology: "Swiss Skincare Technology",
+      results: "Visible results in 7 days",
+      image: "platinum chemical peel luxury treatment",
+      premium: false,
     },
     {
-      title: 'Skin Rejuvenation',
-      description: 'Comprehensive skin restoration and maintenance',
-      price: 'Starting at $199',
-      icon: <TrendingUp className="w-8 h-8" />,
-      features: ['Chemical Peels', 'Microneedling', 'HydraFacial', 'LED Therapy'],
-      technology: 'Clinical-grade treatments',
-      results: 'Visible improvement in 2 weeks'
-    }
+      title: "Gold Microneedling",
+      description: "Advanced microneedling with 24k gold-infused serums for ultimate skin rejuvenation.",
+      price: "Starting at $399",
+      icon: <Crown className="w-8 h-8" />,
+      features: ["24k Gold Infusion", "Medical Microneedling", "Luxury Serums", "Premium Recovery"],
+      technology: "Gold-Standard RF Technology",
+      results: "Dramatic texture improvement",
+      image: "gold microneedling luxury skin treatment",
+      premium: true,
+    },
   ]
 
   const stats = [
-    { number: '5,000+', label: 'Patients Treated', icon: <Users className="w-6 h-6" /> },
-    { number: '15+', label: 'Years Experience', icon: <Award className="w-6 h-6" /> },
-    { number: '98%', label: 'Success Rate', icon: <TrendingUp className="w-6 h-6" /> },
-    { number: '4.9', label: 'Star Rating', icon: <Star className="w-6 h-6" /> }
+    { number: "15,000+", label: "Elite Clients", icon: <Crown className="w-6 h-6" /> },
+    { number: "20+", label: "Years Excellence", icon: <Award className="w-6 h-6" /> },
+    { number: "99%", label: "Satisfaction Rate", icon: <Star className="w-6 h-6" /> },
+    { number: "5.0", label: "Luxury Rating", icon: <Gem className="w-6 h-6" /> },
   ]
 
   const testimonials = [
     {
-      name: 'Dr. Sarah Johnson',
-      role: 'Verified Patient',
+      name: "Victoria Sterling",
+      role: "VIP Client",
       rating: 5,
-      text: 'The most professional medical facility I have experienced. Their technology and expertise are unmatched.',
-      treatment: 'Laser Resurfacing',
-      result: '6 months ago'
+      text: "Absolutely exquisite experience. The level of luxury and professionalism exceeded my highest expectations. My skin has never looked more radiant.",
+      treatment: "Platinum Botox & Diamond Laser",
+      result: "3 months ago",
+      verified: true,
     },
     {
-      name: 'Mark Thompson',
-      role: 'Verified Patient',
+      name: "Alexander Rothschild",
+      role: "Elite Member",
       rating: 5,
-      text: 'Exceptional results from my Botox treatment. The medical team explained every step of the process.',
-      treatment: 'Injectable Treatments',
-      result: '3 months ago'
+      text: "The epitome of luxury medical aesthetics. Every detail is perfected, from the ambiance to the results. Truly world-class.",
+      treatment: "Elite CoolSculpting",
+      result: "6 months ago",
+      verified: true,
     },
     {
-      name: 'Lisa Chen',
-      role: 'Verified Patient',
+      name: "Isabella Montclair",
+      role: "Platinum Client",
       rating: 5,
-      text: 'Professional, clean, and results-oriented. I would not go anywhere else for my aesthetic treatments.',
-      treatment: 'Dermatology',
-      result: '8 months ago'
-    }
+      text: "An oasis of luxury and expertise. The Royal HydraFacial is pure indulgence with incredible results. I wouldn't go anywhere else.",
+      treatment: "Royal HydraFacial & Gold Microneedling",
+      result: "2 months ago",
+      verified: true,
+    },
   ]
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-blue-100 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
-                <Microscope className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">[BUSINESS_NAME]</h1>
-                <p className="text-sm text-blue-600 font-medium">Medical Aesthetics Center</p>
-              </div>
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-white to-rose-50">
+      {/* Luxury Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80 shadow-lg">
+        <div className="container flex h-20 items-center justify-between px-4 md:px-6">
+          <motion.div
+            className="flex items-center space-x-3"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-rose-400 via-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <Crown className="h-7 w-7 text-white" />
             </div>
-            <nav className="hidden md:flex items-center space-x-8">
-              <a href="#services" className="text-gray-700 hover:text-blue-600 transition-colors">Services</a>
-              <a href="#about" className="text-gray-700 hover:text-blue-600 transition-colors">About</a>
-              <a href="#contact" className="text-gray-700 hover:text-blue-600 transition-colors">Contact</a>
-              <div className="flex items-center space-x-2 text-gray-700">
-                <Phone className="w-4 h-4" />
-                <span className="text-sm">[PHONE_NUMBER]</span>
-              </div>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                Book Consultation
-              </Button>
-            </nav>
+            <div>
+              <span className="text-2xl font-bold bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
+                [BUSINESS_NAME]
+              </span>
+              <p className="text-sm text-rose-600 font-medium">Elite Aesthetic Center</p>
+            </div>
+          </motion.div>
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link href="#services" className="text-sm font-medium text-gray-700 hover:text-rose-600 transition-colors">
+              Treatments
+            </Link>
+            <Link href="#about" className="text-sm font-medium text-gray-700 hover:text-rose-600 transition-colors">
+              Excellence
+            </Link>
+            <Link href="#gallery" className="text-sm font-medium text-gray-700 hover:text-rose-600 transition-colors">
+              Gallery
+            </Link>
+            <Link href="#contact" className="text-sm font-medium text-gray-700 hover:text-rose-600 transition-colors">
+              Contact
+            </Link>
+          </nav>
+          <div className="flex items-center space-x-4">
+            <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-700">
+              <Phone className="h-4 w-4 text-rose-600" />
+              <span className="font-medium">[PHONE_NUMBER]</span>
+            </div>
+            <Button className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:via-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+              <Calendar className="w-4 h-4 mr-2" />
+              Book Elite Consultation
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-50 via-white to-blue-50 py-20">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <Badge className="mb-6 bg-blue-100 text-blue-700 border-blue-200 px-4 py-2">
-                🏥 Board-Certified Medical Professionals
-              </Badge>
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Advanced Medical
-                <span className="text-blue-600 block">Aesthetics</span>
-              </h1>
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Experience precision medicine with our state-of-the-art treatments and 
-                board-certified medical team at [BUSINESS_NAME]. Excellence in every procedure.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  Schedule Consultation
-                </Button>
-                <Button size="lg" variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-4">
-                  View Procedures
-                </Button>
-              </div>
-              
-              {/* Stats Row */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map((stat, index) => (
-                  <div key={stat.label} className="text-center p-4 bg-white rounded-lg shadow-sm border border-blue-100">
-                    <div className="flex justify-center mb-2 text-blue-600">
-                      {stat.icon}
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">{stat.number}</div>
-                    <div className="text-sm text-gray-600">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative"
-            >
-              <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-8 relative overflow-hidden">
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-green-100 text-green-700 border-green-200">
-                    ✓ FDA Approved
-                  </Badge>
-                </div>
-                <div className="text-center">
-                  <div className="w-32 h-32 bg-white rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <Microscope className="w-16 h-16 text-blue-600" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                    Advanced Technology
-                  </h3>
-                  <p className="text-gray-700 mb-6">
-                    Latest medical equipment and FDA-approved treatments for optimal results
-                  </p>
-                  <div className="flex justify-center space-x-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600">[RATING]</div>
-                      <div className="text-sm text-gray-600">Google Rating</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600">[REVIEW_COUNT]</div>
-                      <div className="text-sm text-gray-600">Reviews</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Services Section */}
-      <section id="services" className="py-20 bg-gray-50">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Medical Services
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Comprehensive medical aesthetic treatments using advanced technology 
-              and proven medical protocols
-            </p>
-          </div>
-
-          <Tabs defaultValue="0" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-8">
-              {services.map((service, index) => (
-                <TabsTrigger 
-                  key={index} 
-                  value={index.toString()}
-                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white"
-                >
-                  <div className="flex items-center space-x-2">
-                    {service.icon}
-                    <span className="hidden lg:inline">{service.title}</span>
-                  </div>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {services.map((service, index) => (
-              <TabsContent key={index} value={index.toString()}>
-                <Card className="bg-white border-blue-200">
-                  <CardContent className="p-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <div>
-                        <div className="flex items-center space-x-3 mb-4">
-                          <div className="text-blue-600">{service.icon}</div>
-                          <h3 className="text-3xl font-bold text-gray-900">{service.title}</h3>
-                        </div>
-                        <p className="text-lg text-gray-600 mb-6">{service.description}</p>
-                        
-                        <div className="space-y-4 mb-6">
-                          <h4 className="text-lg font-semibold text-gray-900">Treatment Options:</h4>
-                          <div className="grid grid-cols-2 gap-3">
-                            {service.features.map((feature, i) => (
-                              <div key={i} className="flex items-center space-x-2">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                <span className="text-gray-700">{feature}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-semibold text-gray-900">Technology:</span>
-                            <Badge className="bg-blue-100 text-blue-700">{service.technology}</Badge>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold text-gray-900">Results:</span>
-                            <span className="text-green-600 font-medium">{service.results}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-2xl font-bold text-blue-600">{service.price}</p>
-                            <p className="text-sm text-gray-500">Consultation required for precise pricing</p>
-                          </div>
-                          <Button className="bg-blue-600 hover:bg-blue-700">
-                            Book Consultation
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-8 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="w-24 h-24 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-                            {service.icon}
-                          </div>
-                          <h4 className="text-xl font-bold text-gray-900 mb-2">
-                            Professional Treatment
-                          </h4>
-                          <p className="text-gray-700">
-                            Administered by board-certified medical professionals using the latest technology
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Patient Results
-            </h2>
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-6 h-6 fill-blue-600 text-blue-600" />
-              ))}
-              <span className="text-xl font-semibold text-gray-900 ml-2">[RATING] / 5.0</span>
-            </div>
-            <p className="text-lg text-gray-600">Based on [REVIEW_COUNT] verified patient reviews</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
+      <main className="flex-1">
+        {/* Luxury Hero Section */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-rose-50 via-white to-purple-50 py-20 md:py-32">
+          <div className="container px-4 relative">
+            <div className="grid gap-12 lg:grid-cols-2 lg:gap-20 items-center">
               <motion.div
-                key={testimonial.name}
+                className="space-y-8"
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8 }}
+              >
+                <div className="space-y-6">
+                  <Badge className="bg-gradient-to-r from-rose-100 to-purple-100 text-rose-700 border-rose-200 px-6 py-3 text-sm font-medium">
+                    <Crown className="w-4 h-4 mr-2" />
+                    Award-Winning Luxury Med Spa
+                  </Badge>
+                  <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-gray-900 leading-tight">
+                    Elevate Your
+                    <span className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 bg-clip-text text-transparent block">
+                      Natural Elegance
+                    </span>
+                  </h1>
+                  <p className="text-xl text-gray-600 max-w-2xl leading-relaxed">
+                    Experience the pinnacle of luxury aesthetic medicine at [BUSINESS_NAME]. Our world-class treatments and master
+                    aestheticians deliver transformative results in an atmosphere of unparalleled sophistication.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:via-pink-600 hover:to-purple-700 text-white px-8 py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Begin Your Journey
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-2 border-rose-300 text-rose-600 hover:bg-rose-50 px-8 py-4 text-lg hover:border-rose-400 transition-all duration-300"
+                  >
+                    Explore Treatments
+                  </Button>
+                </div>
+
+                {/* Luxury Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-8">
+                  {stats.map((stat, index) => (
+                    <motion.div
+                      key={stat.label}
+                      className="text-center p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-rose-100 hover:shadow-xl transition-all duration-300"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: index * 0.1 }}
+                    >
+                      <div className="flex justify-center mb-3 text-rose-600">{stat.icon}</div>
+                      <div className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-purple-600 bg-clip-text text-transparent">
+                        {stat.number}
+                      </div>
+                      <div className="text-sm text-gray-600 font-medium">{stat.label}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="relative"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+              >
+                <div className="relative">
+                  <div className="w-full h-[700px] bg-gradient-to-br from-rose-100 to-purple-100 rounded-3xl shadow-2xl flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-32 h-32 bg-white rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg">
+                        <Crown className="w-16 h-16 text-rose-500" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Luxury Experience</h3>
+                      <p className="text-gray-600">Elite Aesthetic Center</p>
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-8 -left-8 bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-rose-100">
+                    <div className="flex items-center space-x-4">
+                      <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-rose-400 via-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
+                        <Award className="h-8 w-8 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900 text-lg">Elite Certified</p>
+                        <p className="text-sm text-gray-600">Master Aestheticians</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute -top-6 -right-6 bg-gradient-to-br from-rose-500 to-purple-600 p-4 rounded-2xl shadow-xl">
+                    <div className="flex items-center space-x-2 text-white">
+                      <Star className="h-5 w-5 fill-current" />
+                      <span className="font-bold text-lg">[RATING]</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Section */}
+        <section
+          id="contact"
+          className="py-20 md:py-32 bg-gradient-to-br from-gray-900 via-purple-900 to-rose-900 text-white"
+        >
+          <div className="container px-4 md:px-6">
+            <div className="max-w-4xl mx-auto">
+              <motion.div
+                className="text-center space-y-6 mb-16"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                transition={{ duration: 0.8 }}
               >
-                <Card className="bg-gray-50 border-blue-100 hover:shadow-lg transition-shadow h-full">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="w-4 h-4 fill-blue-600 text-blue-600" />
-                        ))}
-                      </div>
-                      <Badge className="bg-green-100 text-green-700">Verified</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 mb-4 italic">"{testimonial.text}"</p>
-                    <div className="border-t border-blue-100 pt-4">
-                      <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                      <p className="text-sm text-gray-600">{testimonial.role}</p>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-sm text-blue-600 font-medium">{testimonial.treatment}</span>
-                        <span className="text-xs text-gray-500">{testimonial.result}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <Badge className="bg-white/20 text-white border-white/30 px-6 py-3">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Elite Consultation
+                </Badge>
+                <h2 className="text-4xl md:text-5xl font-bold">
+                  Begin Your Luxury
+                  <span className="bg-gradient-to-r from-rose-300 to-purple-300 bg-clip-text text-transparent block">
+                    Transformation
+                  </span>
+                </h2>
+                <p className="text-xl text-gray-300 leading-relaxed">
+                  Experience the pinnacle of luxury aesthetic medicine at [BUSINESS_NAME]. Schedule your private consultation with our
+                  master aestheticians today.
+                </p>
               </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Contact Section */}
-      <section id="contact" className="py-20 bg-gradient-to-br from-blue-900 to-blue-800 text-white">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold mb-4">
-                Schedule Your Consultation
-              </h2>
-              <p className="text-xl text-blue-100">
-                Connect with our medical team to discuss your aesthetic goals
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              <div>
-                <h3 className="text-2xl font-bold mb-6">Medical Center Information</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <MapPin className="w-5 h-5 text-blue-300" />
-                    <span>[FULL_ADDRESS]</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Phone className="w-5 h-5 text-blue-300" />
-                    <span>[PHONE_NUMBER]</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Clock className="w-5 h-5 text-blue-300" />
-                    <span>Monday-Friday: 8AM-6PM, Saturday: 9AM-4PM</span>
-                  </div>
-                </div>
-                
-                <div className="mt-8">
-                  <h4 className="text-lg font-semibold mb-4">Medical Excellence</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <Award className="w-5 h-5 text-blue-300" />
-                      <span>Board-certified physicians and medical staff</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <motion.div
+                  initial={{ opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8 }}
+                >
+                  <h3 className="text-2xl font-bold mb-8">Elite Contact Information</h3>
+                  <div className="space-y-6">
+                    <div className="flex items-center space-x-4 p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-400 to-purple-600 flex items-center justify-center">
+                        <Phone className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-lg">[PHONE_NUMBER]</p>
+                        <p className="text-sm text-gray-300">VIP Concierge Line</p>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <Microscope className="w-5 h-5 text-blue-300" />
-                      <span>FDA-approved medical equipment and treatments</span>
+                    <div className="flex items-center space-x-4 p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-400 to-purple-600 flex items-center justify-center">
+                        <MapPin className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-lg">[FULL_ADDRESS]</p>
+                        <p className="text-sm text-gray-300">Luxury Medical Center</p>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <CheckCircle className="w-5 h-5 text-blue-300" />
-                      <span>Comprehensive medical consultations</span>
+                    <div className="flex items-center space-x-4 p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-400 to-purple-600 flex items-center justify-center">
+                        <Clock className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-lg">Mon-Fri: 9AM-8PM</p>
+                        <p className="text-sm text-gray-300">Sat: 9AM-6PM, Sun: By Appointment</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-              
-              <Card className="bg-white text-gray-900">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Book Medical Consultation</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input 
-                        placeholder="Full Name" 
-                        className="border-blue-200 focus:border-blue-600"
-                      />
-                      <Input 
-                        placeholder="Phone Number" 
-                        className="border-blue-200 focus:border-blue-600"
-                      />
+
+                  <div className="mt-8 p-6 bg-gradient-to-r from-rose-500/20 to-purple-500/20 backdrop-blur-sm rounded-2xl border border-white/20">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center">
+                      <Crown className="w-5 h-5 mr-2 text-yellow-400" />
+                      Luxury Excellence at [BUSINESS_NAME]
+                    </h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-center space-x-3">
+                        <Award className="w-4 h-4 text-rose-300" />
+                        <span>Master-certified aesthetic professionals</span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Gem className="w-4 h-4 text-rose-300" />
+                        <span>Premium Swiss and German technology</span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Shield className="w-4 h-4 text-rose-300" />
+                        <span>Comprehensive luxury consultations</span>
+                      </div>
                     </div>
-                    <Input 
-                      placeholder="Email Address" 
-                      type="email"
-                      className="border-blue-200 focus:border-blue-600"
-                    />
-                    <select className="w-full p-3 border border-blue-200 rounded-lg focus:border-blue-600 focus:outline-none">
-                      <option>Select Treatment Interest</option>
-                      <option>Advanced Dermatology</option>
-                      <option>Laser Medicine</option>
-                      <option>Injectable Treatments</option>
-                      <option>Skin Rejuvenation</option>
-                      <option>General Consultation</option>
-                    </select>
-                    <Textarea 
-                      placeholder="Medical history, current concerns, and treatment goals"
-                      className="border-blue-200 focus:border-blue-600"
-                      rows={4}
-                    />
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 py-3 text-lg">
-                      Request Medical Consultation
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                >
+                  <div className="text-center mb-8">
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:via-pink-600 hover:to-purple-700 text-white px-12 py-4 text-lg shadow-2xl hover:shadow-3xl transition-all duration-300"
+                    >
+                      <Calendar className="w-5 h-5 mr-2" />
+                      Schedule Elite Consultation
                     </Button>
-                    <p className="text-xs text-gray-500 text-center">
-                      All consultations are conducted by licensed medical professionals
+                    <p className="text-sm text-gray-300 mt-4">
+                      Complimentary luxury consultation with master aesthetician at [BUSINESS_NAME]
                     </p>
-                  </form>
-                </CardContent>
-              </Card>
+                  </div>
+                </motion.div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="md:col-span-2">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
-                  <Microscope className="w-5 h-5 text-white" />
+      {/* Enhanced Footer */}
+      <footer className="bg-gray-900 text-white">
+        <div className="container px-4 py-16 md:px-6">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-rose-400 via-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
+                  <Crown className="h-7 w-7 text-white" />
                 </div>
-                <h3 className="text-xl font-bold">[BUSINESS_NAME]</h3>
+                <div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-rose-400 to-purple-400 bg-clip-text text-transparent">
+                    [BUSINESS_NAME]
+                  </h3>
+                  <p className="text-sm text-rose-400">Elite Aesthetic Center</p>
+                </div>
               </div>
-              <p className="text-gray-400 mb-4 max-w-md">
-                Advanced medical aesthetics center providing board-certified medical treatments 
-                with state-of-the-art technology and personalized patient care.
+              <p className="text-gray-400 leading-relaxed">
+                The pinnacle of luxury aesthetic medicine at [BUSINESS_NAME], delivering transformative results through master
+                craftsmanship and cutting-edge technology.
               </p>
-              <div className="flex space-x-4">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer">
-                  <span className="text-white font-bold text-sm">f</span>
-                </div>
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer">
-                  <span className="text-white font-bold text-sm">i</span>
-                </div>
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer">
-                  <span className="text-white font-bold text-sm">t</span>
-                </div>
-              </div>
             </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Medical Services</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Dermatology</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Laser Medicine</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Injectable Treatments</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Skin Rejuvenation</a></li>
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold text-rose-400">Signature Treatments</h4>
+              <ul className="space-y-3 text-gray-400">
+                <li>
+                  <Link href="#" className="hover:text-rose-400 transition-colors flex items-center">
+                    <Sparkles className="w-3 h-3 mr-2" />
+                    Platinum Botox & Fillers
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-rose-400 transition-colors flex items-center">
+                    <Gem className="w-3 h-3 mr-2" />
+                    Diamond Laser Treatments
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-rose-400 transition-colors flex items-center">
+                    <Crown className="w-3 h-3 mr-2" />
+                    Royal HydraFacial
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-rose-400 transition-colors flex items-center">
+                    <Zap className="w-3 h-3 mr-2" />
+                    Elite CoolSculpting
+                  </Link>
+                </li>
               </ul>
             </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Contact</h4>
-              <div className="space-y-3 text-gray-400">
-                <p>[FULL_ADDRESS]</p>
-                <p>[PHONE_NUMBER]</p>
-                <p>medical@[BUSINESS_NAME].com</p>
-                <p className="text-sm">© 2024 [BUSINESS_NAME] Medical Center. All rights reserved.</p>
-              </div>
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold text-rose-400">Excellence</h4>
+              <ul className="space-y-3 text-gray-400">
+                <li>
+                  <Link href="#" className="hover:text-rose-400 transition-colors">
+                    Master Aestheticians
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-rose-400 transition-colors">
+                    Luxury Experience
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-rose-400 transition-colors">
+                    Elite Reviews
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-rose-400 transition-colors">
+                    VIP Membership
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold text-rose-400">Elite Contact</h4>
+              <ul className="space-y-3 text-gray-400">
+                <li className="flex items-center">
+                  <Phone className="w-4 h-4 mr-2 text-rose-400" />
+                  [PHONE_NUMBER]
+                </li>
+                <li className="flex items-center">
+                  <Mail className="w-4 h-4 mr-2 text-rose-400" />
+                  info@[BUSINESS_NAME].com
+                </li>
+                <li className="flex items-start">
+                  <MapPin className="w-4 h-4 mr-2 text-rose-400 mt-1" />
+                  <span>[FULL_ADDRESS]</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center">
+            <p className="text-gray-400 text-sm">
+              © 2024 [BUSINESS_NAME] Elite Aesthetic Center. All rights reserved.
+            </p>
+            <div className="flex space-x-6 mt-4 sm:mt-0">
+              <Link href="#" className="text-gray-400 hover:text-rose-400 transition-colors text-sm">
+                Privacy Policy
+              </Link>
+              <Link href="#" className="text-gray-400 hover:text-rose-400 transition-colors text-sm">
+                Terms of Service
+              </Link>
+              <Link href="#" className="text-gray-400 hover:text-rose-400 transition-colors text-sm">
+                VIP Membership
+              </Link>
             </div>
           </div>
         </div>
@@ -506,131 +514,191 @@ export default function ModernMedicalCenterLandingPage() {
     </div>
   )
 }`,
-  css: `/* Modern Medical Center Styles */
-.modern-gradient {
-  background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 50%, #F1F5F9 100%);
+  css: `/* Luxury Rose/Pink/Purple Styles */
+.luxury-gradient {
+  background: linear-gradient(135deg, #F43F5E 0%, #EC4899 50%, #A855F7 100%);
 }
 
-.modern-card {
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(59, 130, 246, 0.1);
-  transition: all 0.3s ease;
+.luxury-shadow {
+  box-shadow: 0 20px 40px rgba(244, 63, 94, 0.15);
 }
 
-.modern-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.3);
+.luxury-border {
+  border: 2px solid #F43F5E;
 }
 
-.modern-button {
-  background: linear-gradient(135deg, #1E3A8A, #3B82F6);
+.luxury-text-gradient {
+  background: linear-gradient(135deg, #F43F5E, #EC4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Premium Animation Classes */
+.fade-in-up {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(244, 63, 94, 0.2);
+}
+
+/* Elite Button Styles */
+.luxury-button {
+  background: linear-gradient(135deg, #F43F5E, #EC4899, #A855F7);
   color: white;
-  font-weight: 600;
+  font-weight: bold;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: 12px;
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
+  box-shadow: 0 8px 24px rgba(244, 63, 94, 0.3);
 }
 
-.modern-button:hover {
-  background: linear-gradient(135deg, #1E40AF, #2563EB);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+.luxury-button:hover {
+  background: linear-gradient(135deg, #E11D48, #DB2777, #9333EA);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(244, 63, 94, 0.4);
 }
 
-/* Professional Typography */
-.medical-heading {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+/* Luxury Card Effects */
+.luxury-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(244, 63, 94, 0.1);
+  transition: all 0.3s ease;
+  border-radius: 16px;
 }
 
-.medical-text {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  line-height: 1.6;
+.luxury-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 24px 48px rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.3);
 }
 
-/* Animation Classes */
-.slide-in-left {
-  animation: slideInLeft 0.8s ease-out;
+/* Crown and Premium Elements */
+.crown-accent {
+  color: #FBBF24;
+  filter: drop-shadow(0 2px 4px rgba(251, 191, 36, 0.3));
 }
 
-.slide-in-right {
-  animation: slideInRight 0.8s ease-out;
+.gem-accent {
+  color: #A855F7;
+  filter: drop-shadow(0 2px 4px rgba(168, 85, 247, 0.3));
 }
 
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-30px);
+/* Responsive Design Enhancements */
+@media (max-width: 768px) {
+  .luxury-card {
+    margin-bottom: 1.5rem;
   }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
+  
+  .luxury-button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
   }
 }
 
-/* Medical Professional Styling */
-.medical-badge {
-  background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
-  color: #1E40AF;
-  border: 1px solid #3B82F6;
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Elite Navigation Backdrop */
+.nav-backdrop {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Premium Service Cards */
+.service-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  border: 1px solid #FDF2F8;
+}
+
+.service-card:hover {
+  transform: translateY(-12px);
+  box-shadow: 0 24px 48px rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.2);
+}
+
+/* Luxury Testimonial Cards */
+.testimonial-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  border: 1px solid #FDF2F8;
+}
+
+.testimonial-card:hover {
+  box-shadow: 0 16px 32px rgba(244, 63, 94, 0.1);
+  transform: translateY(-6px);
+}
+
+/* Elite Badge Styling */
+.elite-badge {
+  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+  color: #92400E;
+  border: 1px solid #F59E0B;
   font-weight: 600;
 }
 
+/* Premium Stats Cards */
 .stats-card {
-  background: white;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(244, 63, 94, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
   text-align: center;
   transition: all 0.3s ease;
 }
 
 .stats-card:hover {
-  border-color: #3B82F6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  border-color: rgba(244, 63, 94, 0.3);
+  box-shadow: 0 8px 24px rgba(244, 63, 94, 0.15);
+  transform: translateY(-4px);
 }
 
-/* Tab Styling */
-.medical-tabs .tab-trigger {
+/* Luxury Footer Styling */
+.luxury-footer {
+  background: linear-gradient(135deg, #111827, #374151);
+}
+
+/* Elite Contact Section */
+.contact-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 1rem;
   transition: all 0.3s ease;
-  font-weight: 500;
 }
 
-.medical-tabs .tab-trigger[data-state="active"] {
-  background: #1E3A8A;
-  color: white;
-}
-
-/* Form Styling */
-.medical-form input,
-.medical-form textarea,
-.medical-form select {
-  border: 2px solid #E5E7EB;
-  transition: border-color 0.3s ease;
-}
-
-.medical-form input:focus,
-.medical-form textarea:focus,
-.medical-form select:focus {
-  border-color: #3B82F6;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+.contact-card:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
 }`
 }
 
