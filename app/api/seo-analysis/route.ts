@@ -294,16 +294,21 @@ export async function POST(request: NextRequest) {
     if (medSpaDetails.website) {
       analysisPromises.push(
         Promise.all([
-          analyzePageSpeedFast(medSpaDetails.website, pageSpeedApiKey),
+          analyzePageSpeedWithRetry(medSpaDetails.website, pageSpeedApiKey),
           fetch(`${request.nextUrl.origin}/api/website-parse`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: medSpaDetails.website })
+            body: JSON.stringify({ 
+              url: medSpaDetails.website,
+              businessLocation: medSpaDetails.formatted_address,
+              businessName: medSpaDetails.name
+            })
           }).then(res => res.json()).catch(() => ({
             url: medSpaDetails.website,
             headings: { h1: [], h2: [], h3: [] },
             images: [], links: [], socialLinks: [], contactInfo: {},
             structure: { hasNavigation: false, hasFooter: false, hasContactForm: false, hasBookingForm: false },
+            seoAnalysis: { overallScore: 0, totalChecks: 0, passedChecks: 0, headlines: [], metadata: [], technicalSEO: [] },
             error: 'Website parsing failed'
           }))
         ]).then(([pageSpeed, websiteData]) => ({ pageSpeed, websiteData }))
@@ -317,7 +322,7 @@ export async function POST(request: NextRequest) {
       detailedCompetitors.map(async (competitor): Promise<CompetitorWithSEO> => {
         if (competitor.website) {
           try {
-            const pagespeedData = await analyzePageSpeedFast(competitor.website, pageSpeedApiKey)
+            const pagespeedData = await analyzePageSpeedWithRetry(competitor.website, pageSpeedApiKey)
             return { ...competitor, pagespeed_data: pagespeedData }
           } catch (error) {
             console.error(`❌ PageSpeed analysis failed for ${competitor.name}:`, error)
@@ -420,8 +425,30 @@ async function analyzePageSpeedFast(url: string, apiKey: string): Promise<PageSp
   console.log(`⚡ Starting FAST PageSpeed analysis for: ${url}`)
   
   try {
-    // Clean and validate URL
-    const cleanUrl = url.startsWith('http') ? url : `https://${url}`
+    // Clean and validate URL - remove query parameters and fragments that cause issues
+    let cleanUrl = url.startsWith('http') ? url : `https://${url}`
+    
+    // Remove problematic query parameters that cause timeouts
+    try {
+      const urlObj = new URL(cleanUrl)
+      // Remove specific problematic parameters
+      urlObj.searchParams.delete('utm_source')
+      urlObj.searchParams.delete('utm_medium')
+      urlObj.searchParams.delete('utm_campaign')
+      urlObj.searchParams.delete('utm_content')
+      urlObj.searchParams.delete('utm_term')
+      urlObj.hash = '' // Remove fragment
+      
+      // For some URLs, just use the base domain + path
+      if (urlObj.pathname.includes('locator') || urlObj.pathname.includes('locations')) {
+        cleanUrl = `${urlObj.origin}`
+      } else {
+        cleanUrl = urlObj.toString()
+      }
+    } catch (urlError) {
+      console.log(`⚠️ URL parsing failed, using original: ${cleanUrl}`)
+    }
+    
     console.log(`🔗 Cleaned URL: ${cleanUrl}`)
     
     // OPTIMIZED: Only get essential metrics to speed up analysis
@@ -429,9 +456,9 @@ async function analyzePageSpeedFast(url: string, apiKey: string): Promise<PageSp
     
     console.log(`🌐 Calling Fast PageSpeed Insights API...`)
     
-    // OPTIMIZED: Add timeout and use AbortController for faster failures
+    // INCREASED: Timeout from 15s to 30s for better success rate
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout instead of 30
+    const timeoutId = setTimeout(() => controller.abort(), 60000) // Increased to 60 seconds
     
     const response = await fetch(pageSpeedUrl, {
       signal: controller.signal
@@ -473,7 +500,7 @@ async function analyzePageSpeedFast(url: string, apiKey: string): Promise<PageSp
     const totalTime = Date.now() - startTime
     if (error instanceof Error && error.name === 'AbortError') {
       console.error(`⏱️ PageSpeed analysis timed out after ${totalTime}ms for: ${url}`)
-      return { url, error: 'Analysis timed out - site may be slow' }
+      return { url, error: 'Analysis timed out - site may be very slow or unresponsive' }
     }
     console.error(`❌ Fast PageSpeed analysis failed after ${totalTime}ms:`, error)
     return {
@@ -483,10 +510,49 @@ async function analyzePageSpeedFast(url: string, apiKey: string): Promise<PageSp
   }
 }
 
-// Keep existing function but add faster version above
-async function analyzePageSpeed(url: string, apiKey: string): Promise<PageSpeedResult> {
-  // Use the fast version by default
-  return analyzePageSpeedFast(url, apiKey)
+// Retry wrapper for PageSpeed analysis
+async function analyzePageSpeedWithRetry(url: string, apiKey: string, maxRetries: number = 2): Promise<PageSpeedResult> {
+  let lastError: any = null
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔄 PageSpeed analysis attempt ${attempt}/${maxRetries} for: ${url}`)
+      const result = await analyzePageSpeedFast(url, apiKey)
+      
+      // If successful or it's a legitimate error (not a timeout), return the result
+      if (!result.error || !result.error.includes('timed out')) {
+        return result
+      }
+      
+      lastError = result.error
+      
+      // If it's the last attempt, return the error result
+      if (attempt === maxRetries) {
+        return result
+      }
+      
+      // Wait before retry (exponential backoff)
+      const delay = attempt * 2000 // 2s, 4s, etc.
+      console.log(`⏳ Waiting ${delay}ms before retry...`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+      
+    } catch (error) {
+      lastError = error
+      console.error(`❌ Attempt ${attempt} failed:`, error)
+      
+      if (attempt === maxRetries) {
+        return {
+          url,
+          error: `All ${maxRetries} attempts failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }
+      }
+    }
+  }
+  
+  return {
+    url,
+    error: `All ${maxRetries} attempts failed: ${lastError}`
+  }
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {

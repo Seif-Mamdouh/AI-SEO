@@ -299,7 +299,7 @@ export default function AnalyzingPage() {
                         <span>AI Deep Analysis</span>
                         
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-600 line-clamp-2">Detailed insights & actionable recommendations (+30-60s)</div>
+                      <div className="text-xs sm:text-sm text-gray-600 line-clamp-2">Detailed insights & actionable recommendations</div>
                     </div>
                   </div>
                   <div className="text-green-600 font-medium text-sm ml-2 flex-shrink-0">✓ Included</div>

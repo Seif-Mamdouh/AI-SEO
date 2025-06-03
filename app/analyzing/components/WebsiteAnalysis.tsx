@@ -1,9 +1,10 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ExternalLink, Globe, Clock, Star, AlertTriangle, CheckCircle, XCircle, Eye, Link, Mail, Phone, TrendingUp, Image as ImageIcon } from 'lucide-react'
 import { MedSpa } from './types'
-import { ExternalLink, Globe, Clock, Star, AlertTriangle, CheckCircle, XCircle, Eye, Link, Mail, Phone } from 'lucide-react'
+import DetailedSEOAnalysis from './DetailedSEOAnalysis'
 
 interface WebsiteAnalysisProps {
   selectedMedspa: MedSpa | null
@@ -56,6 +57,7 @@ interface WebsiteData {
     }
     screenshot?: string
     error?: string
+    seoAnalysis?: any
   }
 }
 

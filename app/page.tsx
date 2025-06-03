@@ -141,7 +141,9 @@ export default function Home() {
         },
         body: JSON.stringify({ 
           medspa: medspa,
-          location: medspa.formatted_address || 'nearby'
+          location: medspa.formatted_address || 'nearby',
+          businessLocation: medspa.formatted_address,
+          businessName: medspa.name
         }),
       })
 
@@ -228,7 +230,6 @@ export default function Home() {
           </motion.div>
           <span className="text-xl font-semibold text-gray-900">MedSpaGPT</span>
         </motion.div>
-      
       </motion.div>
 
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
@@ -431,7 +432,10 @@ export default function Home() {
                             Visit Website
                           </a>
                         )}
-                        <button className="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                        <button 
+                          onClick={() => handleSuggestionClick(place)}
+                          className="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                        >
                           Analyze SEO
                         </button>
                       </div>
@@ -515,11 +519,10 @@ export default function Home() {
               >
                 <Users className="w-4 h-4 text-white" />
               </motion.div>
-              <span className="text-yellow-800 font-medium">Whos beating me and how?</span>
             </motion.button>
           </motion.div>
 
-          {/* Competitive Analysis Section */}
+          {/* Competitive Analysis Section */} 
           <AnimatePresence>
             {selectedMedspa && (
               <motion.div 
