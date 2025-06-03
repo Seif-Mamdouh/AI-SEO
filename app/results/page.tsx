@@ -771,7 +771,7 @@ export default function ResultsPage() {
                                   'text-red-600'
                                 }`}>
                                   {currentSpaRank === 1 ? '🥇 #1' : 
-                                   currentSpaRank <= 32 ? `#${currentSpaRank}` : 
+                                   currentSpaRank <= 3 ? `#${currentSpaRank}` : 
                                    'Not ranked'}
                                 </div>
                               </div>
