@@ -393,6 +393,27 @@ export default function Component() {
           </div>
         </section>
 
+        {/* Services Section */}
+        <section id="services" className="py-24 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <div className="inline-block px-3 py-1 bg-gradient-to-r from-rose-100 to-pink-100 rounded-full text-rose-800 text-sm font-medium mb-4">
+                Exclusive Treatments
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                Elite Services at [BUSINESS_NAME]
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Our premium treatments combine cutting-edge technology with luxurious experiences
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              [SERVICES_PLACEHOLDER]
+            </div>
+          </div>
+        </section>
+
         {/* Contact Section */}
         <section
           id="contact"

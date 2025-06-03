@@ -102,11 +102,11 @@ export async function POST(request: NextRequest) {
 
 async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, selectedTemplate?: MedSpaTemplate | null) {
   try {
-    console.log('🎨 Using exact template format instead of AI generation...')
+    console.log('🎨 Using EXACT template code with direct variable replacement')
     
     // If we have a selected template, use its EXACT HTML code
     if (selectedTemplate && selectedTemplate.html) {
-      console.log('✅ Using exact template HTML:', selectedTemplate.name)
+      console.log('✅ Using 100% exact template:', selectedTemplate.name)
       
       // Generate Google Places photo URLs for real business images
       const businessPhotos = medSpaData?.photos || []
@@ -120,13 +120,38 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, selec
         allPhotoReferences: businessPhotos.map((p: any) => p.photo_reference)
       })
       
-      // Replace template variables with actual business data
+      // Get EXACT template HTML and CSS - preserve ALL original code
       let templateHtml = selectedTemplate.html
       let templateCss = selectedTemplate.css || ''
       
       // Extract additional business insights
       const websiteData = medSpaData?.website_data || {}
       const performanceData = medSpaData?.pagespeed_data || {}
+      const seoData = medSpaData?.seo_data || {}
+      
+      // Extract services from SEO data if available
+      let scrapedServices: any[] = []
+      if (seoData?.services && Array.isArray(seoData.services)) {
+        scrapedServices = seoData.services
+        console.log('✅ Found scraped services:', scrapedServices)
+      } else if (websiteData?.pageContent?.services) {
+        scrapedServices = websiteData.pageContent.services
+        console.log('✅ Found services in website content:', scrapedServices)
+      }
+      
+      // Default services if none found
+      if (!scrapedServices || scrapedServices.length === 0) {
+        scrapedServices = [
+          { name: 'Botox & Fillers', price: 'From $299', description: 'Premium anti-aging treatments' },
+          { name: 'Laser Treatments', price: 'From $199', description: 'Advanced laser therapy' },
+          { name: 'HydraFacial', price: 'From $149', description: 'Deep cleansing facial treatment' },
+          { name: 'Body Contouring', price: 'From $399', description: 'Non-invasive fat reduction' }
+        ]
+        console.log('ℹ️ Using default services (no services found in scraped data)')
+      }
+      
+      // Generate service HTML based on scraped services for template insertion
+      const servicesHtml = generateServicesHtml(scrapedServices, selectedTemplate.id)
       
       // Enhanced template variables with real client data
       const templateVariables = {
@@ -167,34 +192,40 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, selec
         '[PLACE_ID]': medSpaData?.place_id || '',
         '[GOOGLE_MAPS_URL]': medSpaData?.place_id ? 
           `https://www.google.com/maps/place/?q=place_id:${medSpaData.place_id}` : 
-          '#'
+          '#',
+          
+        // Services integration
+        '[SERVICES_PLACEHOLDER]': servicesHtml,
       }
 
-      console.log('🔄 Replacing template variables:', {
-        totalVariables: Object.keys(templateVariables).length,
+      console.log('🔄 Replacing template variables with actual business data:', {
         businessName: templateVariables['[BUSINESS_NAME]'],
+        phoneNumber: templateVariables['[PHONE_NUMBER]'],
+        address: templateVariables['[FULL_ADDRESS]'],
+        rating: templateVariables['[RATING]'],
         photoCount: photoUrls.length,
-        hasWebsiteData: !!websiteData?.title,
-        hasPerformanceData: !!performanceData?.seo_score,
-        variablesUsed: Object.keys(templateVariables)
+        servicesCount: scrapedServices.length
       })
 
-      // Replace all template variables in HTML and CSS
+      // Replace all template variables in HTML and CSS - PRESERVE ALL OTHER CODE
       Object.entries(templateVariables).forEach(([variable, value]) => {
         const regex = new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
         templateHtml = templateHtml.replace(regex, value)
         templateCss = templateCss.replace(regex, value)
       })
 
-      console.log('✅ Template integration complete:', {
+      console.log('✅ Template integration complete - returning 100% unmodified template structure with data substitution:', {
         templateId: selectedTemplate.id,
+        templateName: selectedTemplate.name,
+        templateCategory: selectedTemplate.category,
         htmlLength: templateHtml.length,
         cssLength: templateCss.length,
         photosIntegrated: photoUrls.length,
-        businessDataUsed: !!medSpaData?.name
+        businessDataIntegrated: true,
+        servicesIntegrated: scrapedServices.length
       })
 
-      // Return the exact template code with business data inserted
+      // Return the EXACT template code with only business data inserted via variable replacement
       return {
         html: templateHtml,
         css: templateCss,
@@ -350,11 +381,11 @@ function generateTemplateBasedFallback(medSpaData?: any, selectedTemplate?: MedS
   const phone = medSpaData?.phone || '(555) 123-4567'
   const rating = medSpaData?.rating || 4.8
 
-  // If we have a template with HTML, use it EXACTLY
+  // If we have a template with HTML, use it EXACTLY - same as primary function
   if (selectedTemplate && selectedTemplate.html) {
-    console.log('🎨 Using exact template HTML in fallback:', selectedTemplate.name)
+    console.log('🎨 Using exact template HTML in fallback with direct variable replacements')
     
-    // Replace template variables with actual business data
+    // Just do direct string replacement of variables - no modifications to the template
     let templateHtml = selectedTemplate.html
     let templateCss = selectedTemplate.css || ''
     
@@ -365,17 +396,23 @@ function generateTemplateBasedFallback(medSpaData?: any, selectedTemplate?: MedS
       '[REVIEW_COUNT]': (medSpaData?.user_ratings_total || 100).toString(),
       '[FULL_ADDRESS]': address,
       '[CITY]': address.split(',')[1]?.trim() || 'Your City',
-      '[EMAIL]': `info@${businessName.toLowerCase().replace(/\s+/g, '')}.com`
+      '[EMAIL]': `info@${businessName.toLowerCase().replace(/\s+/g, '')}.com`,
+      '[HERO_IMAGE]': 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f',
+      '[GALLERY_IMAGE_1]': 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d',
+      '[GALLERY_IMAGE_2]': 'https://images.unsplash.com/photo-1590439471364-192aa70c0b53',
+      '[GALLERY_IMAGE_3]': 'https://images.unsplash.com/photo-1556760544-74068565f05c',
+      '[STATE]': address.split(',').slice(-2, -1)[0]?.trim() || 'Your State',
+      '[ZIP_CODE]': address.match(/\d{5}(-\d{4})?/)?.[0] || '',
     }
 
-    // Replace all template variables in HTML and CSS
+    // Replace all template variables
     Object.entries(templateVariables).forEach(([variable, value]) => {
       const regex = new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
       templateHtml = templateHtml.replace(regex, value)
       templateCss = templateCss.replace(regex, value)
     })
 
-    // Return the exact template code with business data
+    // Return the exact template code
     return {
       html: templateHtml,
       css: templateCss,
@@ -486,5 +523,129 @@ export default function Component() {
       name: 'Basic Fallback',
       used: true
     }
+  }
+}
+
+/**
+ * Generate HTML for services based on template type
+ */
+function generateServicesHtml(services: any[], templateId: string): string {
+  // Format services based on template type
+  switch (templateId) {
+    case 'luxury':
+      return services.map((service: any, index: number) => `
+        <motion.div
+          key="${service.name || `Service ${index + 1}`}"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: ${index * 0.1} }}
+          className="relative"
+        >
+          <Card className="h-full bg-white border-gray-200 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
+            ${index === 0 ? `<div className="absolute top-4 right-4 z-10">
+              <Badge className="bg-purple-500 text-white">Most Popular</Badge>
+            </div>` : ''}
+            <CardContent className="p-6">
+              <div className="text-4xl mb-4">${getServiceIcon(service.name)}</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">${service.name}</h3>
+              <p className="text-gray-600 mb-4 text-sm leading-relaxed">${service.description || 'Premium treatment with exceptional results'}</p>
+              <div className="space-y-2 mb-6">
+                ${getServiceFeatures(service.name).map((feature: string) => `
+                  <div className="flex items-center text-sm text-gray-700">
+                    <CheckCircle className="w-4 h-4 text-purple-500 mr-2 flex-shrink-0" />
+                    ${feature}
+                  </div>
+                `).join('')}
+              </div>
+              <div className="mt-auto">
+                <p className="text-lg font-bold text-purple-600 mb-4">${service.price || 'Starting at $199'}</p>
+                <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white group-hover:bg-purple-500 group-hover:text-white transition-all">
+                  Learn More
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      `).join('')
+      
+    case 'modern':
+      return services.map((service: any, index: number) => `
+        <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-2xl mb-4 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white">
+              ${getServiceIcon(service.name)}
+            </div>
+            <h4 className="text-xl font-bold mb-3 text-rose-600">${service.name}</h4>
+            <p className="text-gray-600 mb-4">${service.description || 'Professional treatment with premium results'}</p>
+            <div className="text-lg font-semibold text-pink-600">${service.price || 'From $199'}</div>
+          </div>
+          <button class="w-full py-3 rounded-xl font-medium transition-all duration-300 hover:shadow-lg bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white">
+            Learn More
+          </button>
+        </div>
+      `).join('')
+      
+    case 'elegant':
+    default:
+      return services.map((service: any, index: number) => `
+        <div className="p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300">
+          <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 mb-4">
+            ${getServiceIcon(service.name)}
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">${service.name}</h3>
+          <p className="text-gray-600 mb-4">${service.description || 'Professional treatment with premium results'}</p>
+          <div className="flex items-center justify-between">
+            <span className="text-pink-600 font-semibold">${service.price || 'From $199'}</span>
+            <button className="px-4 py-2 bg-pink-600 text-white rounded-lg text-sm hover:bg-pink-700 transition-colors">
+              Book Now
+            </button>
+          </div>
+        </div>
+      `).join('')
+  }
+}
+
+/**
+ * Get appropriate icon for a service
+ */
+function getServiceIcon(serviceName: string): string {
+  const serviceLower = serviceName.toLowerCase()
+  
+  if (serviceLower.includes('botox') || serviceLower.includes('filler') || serviceLower.includes('inject')) {
+    return '💉'
+  } else if (serviceLower.includes('laser') || serviceLower.includes('hair') || serviceLower.includes('removal')) {
+    return '✨'
+  } else if (serviceLower.includes('facial') || serviceLower.includes('hydra') || serviceLower.includes('face')) {
+    return '💧'
+  } else if (serviceLower.includes('body') || serviceLower.includes('contour') || serviceLower.includes('sculpt')) {
+    return '🔄'
+  } else if (serviceLower.includes('skin') || serviceLower.includes('peel') || serviceLower.includes('dermabrasion')) {
+    return '✨'
+  } else if (serviceLower.includes('massage') || serviceLower.includes('therapy')) {
+    return '👐'
+  } else {
+    return '🌟'
+  }
+}
+
+/**
+ * Get features for a service
+ */
+function getServiceFeatures(serviceName: string): string[] {
+  const serviceLower = serviceName.toLowerCase()
+  
+  if (serviceLower.includes('botox') || serviceLower.includes('filler') || serviceLower.includes('inject')) {
+    return ['Wrinkle Reduction', 'FDA-approved', 'Natural Results', 'Quick Procedure']
+  } else if (serviceLower.includes('laser') || serviceLower.includes('hair') || serviceLower.includes('removal')) {
+    return ['Advanced Technology', 'All Skin Types', 'Permanent Results', 'Minimal Discomfort']
+  } else if (serviceLower.includes('facial') || serviceLower.includes('hydra') || serviceLower.includes('face')) {
+    return ['Deep Cleansing', 'Hydration', 'Anti-aging', 'Customized Treatment']
+  } else if (serviceLower.includes('body') || serviceLower.includes('contour') || serviceLower.includes('sculpt')) {
+    return ['Non-invasive', 'Fat Reduction', 'Muscle Toning', 'No Downtime']
+  } else if (serviceLower.includes('skin') || serviceLower.includes('peel') || serviceLower.includes('dermabrasion')) {
+    return ['Skin Renewal', 'Exfoliation', 'Even Tone', 'Reduce Fine Lines']
+  } else {
+    return ['Premium Service', 'Expert Specialists', 'Proven Results', 'Luxury Experience']
   }
 }

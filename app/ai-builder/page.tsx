@@ -50,9 +50,8 @@ function DynamicReactPreview({ code }: { code: string }) {
   const [error, setError] = useState<string | null>(null)
   
   useEffect(() => {
-    console.log('🖼️ DynamicReactPreview received code:', {
+    console.log('🖼️ DynamicReactPreview rendering HTML code:', {
       length: code.length,
-      hasDoctype: code.includes('<!DOCTYPE html>'),
       isReactComponent: code.includes('export default function'),
       preview: code.substring(0, 200) + '...'
     })
@@ -69,57 +68,151 @@ function DynamicReactPreview({ code }: { code: string }) {
       return
     }
 
-    // If it's a full HTML document, render it in an iframe
-    if (code.includes('<!DOCTYPE html>')) {
+    try {
+      // Extract actual images and content for debugging
+      const imageMatches = code.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/g) || []
+      const businessNameMatch = code.match(/>([^<>]+esthetics[^<>]+)</i) || code.match(/>([\w\s-]+Medical Spa[^<>]+)</i)
+      const servicesMatch = code.match(/<section[^>]*id=["']services["'][^>]*>([\s\S]*?)<\/section>/i)
+      
+      console.log('🔍 Content analysis:', {
+        foundImages: imageMatches.length > 0,
+        imageCount: imageMatches.length,
+        sampleImageUrls: imageMatches.slice(0, 3).map(img => {
+          const srcMatch = img.match(/src=["']([^"']+)["']/)
+          return srcMatch ? srcMatch[1] : 'No src found'
+        }),
+        businessName: businessNameMatch ? businessNameMatch[1].trim() : 'Not found',
+        hasServicesSection: !!servicesMatch
+      })
+
+      // Create a complete HTML document to properly render the content
+      const completeHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Website Preview</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    
+    /* For CSS in the original code */
+    ${code.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1] || ''}
+    
+    /* For motion animations */
+    .animate-fadeIn {
+      animation: fadeIn 0.5s ease-in-out forwards;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    /* Fix images */
+    img {
+      max-width: 100%;
+      height: auto;
+      object-fit: cover;
+    }
+    
+    /* Convert motion.div to have basic animation */
+    [data-motion="true"] {
+      animation: fadeIn 0.5s ease-in-out forwards;
+    }
+  </style>
+</head>
+<body>
+  ${code.includes('export default function') ? 
+    `<div id="root"></div>
+    <script type="text/babel">
+      // Create mock components for shadcn UI
+      const Button = ({ children, className, ...props }) => (
+        <button className={\`btn \${className || ''}\`} {...props}>{children}</button>
+      );
+      const Card = ({ children, className, ...props }) => (
+        <div className={\`card \${className || ''}\`} {...props}>{children}</div>
+      );
+      const CardContent = ({ children, className, ...props }) => (
+        <div className={\`p-4 \${className || ''}\`} {...props}>{children}</div>
+      );
+      const Badge = ({ children, className, ...props }) => (
+        <span className={\`badge \${className || ''}\`} {...props}>{children}</span>
+      );
+      
+      // Mock motion
+      const motion = {
+        div: ({ children, ...props }) => <div data-motion="true" {...props}>{children}</div>,
+      };
+      
+      // Replace the actual React component code with a self-contained version
+      ${code
+        .replace('import { useState } from "react"', '')
+        .replace('import { motion } from "framer-motion"', '')
+        .replace(/import\s+{([^}]+)}\s+from\s+["']lucide-react["']/g, '')
+        .replace(/import\s+{([^}]+)}\s+from\s+["']@\/components\/ui\/[^"']+["']/g, '')
+        .replace(/import\s+[^;]+;?\n/g, '')
+        .replace(/export\s+default\s+function\s+[^(]+/, 'function Component')
+        .replace(/(\w+)\s*:\s*(\w+)/g, '$1="$2"')
+      }
+      
+      // Render the component to the root element
+      ReactDOM.render(<Component />, document.getElementById('root'));
+    </script>`
+    : code // If not React component, just use the plain HTML
+  }
+</body>
+</html>
+      `
+      
       setRenderContent(
         <iframe
-          srcDoc={code}
-          className="w-full min-h-[500px] border-0"
+          srcDoc={completeHtml}
+          className="w-full min-h-[600px] border-0"
           title="Website Preview"
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts"
+          onLoad={(e) => {
+            console.log('🖼️ iframe loaded with rendered content')
+          }}
         />
       )
-      return
-    }
-
-    // If it's React component code, try to render it
-    if (code.includes('export default function') || code.includes('export default')) {
-      try {
-        // Create a safe React component renderer
-        // For now, we'll create a styled preview that looks like the component would render
-        const previewElement = (
-          <div className="w-full min-h-[500px] bg-white">
-            {/* Try to extract and render the React component */}
-            <ReactComponentRenderer code={code} />
-          </div>
-        )
-        setRenderContent(previewElement)
-        setError(null)
-      } catch (err) {
-        console.error('Error rendering React component:', err)
-        setError('Failed to render the React component')
-        setRenderContent(
-          <div className="flex items-center justify-center min-h-[400px] bg-red-50">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-red-600 mb-2">Render Error</h2>
-              <p className="text-red-500">Failed to render the React component</p>
-              <p className="text-sm text-red-400 mt-2">Check the REACT tab for the code</p>
-            </div>
-          </div>
-        )
-      }
-    } else {
-      // Fallback for unknown content
+      
+      setError(null)
+    } catch (err) {
+      console.error('Error rendering preview:', err)
+      setError('Failed to render the preview')
       setRenderContent(
-        <div className="flex items-center justify-center min-h-[400px] bg-gray-50">
+        <div className="flex items-center justify-center min-h-[400px] bg-red-50">
           <div className="text-center">
-            <h2 className="text-xl font-bold text-gray-600 mb-2">Preview Unavailable</h2>
-            <p className="text-gray-500">Switch to REACT tab to view the code</p>
+            <h2 className="text-xl font-bold text-red-600 mb-2">Render Error</h2>
+            <p className="text-red-500">Failed to render the preview</p>
+            <pre className="mt-4 text-xs text-left bg-gray-100 p-4 rounded overflow-auto max-h-[200px]">
+              {error}
+            </pre>
           </div>
         </div>
       )
     }
   }, [code])
+  
+  if (error) {
+    return (
+      <div className="w-full">
+        <div className="bg-red-50 p-4 rounded-lg mb-4">
+          <h3 className="text-red-800 font-medium">Error rendering preview</h3>
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+        {renderContent}
+      </div>
+    )
+  }
   
   return <div className="w-full">{renderContent}</div>
 }

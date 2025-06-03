@@ -280,54 +280,37 @@ export default function ModernMedSpaTemplate() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-20">
-        <div className="container mx-auto px-6">
+      <section id="services" className="py-24 bg-white">
+        <div className="container px-4 mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">Premium Treatments</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Discover our comprehensive range of medical aesthetic treatments, each designed with precision and care to
-              help you achieve your beauty goals at [BUSINESS_NAME].
-            </p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="inline-block rounded-lg bg-purple-100 px-3 py-1 text-sm text-purple-800 mb-4"
+            >
+              Premium Treatments
+            </motion.div>
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+            >
+              Our Exclusive Services
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-xl text-gray-600 max-w-3xl mx-auto"
+            >
+              Experience the finest treatments with our team of expert practitioners at [BUSINESS_NAME].
+            </motion.p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {services.map((service, index) => (
-              <motion.div
-                key={service.title}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="relative"
-              >
-                <Card className="h-full bg-white border-gray-200 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
-                  {service.popular && (
-                    <div className="absolute top-4 right-4 z-10">
-                      <Badge className="bg-purple-500 text-white">Most Popular</Badge>
-                    </div>
-                  )}
-                  <CardContent className="p-6">
-                    <div className="text-4xl mb-4">{service.icon}</div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">{service.title}</h3>
-                    <p className="text-gray-600 mb-4 text-sm leading-relaxed">{service.description}</p>
-                    <div className="space-y-2 mb-6">
-                      {service.features.map((feature, i) => (
-                        <div key={i} className="flex items-center text-sm text-gray-700">
-                          <CheckCircle className="w-4 h-4 text-purple-500 mr-2 flex-shrink-0" />
-                          {feature}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-auto">
-                      <p className="text-lg font-bold text-purple-600 mb-4">{service.price}</p>
-                      <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white group-hover:bg-purple-500 group-hover:text-white transition-all">
-                        Learn More
-                        <ChevronRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            [SERVICES_PLACEHOLDER]
           </div>
         </div>
       </section>

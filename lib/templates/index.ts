@@ -2,7 +2,7 @@ export interface MedSpaTemplate {
   id: string
   name: string
   description: string
-  category: 'luxury' | 'modern' | 'elegant' | 'wellness'
+  category: 'luxury' | 'modern' | 'wellness'
   html: string
   css: string
   js?: string
@@ -87,11 +87,6 @@ const TEMPLATES: MedSpaTemplate[] = [
     id: 'modern',
     ...TEMPLATE_CONFIGS.modern,
     ...modernTemplate
-  },
-  {
-    id: 'elegant',
-    ...TEMPLATE_CONFIGS.elegant,
-    ...template1
   }
 ]
 
