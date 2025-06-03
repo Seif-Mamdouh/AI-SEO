@@ -41,6 +41,10 @@ export async function POST(request: NextRequest) {
 
     console.log('🎨 Starting template-based website generation...')
     
+    // Log sections being included in template
+    const templateSections = ['Header', 'Hero', 'Services', 'About', 'Gallery', 'Testimonials', 'Contact', 'Footer']
+    console.log('📋 Template sections being generated:', templateSections.join(' → '))
+    
     // Generate website using templates with enhanced context
     const websiteResult = await generateWebsiteWithOpenAI(prompt, medSpaData, templateName)
     
@@ -441,7 +445,137 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, templ
                 </div>
               </div>
             </section>
+
+            <!-- About Section -->
+            <section class="py-16 bg-white">
+              <div class="container mx-auto px-4">
+                <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+                  <div>
+                    <h2 class="text-3xl font-bold text-gray-900">About ${medSpaData?.name || 'Our Med Spa'}</h2>
+                    <p class="mt-4 text-lg text-gray-600">
+                      Our team of certified medical professionals brings years of experience in aesthetic medicine. 
+                      We're committed to providing safe, effective treatments in a comfortable, luxurious environment.
+                    </p>
+                    <div class="mt-8 grid grid-cols-2 gap-6">
+                      <div class="text-center">
+                        <div class="text-3xl font-bold text-rose-600">20+</div>
+                        <div class="text-sm text-gray-500">Years Experience</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-3xl font-bold text-rose-600">5,000+</div>
+                        <div class="text-sm text-gray-500">Happy Clients</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-3xl font-bold text-rose-600">100%</div>
+                        <div class="text-sm text-gray-500">Licensed Professionals</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-3xl font-bold text-rose-600">${medSpaData?.rating || '4.9'}</div>
+                        <div class="text-sm text-gray-500">Google Rating</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-10 lg:mt-0">
+                    ${medSpaImages.length > 1 
+                      ? `<img src="${imageUrls[1].url}" alt="${medSpaData?.name || 'Our Med Spa'} About" class="w-full rounded-lg shadow-lg">`
+                      : `<div class="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+                           <span class="text-gray-500">Professional Team at ${medSpaData?.name || 'Our Med Spa'}</span>
+                         </div>`
+                    }
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Gallery Section -->
+            ${medSpaImages.length > 2 ? `
+            <section class="py-16 bg-gray-50">
+              <div class="container mx-auto px-4">
+                <div class="text-center">
+                  <h2 class="text-3xl font-bold text-gray-900">Our Facility</h2>
+                  <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
+                    Take a look inside ${medSpaData?.name || 'our med spa'}
+                  </p>
+                </div>
+                <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  ${imageUrls.slice(0, 6).map((imageUrl: any, index: number) => `
+                    <div class="relative overflow-hidden rounded-lg shadow-lg">
+                      <img src="${imageUrl.url}" alt="${medSpaData?.name || 'Our Med Spa'} Facility Photo ${index + 1}" class="w-full h-64 object-cover hover:scale-105 transition-transform duration-300">
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </section>
+            ` : ''}
+
+            <!-- Testimonials -->
+            <section class="py-16 bg-white">
+              <div class="container mx-auto px-4">
+                <div class="text-center">
+                  <h2 class="text-3xl font-bold text-gray-900">What Our Clients Say</h2>
+                  <div class="mt-6 flex justify-center items-center">
+                    <div class="flex text-yellow-400 text-2xl">★★★★★</div>
+                    <span class="ml-2 text-gray-600">${medSpaData?.rating || '4.9'} stars from ${medSpaData?.user_ratings_total || 'over 100'} reviews on Google</span>
+                  </div>
+                  <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                      <p class="text-gray-600 italic">"Amazing results at ${medSpaData?.name || 'this med spa'}! The staff is professional and the facility is beautiful."</p>
+                      <p class="mt-4 font-semibold text-gray-900">- Sarah M.</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                      <p class="text-gray-600 italic">"Best med spa experience I've ever had. ${medSpaData?.name || 'This place'} is incredible!"</p>
+                      <p class="mt-4 font-semibold text-gray-900">- Jennifer L.</p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                      <p class="text-gray-600 italic">"Professional service and fantastic results at ${medSpaData?.name || 'this med spa'}. Will definitely return."</p>
+                      <p class="mt-4 font-semibold text-gray-900">- Maria R.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Contact Section -->
+            <section class="py-16 bg-gray-50">
+              <div class="container mx-auto px-4">
+                <div class="text-center">
+                  <h2 class="text-3xl font-bold text-gray-900">Visit ${medSpaData?.name || 'Our Med Spa'}</h2>
+                  <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                      <h3 class="text-lg font-medium text-gray-900">Location & Contact</h3>
+                      <p class="mt-2 text-gray-600">${medSpaData?.formatted_address || 'Professional Location'}</p>
+                      <p class="mt-2 text-gray-600">${medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567'}</p>
+                      <p class="mt-2 text-rose-600">Google Rating: ${medSpaData?.rating || '4.9'} ⭐</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                      <h3 class="text-lg font-medium text-gray-900">Hours</h3>
+                      <p class="mt-2 text-gray-600">Monday - Friday: 9:00 AM - 6:00 PM</p>
+                      <p class="text-gray-600">Saturday: 9:00 AM - 4:00 PM</p>
+                      <p class="text-gray-600">Sunday: Closed</p>
+                    </div>
+                  </div>
+                  <div class="mt-8">
+                    <button class="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white px-8 py-3 rounded-lg font-medium text-lg">
+                      Schedule Consultation at ${medSpaData?.name || 'Our Med Spa'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
           </main>
+
+          <!-- Footer -->
+          <footer class="bg-gray-900 text-white py-8">
+            <div class="container mx-auto px-4">
+              <div class="text-center">
+                <h3 class="text-xl font-bold">${medSpaData?.name || 'Premium Med Spa'}</h3>
+                <p class="mt-2 text-gray-400">Premium Medical Spa Services</p>
+                <p class="mt-2 text-gray-400">${medSpaData?.formatted_address || 'Professional Location'}</p>
+                <p class="text-gray-400">${medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567'}</p>
+                <p class="mt-2 text-gray-400">Rated ${medSpaData?.rating || '4.9'} ⭐ on Google</p>
+              </div>
+            </div>
+          </footer>
         </div>
       </body>
       </html>
@@ -475,6 +609,13 @@ function generateFallbackReactComponent(medSpaData?: any) {
   // Generate hero image and gallery images
   const heroImage = imageUrls[0] || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80'
   const galleryImages = imageUrls.slice(0, 6) // Use up to 6 real images
+
+  // Log sections being included
+  const sections = ['Header', 'Hero', 'Services', 'About', 'Testimonials', 'Contact', 'Footer']
+  if (galleryImages.length > 0) {
+    sections.splice(4, 0, 'Gallery') // Insert Gallery before Testimonials
+  }
+  console.log('📋 Website sections being generated:', sections.join(' → '))
 
   // Generate actual HTML for preview
   const htmlPreview = `
@@ -545,7 +686,7 @@ function generateFallbackReactComponent(medSpaData?: any) {
                 </div>
                 <div class="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
                     <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                        ${imageUrls[1] ? `<img src="${imageUrls[1]}" alt="${businessName} Botox Treatment" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
+                        ${imageUrls[1] ? `<img src="${imageUrls[1]}" alt="${businessName} ${medSpaData?.name}" class="w-full h-40 object-cover rounded-lg mb-4">` : ''}
                         <h3 class="text-lg font-semibold text-gray-900 mb-2">Botox & Fillers</h3>
                         <p class="text-sm text-gray-600 mb-4">Anti-aging injections for natural results</p>
                         <p class="text-gray-600 mb-4">Professional cosmetic injections to reduce fine lines and restore volume.</p>
@@ -564,6 +705,47 @@ function generateFallbackReactComponent(medSpaData?: any) {
                         <p class="text-sm text-gray-600 mb-4">Deep cleansing and hydrating facial treatment</p>
                         <p class="text-gray-600 mb-4">Multi-step treatment for cleaner, more beautiful skin with no downtime.</p>
                         <div class="inline-block bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">From $149</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-gray-900">
+                            About ${businessName}
+                        </h2>
+                        <p class="mt-4 text-lg text-gray-600">
+                            Our team of certified medical professionals brings years of experience in aesthetic medicine. 
+                            We're committed to providing safe, effective treatments in a comfortable, luxurious environment.
+                        </p>
+                        <div class="mt-8 grid grid-cols-2 gap-6">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-blue-600">20+</div>
+                                <div class="text-sm text-gray-500">Years Experience</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-blue-600">5,000+</div>
+                                <div class="text-sm text-gray-500">Happy Clients</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-blue-600">100%</div>
+                                <div class="text-sm text-gray-500">Licensed Professionals</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-blue-600">${rating}</div>
+                                <div class="text-sm text-gray-500">Google Rating</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-10 lg:mt-0">
+                        ${imageUrls[4] ? `<img src="${imageUrls[4]}" alt="${businessName} About" class="w-full rounded-lg shadow-lg">` : 
+                          `<div class="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+                             <span class="text-gray-500">Professional Team at ${businessName}</span>
+                           </div>`}
                     </div>
                 </div>
             </div>
@@ -660,49 +842,9 @@ function generateFallbackReactComponent(medSpaData?: any) {
             </div>
         </footer>
 
-        <script>
-            // Simple smooth scrolling for anchor links
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({ behavior: 'smooth' });
-                    }
-                });
-            });
-        </script>
     </body>
     </html>
   `
-
-  const reactComponent = `function MedSpaLandingPage() {
-  const [isBookingOpen, setIsBookingOpen] = React.useState(false)
-
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">${businessName}</h1>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <a href="#services" className="text-gray-500 hover:text-gray-900">Services</a>
-              <a href="#about" className="text-gray-500 hover:text-gray-900">About</a>
-              <a href="#contact" className="text-gray-500 hover:text-gray-900">Contact</a>
-            </nav>
-            <Button onClick={() => setIsBookingOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-              Book Consultation
-            </Button>
-          </div>
-        </div>
-      </header>
-      {/* Rest of component... */}
-    </div>
-  )
-}`
 
   return {
     html: htmlPreview,
