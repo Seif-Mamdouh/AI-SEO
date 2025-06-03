@@ -188,7 +188,18 @@ export default function Component() {
       <main className="flex-1">
         {/* Luxury Hero Section */}
         <section className="relative overflow-hidden bg-gradient-to-br from-rose-50 via-white to-purple-50 py-20 md:py-32">
-          <div className="container px-4 relative">
+          {/* Hero Background Image Overlay */}
+          <div className="absolute inset-0 z-0">
+            <div className="w-full h-full bg-gradient-to-br from-rose-900/20 via-pink-900/10 to-purple-900/20">
+              <img 
+                src="[HERO_IMAGE]" 
+                alt="[BUSINESS_NAME] - Luxury Medical Spa Facility"
+                className="w-full h-full object-cover opacity-20"
+              />
+            </div>
+          </div>
+          
+          <div className="container px-4 relative z-10">
             <div className="grid gap-12 lg:grid-cols-2 lg:gap-20 items-center">
               <motion.div
                 className="space-y-8"
@@ -199,7 +210,7 @@ export default function Component() {
                 <div className="space-y-6">
                   <Badge className="bg-gradient-to-r from-rose-100 to-purple-100 text-rose-700 border-rose-200 px-6 py-3 text-sm font-medium">
                     <Crown className="w-4 h-4 mr-2" />
-                    Award-Winning Luxury Med Spa
+                    Award-Winning Luxury Med Spa in [CITY], [STATE]
                   </Badge>
                   <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-gray-900 leading-tight">
                     Elevate Your
@@ -211,6 +222,10 @@ export default function Component() {
                     Experience the pinnacle of luxury aesthetic medicine at [BUSINESS_NAME]. Our world-class treatments and master
                     aestheticians deliver transformative results in an atmosphere of unparalleled sophistication.
                   </p>
+                  <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-rose-100">
+                    <p className="text-sm text-gray-700 font-medium">✨ [PERFORMANCE_IMPROVEMENT]</p>
+                    <p className="text-sm text-gray-600">🎯 [SEO_IMPROVEMENT]</p>
+                  </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
@@ -256,14 +271,12 @@ export default function Component() {
                 transition={{ duration: 0.8, delay: 0.2 }}
               >
                 <div className="relative">
-                  <div className="w-full h-[700px] bg-gradient-to-br from-rose-100 to-purple-100 rounded-3xl shadow-2xl flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-32 h-32 bg-white rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg">
-                        <Crown className="w-16 h-16 text-rose-500" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Luxury Experience</h3>
-                      <p className="text-gray-600">Elite Aesthetic Center</p>
-                    </div>
+                  <div className="w-full h-[700px] bg-gradient-to-br from-rose-100 to-purple-100 rounded-3xl shadow-2xl overflow-hidden">
+                    <img 
+                      src="[FACILITY_IMAGE]" 
+                      alt="[BUSINESS_NAME] - Premium Treatment Facility"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="absolute -bottom-8 -left-8 bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-rose-100">
                     <div className="flex items-center space-x-4">
@@ -280,6 +293,98 @@ export default function Component() {
                     <div className="flex items-center space-x-2 text-white">
                       <Star className="h-5 w-5 fill-current" />
                       <span className="font-bold text-lg">[RATING]</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Real Business Gallery Section */}
+        <section className="py-20 bg-white">
+          <div className="container px-4 md:px-6">
+            <div className="text-center mb-16">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+              >
+                <Badge className="bg-rose-100 text-rose-700 border-rose-200 px-6 py-3 mb-6">
+                  <Gem className="w-4 h-4 mr-2" />
+                  Experience [BUSINESS_NAME]
+                </Badge>
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  Our Luxury
+                  <span className="bg-gradient-to-r from-rose-500 to-purple-600 bg-clip-text text-transparent block">
+                    Facility & Results
+                  </span>
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  Take a virtual tour of [BUSINESS_NAME] and see the actual results our clients achieve with our premium treatments.
+                </p>
+              </motion.div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <motion.div
+                className="relative group cursor-pointer"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.1 }}
+              >
+                <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-lg group-hover:shadow-2xl transition-all duration-300">
+                  <img 
+                    src="[GALLERY_IMAGE_1]" 
+                    alt="[BUSINESS_NAME] - Treatment Room"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute bottom-6 left-6 text-white">
+                      <h3 className="text-xl font-bold mb-2">Luxury Treatment Rooms</h3>
+                      <p className="text-sm opacity-90">Premium comfort & privacy</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="relative group cursor-pointer"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+              >
+                <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-lg group-hover:shadow-2xl transition-all duration-300">
+                  <img 
+                    src="[GALLERY_IMAGE_2]" 
+                    alt="[BUSINESS_NAME] - Advanced Equipment"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute bottom-6 left-6 text-white">
+                      <h3 className="text-xl font-bold mb-2">Advanced Technology</h3>
+                      <p className="text-sm opacity-90">State-of-the-art equipment</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="relative group cursor-pointer"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+              >
+                <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-lg group-hover:shadow-2xl transition-all duration-300">
+                  <img 
+                    src="[GALLERY_IMAGE_3]" 
+                    alt="[BUSINESS_NAME] - Reception Area"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute bottom-6 left-6 text-white">
+                      <h3 className="text-xl font-bold mb-2">Elegant Reception</h3>
+                      <p className="text-sm opacity-90">Welcoming luxury environment</p>
                     </div>
                   </div>
                 </div>
@@ -341,6 +446,9 @@ export default function Component() {
                       <div>
                         <p className="font-semibold text-lg">[FULL_ADDRESS]</p>
                         <p className="text-sm text-gray-300">Luxury Medical Center</p>
+                        <a href="[GOOGLE_MAPS_URL]" target="_blank" rel="noopener noreferrer" className="text-sm text-rose-300 hover:text-rose-200 transition-colors">
+                          View on Google Maps →
+                        </a>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4 p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
@@ -348,8 +456,17 @@ export default function Component() {
                         <Clock className="h-6 w-6 text-white" />
                       </div>
                       <div>
-                        <p className="font-semibold text-lg">Mon-Fri: 9AM-8PM</p>
-                        <p className="text-sm text-gray-300">Sat: 9AM-6PM, Sun: By Appointment</p>
+                        <p className="font-semibold text-lg">[BUSINESS_HOURS]</p>
+                        <p className="text-sm text-gray-300">Premium Hours Available</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4 p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-400 to-purple-600 flex items-center justify-center">
+                        <Mail className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-lg">[EMAIL]</p>
+                        <p className="text-sm text-gray-300">Elite Support Team</p>
                       </div>
                     </div>
                   </div>

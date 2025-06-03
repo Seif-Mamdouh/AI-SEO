@@ -128,14 +128,62 @@ export function getTemplatesByCategory(category: MedSpaTemplate['category']): Me
  * Generate contextual prompt with template
  */
 export function generateTemplatePrompt(template: MedSpaTemplate, medSpaData: any): string {
-  // Since we're using the exact template HTML, this function now just provides context info
-  // The actual template application happens in the API route
-  const { name, formatted_address, rating, photos } = medSpaData
+  const { name, formatted_address, rating, photos, website_data, pagespeed_data } = medSpaData
   
-  return `Using exact template: "${template.name}" (${template.category}) for ${name || 'Medical Spa'}.
-Template features: ${template.features.join(', ')}.
-Business data will be automatically inserted into template variables.
+  // Generate comprehensive integration prompt
+  let prompt = `EXACT TEMPLATE INTEGRATION FOR ${name}
+  
+🎨 SELECTED TEMPLATE: "${template.name}" (${template.category})
+Template Description: ${template.description}
+
+🏢 REAL BUSINESS DATA INTEGRATION:
+Business Name: ${name}
 Location: ${formatted_address || 'Not specified'}
-Rating: ${rating || 'Not specified'}
-Photos available: ${photos?.length || 0}`
+Google Rating: ${rating || 'Not specified'} stars (${medSpaData.user_ratings_total || 0} reviews)
+Phone: ${medSpaData.phone || medSpaData.formatted_phone_number || 'Not specified'}
+
+📸 REAL BUSINESS PHOTOS: ${photos?.length || 0} available
+${photos?.length > 0 ? `- These are actual Google Places photos of ${name}
+- Use [HERO_IMAGE], [GALLERY_IMAGE_1], [GALLERY_IMAGE_2], [GALLERY_IMAGE_3] placeholders
+- Photos will be automatically integrated with real URLs` : '- No photos available, will use template defaults'}
+
+🌐 CURRENT WEBSITE ANALYSIS:
+${website_data?.title ? `Current Title: "${website_data.title}"` : 'No current website title'}
+${website_data?.description ? `Current Description: "${website_data.description}"` : 'No current description'}
+${website_data?.contactInfo?.email ? `Email: ${website_data.contactInfo.email}` : 'No email found'}
+${website_data?.contactInfo?.hours ? `Hours: ${website_data.contactInfo.hours}` : 'No hours specified'}
+
+⚡ PERFORMANCE IMPROVEMENTS:
+${pagespeed_data?.seo_score ? `Current SEO Score: ${pagespeed_data.seo_score}/100 (will improve to 95+)` : 'SEO optimization will be applied'}
+${pagespeed_data?.performance_score ? `Current Performance: ${pagespeed_data.performance_score}/100 (will be optimized)` : 'Performance optimization will be applied'}
+
+🎯 TEMPLATE FEATURES TO IMPLEMENT:
+${template.features.map(feature => `• ${feature}`).join('\n')}
+
+🎨 COLOR SCHEME:
+Primary: ${template.colorScheme.primary}
+Secondary: ${template.colorScheme.secondary}
+Accent: ${template.colorScheme.accent}
+
+💎 INTEGRATION STRATEGY:
+1. Use EXACT template HTML structure and styling
+2. Replace ALL template variables with real ${name} data
+3. Integrate ${photos?.length || 0} real business photos using Google Places URLs
+4. Apply ${template.category} template aesthetic with business-specific content
+5. Include performance improvements and SEO optimization messaging
+6. Make it feel like the official ${name} website, not a template demo
+
+📍 LOCATION-SPECIFIC CONTENT:
+${formatted_address ? `- Reference ${name}'s location at ${formatted_address}` : ''}
+${formatted_address ? `- Include local area serving references` : ''}
+- Use [CITY], [STATE], [ZIP_CODE] placeholders for location data
+
+🔗 GOOGLE INTEGRATION:
+- Place ID: ${medSpaData.place_id || 'Not available'}
+- Google Maps integration available: ${medSpaData.place_id ? 'Yes' : 'No'}
+- Use [GOOGLE_MAPS_URL] for location links
+
+FINAL OUTPUT: Complete ${template.name} template with all real ${name} business data integrated seamlessly.`
+
+  return prompt
 } 

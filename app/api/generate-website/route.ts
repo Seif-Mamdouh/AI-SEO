@@ -38,7 +38,17 @@ export async function POST(request: NextRequest) {
         hasWebsiteData: !!medSpaData.website_data,
         hasPerformanceData: !!medSpaData.pagespeed_data,
         allKeys: Object.keys(medSpaData),
-        selectedTemplate: selectedTemplate.name
+        photosData: medSpaData.photos,
+        websiteData: medSpaData.website_data,
+        pagespeedData: medSpaData.pagespeed_data,
+        selectedTemplate: selectedTemplate.name,
+        businessDetails: {
+          formattedAddress: medSpaData.formatted_address,
+          phone: medSpaData.phone || medSpaData.formatted_phone_number,
+          rating: medSpaData.rating,
+          reviewCount: medSpaData.user_ratings_total,
+          placeId: medSpaData.place_id
+        }
       })
     }
 
@@ -98,10 +108,27 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, selec
     if (selectedTemplate && selectedTemplate.html) {
       console.log('✅ Using exact template HTML:', selectedTemplate.name)
       
+      // Generate Google Places photo URLs for real business images
+      const businessPhotos = medSpaData?.photos || []
+      const photoUrls = businessPhotos.map((photo: any, index: number) => {
+        return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
+      })
+      
+      console.log('📸 Generated photo URLs:', {
+        photoCount: photoUrls.length,
+        sampleUrls: photoUrls.slice(0, 3),
+        allPhotoReferences: businessPhotos.map((p: any) => p.photo_reference)
+      })
+      
       // Replace template variables with actual business data
       let templateHtml = selectedTemplate.html
       let templateCss = selectedTemplate.css || ''
       
+      // Extract additional business insights
+      const websiteData = medSpaData?.website_data || {}
+      const performanceData = medSpaData?.pagespeed_data || {}
+      
+      // Enhanced template variables with real client data
       const templateVariables = {
         '[BUSINESS_NAME]': medSpaData?.name || 'Premium Medical Spa',
         '[PHONE_NUMBER]': medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567',
@@ -109,14 +136,62 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, selec
         '[REVIEW_COUNT]': (medSpaData?.user_ratings_total || 100).toString(),
         '[FULL_ADDRESS]': medSpaData?.formatted_address || 'Professional Location',
         '[CITY]': (medSpaData?.formatted_address || 'Your City').split(',')[1]?.trim() || 'Your City',
-        '[EMAIL]': `info@${(medSpaData?.name || 'business').toLowerCase().replace(/\s+/g, '')}.com`
+        '[EMAIL]': websiteData?.contactInfo?.email || `info@${(medSpaData?.name || 'business').toLowerCase().replace(/\s+/g, '')}.com`,
+        
+        // Real business photos integration
+        '[HERO_IMAGE]': photoUrls[0] || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f',
+        '[GALLERY_IMAGE_1]': photoUrls[1] || photoUrls[0] || '',
+        '[GALLERY_IMAGE_2]': photoUrls[2] || photoUrls[1] || '',
+        '[GALLERY_IMAGE_3]': photoUrls[3] || photoUrls[2] || '',
+        '[FACILITY_IMAGE]': photoUrls[0] || '',
+        '[TREATMENT_IMAGE]': photoUrls[1] || photoUrls[0] || '',
+        
+        // Website data integration
+        '[CURRENT_WEBSITE_TITLE]': websiteData?.title || `${medSpaData?.name} - Medical Spa`,
+        '[CURRENT_DESCRIPTION]': websiteData?.description || 'Premium Medical Spa Services',
+        '[BUSINESS_HOURS]': websiteData?.contactInfo?.hours || 'Mon-Fri: 9AM-6PM, Sat: 9AM-4PM',
+        
+        // Performance improvement messaging
+        '[SEO_IMPROVEMENT]': performanceData?.seo_score ? 
+          `Improved from ${performanceData.seo_score}/100 to 95+ SEO score` : 
+          'SEO optimized for maximum visibility',
+        '[PERFORMANCE_IMPROVEMENT]': performanceData?.performance_score ? 
+          `Faster loading than your current ${performanceData.performance_score}/100 score` : 
+          'Lightning-fast performance',
+          
+        // Location-specific content
+        '[STATE]': (medSpaData?.formatted_address || '').split(',').slice(-2, -1)[0]?.trim() || 'Your State',
+        '[ZIP_CODE]': (medSpaData?.formatted_address || '').match(/\d{5}(-\d{4})?/)?.[0] || '',
+        
+        // Google Places insights
+        '[PLACE_ID]': medSpaData?.place_id || '',
+        '[GOOGLE_MAPS_URL]': medSpaData?.place_id ? 
+          `https://www.google.com/maps/place/?q=place_id:${medSpaData.place_id}` : 
+          '#'
       }
 
-      // Replace all template variables in HTML
+      console.log('🔄 Replacing template variables:', {
+        totalVariables: Object.keys(templateVariables).length,
+        businessName: templateVariables['[BUSINESS_NAME]'],
+        photoCount: photoUrls.length,
+        hasWebsiteData: !!websiteData?.title,
+        hasPerformanceData: !!performanceData?.seo_score,
+        variablesUsed: Object.keys(templateVariables)
+      })
+
+      // Replace all template variables in HTML and CSS
       Object.entries(templateVariables).forEach(([variable, value]) => {
         const regex = new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
         templateHtml = templateHtml.replace(regex, value)
         templateCss = templateCss.replace(regex, value)
+      })
+
+      console.log('✅ Template integration complete:', {
+        templateId: selectedTemplate.id,
+        htmlLength: templateHtml.length,
+        cssLength: templateCss.length,
+        photosIntegrated: photoUrls.length,
+        businessDataUsed: !!medSpaData?.name
       })
 
       // Return the exact template code with business data inserted

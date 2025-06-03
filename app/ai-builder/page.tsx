@@ -134,20 +134,13 @@ function ReactComponentRenderer({ code }: { code: string }) {
       // we'll create a visual representation based on the template structure
       
       // Extract key information from the code
-      const businessName = extractValue(code, '[BUSINESS_NAME]') || 'Medical Spa'
-      const phoneNumber = extractValue(code, '[PHONE_NUMBER]') || '(555) 123-4567'
-      const rating = extractValue(code, '[RATING]') || '4.8'
-      const address = extractValue(code, '[FULL_ADDRESS]') || 'Professional Location'
+      const businessName = extractBusinessData(code, 'business_name') || 'Medical Spa'
+      const phoneNumber = extractBusinessData(code, 'phone') || '(555) 123-4567'
+      const rating = extractBusinessData(code, 'rating') || '4.8'
+      const address = extractBusinessData(code, 'address') || 'Professional Location'
       
       // Determine template type based on code content
-      let templateType = 'default'
-      if (code.includes('luxury') || code.includes('Crown') || code.includes('Gem')) {
-        templateType = 'luxury'
-      } else if (code.includes('modern') || code.includes('Elite') || code.includes('VIP')) {
-        templateType = 'modern'
-      } else if (code.includes('elegant') || code.includes('rose')) {
-        templateType = 'elegant'
-      }
+      let templateType = detectTemplateType(code)
       
       // Create a visual representation
       const component = (
@@ -261,48 +254,95 @@ function ReactComponentRenderer({ code }: { code: string }) {
 }
 
 // Helper functions for styling based on template type
-function extractValue(code: string, placeholder: string): string | null {
-  // Look for the actual replaced values in the code
-  const lines = code.split('\n')
+function extractBusinessData(code: string, field: string): string | null {
+  console.log('🔍 Extracting business data for:', field, 'from', code.length, 'characters')
   
-  // Try different patterns to find the business data
-  if (placeholder === '[BUSINESS_NAME]') {
-    // Look for business name in various contexts
-    for (const line of lines) {
-      if (line.includes('businessName') && !line.includes('Premium Medical Spa')) {
-        const match = line.match(/['"`]([^'"`]+)['"`]/)
-        if (match && match[1] !== 'Premium Medical Spa') return match[1]
+  if (field === 'business_name') {
+    // Look for actual business name in the generated code
+    // Pattern 1: Look for business name in JSX text content
+    const jsxTextMatches = code.match(/>\s*([^<>{}\[\]]+(?:esthetics?|spa|medical|beauty|wellness|center)[^<>{}\[\]]*)\s*</gi)
+    if (jsxTextMatches) {
+      for (const match of jsxTextMatches) {
+        const cleanText = match.replace(/[><]/g, '').trim()
+        if (cleanText && !cleanText.includes('Medical Spa') && !cleanText.includes('Premium') && cleanText.length > 2) {
+          console.log('✅ Found business name in JSX text:', cleanText)
+          return cleanText
+        }
       }
-      if (line.includes('Welcome to ') && !line.includes('[BUSINESS_NAME]')) {
-        const match = line.match(/Welcome to ([^}]+)/)
-        if (match) return match[1].trim()
-      }
     }
-  }
-  
-  if (placeholder === '[PHONE_NUMBER]') {
-    for (const line of lines) {
-      const phoneMatch = line.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)
-      if (phoneMatch && !line.includes('555-123-4567')) return phoneMatch[0]
+    
+    // Pattern 2: Look for specific business names
+    const specificNameMatch = code.match(/O2\s+esthetics/i)
+    if (specificNameMatch) {
+      console.log('✅ Found specific business name:', specificNameMatch[0])
+      return specificNameMatch[0]
     }
-  }
-  
-  if (placeholder === '[RATING]') {
-    for (const line of lines) {
-      const ratingMatch = line.match(/(\d\.\d+)\s*stars/)
-      if (ratingMatch) return ratingMatch[1]
-    }
-  }
-  
-  if (placeholder === '[FULL_ADDRESS]') {
-    for (const line of lines) {
-      if (line.includes('address') && !line.includes('Professional Location')) {
-        const match = line.match(/['"`]([^'"`]+)['"`]/)
-        if (match && match[1] !== 'Professional Location') return match[1]
+    
+    // Pattern 3: Look in string literals
+    const stringMatches = code.match(/['"`]([^'"`]*(?:esthetics?|spa|aesthetics?|beauty|wellness|medical center)[^'"`]*)['"`]/gi)
+    if (stringMatches) {
+      for (const match of stringMatches) {
+        const cleanName = match.replace(/['"`]/g, '').trim()
+        if (cleanName && !cleanName.includes('Premium Medical Spa') && !cleanName.includes('Medical Spa') && cleanName !== 'Medical Spa') {
+          console.log('✅ Found business name in string:', cleanName)
+          return cleanName
+        }
       }
     }
   }
   
+  if (field === 'phone') {
+    // Look for phone numbers in the generated code
+    const phoneMatches = code.match(/['"`]?(\(\d{3}\)\s*\d{3}-\d{4}|\d{3}-\d{3}-\d{4}|\(\d{3}\)\s*\d{7})['"`]?/g)
+    if (phoneMatches) {
+      for (const match of phoneMatches) {
+        const cleanPhone = match.replace(/['"`]/g, '').trim()
+        if (cleanPhone && !cleanPhone.includes('555-123-4567') && !cleanPhone.includes('(555) 123-4567')) {
+          console.log('✅ Found real phone number:', cleanPhone)
+          return cleanPhone
+        }
+      }
+    }
+  }
+  
+  if (field === 'rating') {
+    // Look for rating values in the code
+    const ratingMatches = code.match(/(\d+\.?\d*)\s*(?:stars?|rating)/gi)
+    if (ratingMatches) {
+      for (const match of ratingMatches) {
+        const ratingValue = match.match(/(\d+\.?\d*)/)?.[1]
+        if (ratingValue && parseFloat(ratingValue) !== 4.8 && parseFloat(ratingValue) > 0) {
+          console.log('✅ Found real rating:', ratingValue)
+          return ratingValue
+        }
+      }
+    }
+  }
+  
+  if (field === 'address') {
+    // Look for real addresses in the code
+    const addressPatterns = [
+      // Full addresses with street number, name, city, state
+      /['"`]([^'"`]*\b\d+\s+[A-Za-z\s]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Lane|Ln|Way|Ct|Court)\b[^'"`]*(?:,\s*[A-Za-z\s]+)*(?:,\s*[A-Z]{2})?\s*\d{5}?[^'"`]*)['"`]/gi,
+      // Simpler address patterns
+      /['"`]([^'"`]*\b\d+[^'"`]*(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive)[^'"`]*)['"`]/gi
+    ]
+    
+    for (const pattern of addressPatterns) {
+      const matches = code.match(pattern)
+      if (matches) {
+        for (const match of matches) {
+          const cleanAddress = match.replace(/['"`]/g, '').trim()
+          if (cleanAddress && !cleanAddress.includes('Professional Location') && !cleanAddress.includes('Your Location') && cleanAddress.length > 10) {
+            console.log('✅ Found real address:', cleanAddress)
+            return cleanAddress
+          }
+        }
+      }
+    }
+  }
+  
+  console.log('❌ Could not extract real', field, 'from generated code')
   return null
 }
 
@@ -367,6 +407,42 @@ function getContactClasses(type: string): string {
     case 'elegant': return 'bg-gradient-to-br from-pink-900 to-rose-900'
     default: return 'bg-gradient-to-br from-blue-900 to-blue-800'
   }
+}
+
+// Detect template type from React component code
+function detectTemplateType(code: string): 'luxury' | 'modern' | 'elegant' {
+  console.log('🎨 Detecting template type from generated code...')
+  
+  // Count occurrences of template-specific indicators
+  const luxuryIndicators = (code.match(/Crown|luxury|Luxury|purple-600|#8B5CF6|#7C3AED|violet/gi) || []).length
+  const modernIndicators = (code.match(/Elite|Diamond|Platinum|Gem|rose-500|pink-500|#F43F5E|#EC4899|#A855F7/gi) || []).length
+  const elegantIndicators = (code.match(/elegant|Elegant|rose|pink|#F43F5E/gi) || []).length
+  
+  console.log('Template indicators found:', { luxury: luxuryIndicators, modern: modernIndicators, elegant: elegantIndicators })
+  
+  if (luxuryIndicators > modernIndicators && luxuryIndicators > elegantIndicators) {
+    console.log('✅ Detected luxury template based on indicators')
+    return 'luxury'
+  }
+  
+  if (modernIndicators > luxuryIndicators && modernIndicators > elegantIndicators) {
+    console.log('✅ Detected modern template based on indicators')
+    return 'modern'
+  }
+  
+  if (elegantIndicators > luxuryIndicators && elegantIndicators > modernIndicators) {
+    console.log('✅ Detected elegant template based on indicators')
+    return 'elegant'
+  }
+  
+  // Default based on most common words if tie
+  if (code.includes('Elite') || code.includes('Diamond') || code.includes('Platinum')) {
+    console.log('✅ Defaulting to modern template based on Elite/Diamond/Platinum keywords')
+    return 'modern'
+  }
+  
+  console.log('✅ Defaulting to modern template')
+  return 'modern'
 }
 
 export default function AIBuilder() {
