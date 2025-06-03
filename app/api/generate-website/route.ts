@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import fs from 'fs'
+import path from 'path'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -10,10 +12,11 @@ export async function POST(request: NextRequest) {
   console.log('🚀 Website generation request started at:', new Date().toISOString())
   
   try {
-    const { prompt, medSpaData } = await request.json()
+    const { prompt, medSpaData, templateName = 'default' } = await request.json()
     
     console.log('📝 Received prompt length:', prompt?.length || 0)
     console.log('🏥 Med spa data received:', !!medSpaData)
+    console.log('🎨 Template requested:', templateName)
     
     if (medSpaData) {
       console.log('🎯 Med spa context detailed analysis:', {
@@ -23,9 +26,6 @@ export async function POST(request: NextRequest) {
         hasWebsiteData: !!medSpaData.website_data,
         hasPerformanceData: !!medSpaData.pagespeed_data,
         allKeys: Object.keys(medSpaData),
-        photosData: medSpaData.photos,
-        websiteData: medSpaData.website_data,
-        pagespeedData: medSpaData.pagespeed_data
       })
     }
 
@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
     }
 
-    console.log('🤖 Starting OpenAI generation...')
+    console.log('🎨 Starting template-based website generation...')
     
-    // Generate website using OpenAI with enhanced context
-    const websiteResult = await generateWebsiteWithOpenAI(prompt, medSpaData)
+    // Generate website using templates with enhanced context
+    const websiteResult = await generateWebsiteWithOpenAI(prompt, medSpaData, templateName)
     
     const duration = Date.now() - startTime
     console.log('✅ Website generation completed in:', duration + 'ms')
@@ -65,9 +65,153 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any) {
+async function getWebsiteTemplate(templateName = 'default') {
   try {
-    console.log('🎨 Preparing enhanced system prompt with React/SHADCN...')
+    // Template paths
+    const templatesDir = path.join(process.cwd(), 'templates', 'websites')
+    const templatePath = path.join(templatesDir, `${templateName}.tsx`)
+    
+    // Default to base template if the requested one doesn't exist
+    if (!fs.existsSync(templatePath)) {
+      console.log(`⚠️ Template ${templateName} not found, using default`)
+      return fs.readFileSync(path.join(templatesDir, 'default.tsx'), 'utf8')
+    }
+    
+    return fs.readFileSync(templatePath, 'utf8')
+  } catch (error) {
+    console.error('❌ Error loading template:', error)
+    // Return a basic template if file can't be loaded
+    return `
+      export default function MedSpaLandingPage() {
+        return (
+          <div className="min-h-screen bg-white">
+            <h1>Medical Spa Template</h1>
+            <p>This is a fallback template.</p>
+          </div>
+        )
+      }
+    `
+  }
+}
+
+function customizeTemplate(template: string, medSpaData: any, imageUrls: any[]) {
+  // Basic replacements for business details
+  let customized = template
+    .replace(/\{\{BUSINESS_NAME\}\}/g, medSpaData?.name || 'Premium Medical Spa')
+    .replace(/\{\{BUSINESS_ADDRESS\}\}/g, medSpaData?.formatted_address || 'Professional Location')
+    .replace(/\{\{BUSINESS_PHONE\}\}/g, medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567')
+    .replace(/\{\{BUSINESS_RATING\}\}/g, medSpaData?.rating?.toString() || '4.8')
+    .replace(/\{\{BUSINESS_REVIEWS\}\}/g, medSpaData?.user_ratings_total?.toString() || 'many')
+  
+  // Handle services if available
+  if (medSpaData?.website_data?.services && medSpaData.website_data.services.length > 0) {
+    // Get the list of services
+    const services = medSpaData.website_data.services
+    
+    // Fill in service data from the parsed website
+    for (let i = 0; i < Math.min(services.length, 3); i++) {
+      const service = services[i]
+      customized = customized
+        .replace(new RegExp(`\\{\\{SERVICE_TITLE_${i+1}\\}\\}`, 'g'), service.name || `Premium Service ${i+1}`)
+        .replace(new RegExp(`\\{\\{SERVICE_DESCRIPTION_${i+1}\\}\\}`, 'g'), service.description || `Professional luxury service for elite clients.`)
+        .replace(new RegExp(`\\{\\{SERVICE_PRICE_${i+1}\\}\\}`, 'g'), `Starting at $${199 + (i * 100)}`)
+        .replace(new RegExp(`\\{\\{SERVICE_TECHNOLOGY_${i+1}\\}\\}`, 'g'), `Premium Technology`)
+        .replace(new RegExp(`\\{\\{SERVICE_RESULTS_${i+1}\\}\\}`, 'g'), `95% satisfaction rate`)
+        
+      // Set default features
+      for (let j = 1; j <= 4; j++) {
+        customized = customized.replace(
+          new RegExp(`\\{\\{SERVICE_FEATURE_${i+1}_${j}\\}\\}`, 'g'), 
+          `Feature ${j}`
+        )
+      }
+    }
+  }
+  
+  // Set default values for any remaining service templates
+  for (let i = 1; i <= 3; i++) {
+    customized = customized
+      .replace(new RegExp(`\\{\\{SERVICE_TITLE_${i}\\}\\}`, 'g'), `Premium Service ${i}`)
+      .replace(new RegExp(`\\{\\{SERVICE_DESCRIPTION_${i}\\}\\}`, 'g'), `Professional luxury service for elite clients.`)
+      .replace(new RegExp(`\\{\\{SERVICE_PRICE_${i}\\}\\}`, 'g'), `Starting at $${199 + (i * 100)}`)
+      .replace(new RegExp(`\\{\\{SERVICE_TECHNOLOGY_${i}\\}\\}`, 'g'), `Premium Technology`)
+      .replace(new RegExp(`\\{\\{SERVICE_RESULTS_${i}\\}\\}`, 'g'), `95% satisfaction rate`)
+      
+    // Set default features
+    for (let j = 1; j <= 4; j++) {
+      customized = customized.replace(
+        new RegExp(`\\{\\{SERVICE_FEATURE_${i}_${j}\\}\\}`, 'g'), 
+        `Feature ${j}`
+      )
+    }
+  }
+  
+  // Update image references in the code
+  if (imageUrls && imageUrls.length > 0) {
+    const heroImageUrl = imageUrls[0]?.url || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
+    const galleryImageUrl = imageUrls[Math.min(1, imageUrls.length - 1)]?.url || heroImageUrl
+    const aboutImageUrl = imageUrls[Math.min(2, imageUrls.length - 1)]?.url || heroImageUrl
+    
+    // Replace placeholder images with real URLs
+    customized = customized.replace(/const heroImage = "\/placeholder\.svg"/g, `const heroImage = "${heroImageUrl}"`)
+    customized = customized.replace(/const galleryImage = "\/placeholder\.svg"/g, `const galleryImage = "${galleryImageUrl}"`)
+    customized = customized.replace(/const aboutImage = "\/placeholder\.svg"/g, `const aboutImage = "${aboutImageUrl}"`)
+  }
+  
+  // Set default values for stats
+  const statDefaults = [
+    { number: "15,000+", label: "Elite Clients" },
+    { number: "20+", label: "Years Excellence" },
+    { number: "99%", label: "Satisfaction Rate" },
+    { number: "5.0", label: "Luxury Rating" }
+  ]
+  
+  for (let i = 1; i <= 4; i++) {
+    customized = customized
+      .replace(new RegExp(`\\{\\{STAT_NUMBER_${i}\\}\\}`, 'g'), statDefaults[i-1].number)
+      .replace(new RegExp(`\\{\\{STAT_LABEL_${i}\\}\\}`, 'g'), statDefaults[i-1].label)
+  }
+  
+  // Set default values for testimonials
+  const testimonialDefaults = [
+    {
+      name: "Victoria Sterling",
+      role: "VIP Client",
+      text: "Absolutely exquisite experience. The level of luxury and professionalism exceeded my highest expectations.",
+      treatment: "Premium Treatment",
+      result: "3 months ago"
+    },
+    {
+      name: "Alexander Rothschild",
+      role: "Elite Member",
+      text: "The epitome of luxury medical aesthetics. Every detail is perfected, from the ambiance to the results.",
+      treatment: "Elite Service",
+      result: "6 months ago"
+    },
+    {
+      name: "Isabella Montclair",
+      role: "Platinum Client",
+      text: "An oasis of luxury and expertise. The treatments are pure indulgence with incredible results.",
+      treatment: "Premium Package",
+      result: "2 months ago"
+    }
+  ]
+  
+  for (let i = 1; i <= 3; i++) {
+    customized = customized
+      .replace(new RegExp(`\\{\\{TESTIMONIAL_NAME_${i}\\}\\}`, 'g'), testimonialDefaults[i-1].name)
+      .replace(new RegExp(`\\{\\{TESTIMONIAL_ROLE_${i}\\}\\}`, 'g'), testimonialDefaults[i-1].role)
+      .replace(new RegExp(`\\{\\{TESTIMONIAL_TEXT_${i}\\}\\}`, 'g'), testimonialDefaults[i-1].text)
+      .replace(new RegExp(`\\{\\{TESTIMONIAL_TREATMENT_${i}\\}\\}`, 'g'), testimonialDefaults[i-1].treatment)
+      .replace(new RegExp(`\\{\\{TESTIMONIAL_RESULT_${i}\\}\\}`, 'g'), testimonialDefaults[i-1].result)
+  }
+  
+  return customized
+}
+
+async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any, templateName = 'default') {
+  try {
+    console.log('🎨 Using template-based approach for website generation...')
     
     // Extract images from med spa data and create proper Google Places URLs
     const medSpaImages = medSpaData?.photos || []
@@ -75,7 +219,7 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any) {
     
     // Create proper Google Places photo URLs
     const imageUrls = medSpaImages.map((photo: any, index: number) => {
-      // Use a working Google Places photo URL (you might need to replace with your API key)
+      // Use a working Google Places photo URL
       const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY || 'DEMO_KEY'}`
       return {
         url: photoUrl,
@@ -84,203 +228,201 @@ async function generateWebsiteWithOpenAI(prompt: string, medSpaData?: any) {
       }
     })
     
-    // Create enhanced image context for AI
-    let imageContext = ''
-    if (imageUrls.length > 0) {
-      imageContext = `\n\nREAL BUSINESS IMAGES TO USE IN THE WEBSITE:
-${imageUrls.map((img: { url: string; reference: string; index: number }) => 
-  `Image ${img.index}: ${img.url}
-   - This is a real photo of ${medSpaData?.name || 'the business'}
-   - Use this exact URL in img src attributes
-   - Perfect for: hero section, gallery, about section, or service showcases`
-).join('\n\n')}
-
-CRITICAL IMAGE REQUIREMENTS:
-- You MUST use these real business photos instead of placeholder images
-- Use the exact URLs provided above in your img tags
-- These photos show the actual business, treatments, and facilities
-- Integrate them naturally throughout the website (hero, gallery, services, about)
-- Add proper alt text describing what's shown in each business photo
-- Make images responsive with proper CSS classes
-
-Example usage:
-<img src="${imageUrls[0]?.url}" alt="${medSpaData?.name || 'Medical Spa'} - Professional Treatment Room" className="w-full h-64 object-cover rounded-lg" />
-`
-    }
-
-    const systemPrompt = `You are a React developer creating a professional medical spa landing page.
-
-CRITICAL: You MUST respond EXACTLY in this format:
-
-REACT_COMPONENT:
-[Complete React component code here]
-
-STYLES:
-[Any additional CSS styles if needed]
-
-TYPES:
-[TypeScript interfaces if needed]
-
-DO NOT include any other text, explanations, or markdown. Just provide the code in the exact format above.
-
-BUSINESS INFORMATION:
-- Business Name: ${medSpaData?.name || 'Premium Medical Spa'} (use this exact name)
-- Address: ${medSpaData?.formatted_address || 'Professional Location'}
-- Phone: ${medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567'}
-- Rating: ${medSpaData?.rating || 4.8} stars (${medSpaData?.user_ratings_total || 'many'} reviews)
-
-TECHNICAL REQUIREMENTS:
-- Create a complete Next.js 13+ React component with TypeScript
-- Use SHADCN/UI components (Button, Card, Badge, Input, Textarea, Dialog, etc.)
-- Use Tailwind CSS for all styling
-- Make it fully responsive (mobile, tablet, desktop)
-- Include these sections: Hero, Services, About, Gallery, Testimonials, Contact
-- Add smooth animations and professional design
-- Use the business information provided above throughout
-
-${imageContext}
-
-CONTENT REQUIREMENTS:
-- Write as if you're the official ${medSpaData?.name || 'Medical Spa'} website
-- Include realistic medical spa services (Botox, fillers, laser treatments, facials, etc.)
-- Add professional pricing and service descriptions
-- Include booking/consultation CTAs
-- Reference the Google rating and location throughout
-- Make it feel like a real business website, not a template
-
-Generate a complete, production-ready React component now:`
-
-    console.log('📡 Making OpenAI API request...')
+    // Get the template
+    const templateCode = await getWebsiteTemplate(templateName)
+    console.log('📝 Retrieved template, size:', templateCode.length)
     
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 4000,
-      temperature: 0.7,
-    })
-
-    console.log('📨 OpenAI response received')
-    console.log('🔢 Tokens used:', completion.usage)
-
-    const response = completion.choices[0]?.message?.content
-
-    if (!response) {
-      console.error('❌ No response content from OpenAI')
-      throw new Error('No response generated from OpenAI')
-    }
-
-    console.log('📝 Response length:', response.length)
-
-    // Parse the response to extract React component, styles, and types
-    const reactMatch = response.match(/REACT_COMPONENT:\s*([\s\S]*?)(?=STYLES:|TYPES:|$)/i)
-    const stylesMatch = response.match(/STYLES:\s*([\s\S]*?)(?=REACT_COMPONENT:|TYPES:|$)/i)
-    const typesMatch = response.match(/TYPES:\s*([\s\S]*?)(?=REACT_COMPONENT:|STYLES:|$)/i)
-
-    let reactComponent = ''
-    let styles = ''
-    let types = ''
-
-    if (reactMatch) {
-      reactComponent = reactMatch[1].trim()
-    } else {
-      console.log('⚠️ No REACT_COMPONENT section found, using entire response as component')
-      // If no structured format, treat the entire response as React component
-      reactComponent = cleanCodeResponse(response)
-    }
-
-    if (stylesMatch) {
-      styles = stylesMatch[1].trim()
-    }
-
-    if (typesMatch) {
-      types = typesMatch[1].trim()
-    }
-
-    console.log('✅ Successfully parsed response sections:', {
-      hasReactComponent: !!reactComponent,
-      hasStyles: !!styles,
-      hasTypes: !!types,
-      componentLength: reactComponent.length
-    })
-
-    // If we still don't have a component, use fallback
-    if (!reactComponent || reactComponent.length < 100) {
-      console.log('⚠️ Component too short or missing, generating fallback')
-      return generateFallbackReactComponent(medSpaData)
-    }
-
-    // Create a complete Next.js page component
-    const completeReactCode = `'use client'
-
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-
-${types}
-
-${reactComponent}
-
-export default function MedSpaLandingPage() {
-  const [isBookingOpen, setIsBookingOpen] = useState(false)
-
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">${medSpaData?.name || 'Premium Medical Spa'}</h1>
+    // Customize the template with business data
+    const customizedCode = customizeTemplate(templateCode, medSpaData, imageUrls)
+    console.log('✅ Template customization complete')
+    
+    // Create simplified CSS for preview
+    const css = `
+      /* Template styles for luxury med spa */
+      .hero-gradient {
+        background: linear-gradient(135deg, #fdf2f8, #f5f3ff);
+      }
+      .premium-badge {
+        background: linear-gradient(90deg, #f59e0b, #db2777);
+      }
+      .service-card {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+      }
+      .service-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      }
+      .testimonial-card {
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.9);
+      }
+    `
+    
+    // Create type definitions for TypeScript
+    const types = `
+      interface Service {
+        title: string;
+        description: string;
+        price: string;
+        icon: React.ReactNode;
+        features: string[];
+        technology: string;
+        results: string;
+        image: string;
+        premium: boolean;
+      }
+      
+      interface Stat {
+        number: string;
+        label: string;
+        icon: React.ReactNode;
+      }
+      
+      interface Testimonial {
+        name: string;
+        role: string;
+        rating: number;
+        text: string;
+        treatment: string;
+        result: string;
+        verified: boolean;
+      }
+    `
+    
+    // Create an HTML preview that shows the component would render
+    const htmlPreview = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${medSpaData?.name || 'Luxury Med Spa'} - Template Preview</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <style>
+          ${css}
+          body { font-family: 'Inter', sans-serif; }
+          .bg-gradient-to-r { background: linear-gradient(to right, #ec4899, #8b5cf6); }
+          .text-transparent.bg-clip-text { -webkit-background-clip: text; background-clip: text; }
+          .backdrop-blur-xl { backdrop-filter: blur(24px); }
+        </style>
+      </head>
+      <body>
+        <div class="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-white to-rose-50">
+          <!-- Header -->
+          <header class="sticky top-0 z-50 w-full border-b bg-white/95 shadow-lg">
+            <div class="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
+              <div class="flex items-center space-x-3">
+                <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-rose-400 via-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7 text-white"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/><path d="m5 16 3 4"/><path d="m19 16-3 4"/></svg>
+                </div>
+                <div>
+                  <span class="text-2xl font-bold bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    ${medSpaData?.name || 'Luxury Med Spa'}
+                  </span>
+                  <p class="text-sm text-rose-600 font-medium">Elite Aesthetic Center</p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-4">
+                <div class="hidden sm:flex items-center space-x-2 text-sm text-gray-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-rose-600"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                  <span class="font-medium">${medSpaData?.phone || medSpaData?.formatted_phone_number || '(555) 123-4567'}</span>
+                </div>
+                <button class="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white shadow-lg px-4 py-2 rounded-lg font-medium flex items-center space-x-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 mr-2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  Book Consultation
+                </button>
+              </div>
             </div>
-            <nav className="hidden md:flex space-x-8">
-              <a href="#services" className="text-gray-500 hover:text-gray-900">Services</a>
-              <a href="#about" className="text-gray-500 hover:text-gray-900">About</a>
-              <a href="#contact" className="text-gray-500 hover:text-gray-900">Contact</a>
-            </nav>
-            <Button onClick={() => setIsBookingOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-              Book Consultation
-            </Button>
-          </div>
-        </div>
-      </header>
-      {/* Rest of component... */}
-    </div>
-  )
-}
-`
+          </header>
 
-    // Generate HTML preview for iframe
-    const htmlPreview = generateFallbackReactComponent(medSpaData).html
+          <main class="flex-1">
+            <!-- Hero Section -->
+            <section class="relative py-20 md:py-32">
+              <div class="container mx-auto px-4 relative">
+                <div class="grid gap-12 lg:grid-cols-2 lg:gap-20 items-center">
+                  <div class="space-y-8">
+                    <div class="space-y-6">
+                      <div class="inline-block bg-gradient-to-r from-rose-100 to-purple-100 text-rose-700 border-rose-200 px-6 py-3 text-sm font-medium rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 inline-block mr-2"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/><path d="m5 16 3 4"/><path d="m19 16-3 4"/></svg>
+                        Award-Winning Luxury Med Spa
+                      </div>
+                      <h1 class="text-5xl font-bold tracking-tight text-gray-900 leading-tight">
+                        Elevate Your
+                        <span class="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 bg-clip-text text-transparent block">
+                          Natural Elegance
+                        </span>
+                      </h1>
+                      <p class="text-xl text-gray-600 max-w-2xl leading-relaxed">
+                        Experience the pinnacle of luxury aesthetic medicine at ${medSpaData?.name || 'our med spa'}. Our world-class treatments and master
+                        aestheticians deliver transformative results in an atmosphere of unparalleled sophistication.
+                      </p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                      <button class="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white px-8 py-4 text-lg shadow-xl rounded-lg font-medium">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 inline-block mr-2"><path d="M12 3a6 6 0 0 0-6 6c0 7 6 11 6 11s6-4 6-11a6 6 0 0 0-6-6z"></path><circle cx="12" cy="9" r="2"></circle></svg>
+                        Begin Your Journey
+                      </button>
+                      <button class="border-2 border-rose-300 text-rose-600 hover:bg-rose-50 px-8 py-4 text-lg hover:border-rose-400 transition-all duration-300 rounded-lg font-medium">
+                        Explore Treatments
+                      </button>
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <div class="relative">
+                      ${medSpaImages.length > 0 
+                        ? `<img src="${imageUrls[0].url}" alt="${medSpaData?.name || 'Luxury Med Spa'}" class="rounded-3xl shadow-2xl w-full h-auto">`
+                        : `<div class="rounded-3xl shadow-2xl bg-gradient-to-br from-rose-100 to-purple-100 w-full h-[500px] flex items-center justify-center"><span class="text-rose-600 font-medium text-xl">Luxury Med Spa Interior</span></div>`
+                      }
+                      <div class="absolute -bottom-8 -left-8 bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-rose-100">
+                        <div class="flex items-center space-x-4">
+                          <div class="h-16 w-16 rounded-2xl bg-gradient-to-br from-rose-400 via-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-white"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                          </div>
+                          <div>
+                            <p class="font-bold text-gray-900 text-lg">Elite Certified</p>
+                            <p class="text-sm text-gray-600">Master Aestheticians</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="absolute -top-6 -right-6 bg-gradient-to-br from-rose-500 to-purple-600 p-4 rounded-2xl shadow-xl">
+                        <div class="flex items-center space-x-2 text-white">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 fill-current"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                          <span class="font-bold text-lg">${medSpaData?.rating || '4.9'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Service Preview -->
+            <section class="py-10 bg-gradient-to-br from-gray-50 to-rose-50">
+              <div class="container mx-auto px-4">
+                <div class="text-center mb-10">
+                  <p class="text-lg text-rose-600 font-medium">Preview showing the template layout</p>
+                  <h2 class="text-3xl font-bold mt-2">This is a template preview. The full React component will be generated using ${medSpaData?.name || 'your medical spa'}'s data.</h2>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+      </body>
+      </html>
+    `
     
     return {
-      html: completeReactCode,
-      css: styles,
-      js: '', // React components don't need separate JS
+      html: customizedCode,
+      css: css,
+      js: types,
       preview: htmlPreview,
       type: 'react'
     }
-
   } catch (error) {
-    console.error('💥 OpenAI generation error:', error)
-    console.error('Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : 'No stack trace'
-    })
-    throw new Error('Failed to generate website with AI: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    console.error('❌ Template generation error:', error)
+    return generateFallbackReactComponent(medSpaData)
   }
 }
 

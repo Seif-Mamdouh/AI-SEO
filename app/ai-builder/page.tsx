@@ -46,13 +46,12 @@ function DynamicReactPreview({ code }: { code: string }) {
     })
     
     // Always use the provided code as HTML content
-    // The API should send proper HTML in the preview field
     if (code && code.length > 0) {
       if (code.includes('<!DOCTYPE html>')) {
-        // Full HTML document
+        // Full HTML document - use as is
         setHtmlContent(code)
       } else {
-        // React component code - create a simple preview
+        // Try to wrap the code in basic HTML for display
         setHtmlContent(`
           <!DOCTYPE html>
           <html lang="en">
@@ -61,32 +60,15 @@ function DynamicReactPreview({ code }: { code: string }) {
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <title>React Component Preview</title>
               <script src="https://cdn.tailwindcss.com"></script>
+              <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
               <style>
-                .star-rating { color: #fbbf24; }
                 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+                .bg-gradient-to-r { background: linear-gradient(to right, #ec4899, #8b5cf6); }
+                .text-transparent.bg-clip-text { -webkit-background-clip: text; background-clip: text; }
               </style>
           </head>
           <body>
-              <div style="padding: 2rem; text-align: center; background: #f8fafc;">
-                  <h2 style="color: #2563eb; margin-bottom: 1rem;">AI Generated React Component</h2>
-                  <p style="color: #6b7280; margin-bottom: 2rem;">This shows a React component preview. Switch to REACT tab to see the full code.</p>
-                  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 2rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                      <h3 style="color: #1e293b; margin: 0 0 1rem 0;">Generated Component Features</h3>
-                      <ul style="color: #64748b; text-align: left; margin: 0; padding-left: 1.5rem;">
-                          <li>SHADCN/UI components integration</li>
-                          <li>Tailwind CSS styling</li>
-                          <li>Responsive design</li>
-                          <li>Business data integration</li>
-                          <li>Professional medical spa layout</li>
-                      </ul>
-                  </div>
-                  <button style="background: #2563eb; color: white; padding: 0.75rem 2rem; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                      Sample Generated Button
-                  </button>
-                  <p style="color: #6b7280; margin-top: 2rem; font-size: 0.875rem;">
-                      Component generated successfully! Check the REACT tab for the complete code.
-                  </p>
-              </div>
+              ${code}
           </body>
           </html>
         `)
@@ -118,7 +100,7 @@ function DynamicReactPreview({ code }: { code: string }) {
   return (
     <iframe
       srcDoc={htmlContent}
-      className="w-full min-h-[500px] border-0"
+      className="w-full min-h-[600px] border-0"
       title="Website Preview"
       sandbox="allow-scripts allow-same-origin"
       style={{ backgroundColor: '#f8fafc' }}
@@ -127,7 +109,7 @@ function DynamicReactPreview({ code }: { code: string }) {
 }
 
 export default function AIBuilder() {
-  const [prompt, setPrompt] = useState('')
+  const [prompt, setPrompt] = useState<string>('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedWebsite, setGeneratedWebsite] = useState<GeneratedWebsite | null>(null)
   const [activeTab, setActiveTab] = useState<'preview' | 'react' | 'css' | 'types'>('preview')
@@ -137,6 +119,7 @@ export default function AIBuilder() {
   const [medSpaContext, setMedSpaContext] = useState<any>(null)
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('default')
 
   const templates = [
     {
@@ -312,14 +295,17 @@ export default function AIBuilder() {
   }
 
   const generateWebsite = async () => {
-    if (!prompt.trim()) return
-
-    setIsGenerating(true)
-    setGenerationProgress(0)
-    setGenerationStep('Analyzing your requirements...')
-    setError(null)
+    if (!prompt.trim()) {
+      setError('Please enter a prompt to guide the AI generation.')
+      return
+    }
 
     try {
+      setIsGenerating(true)
+      setGenerationProgress(0)
+      setGenerationStep('Analyzing your requirements...')
+      setError(null)
+
       console.log('🚀 Starting website generation...')
       console.log('📝 Prompt length:', prompt.length)
       
@@ -353,13 +339,15 @@ export default function AIBuilder() {
       // Make actual API call to generate website
       const requestBody = {
         prompt,
-        ...(medSpaContext && { medSpaData: medSpaContext })
+        ...(medSpaContext && { medSpaData: medSpaContext }),
+        templateName: selectedTemplate
       }
 
       console.log('📡 Making API request with data:', {
         promptLength: prompt.length,
         hasMedSpaData: !!medSpaContext,
-        imageCount: medSpaContext?.photos?.length || 0
+        imageCount: medSpaContext?.photos?.length || 0,
+        template: selectedTemplate
       })
 
       const response = await fetch('/api/generate-website', {
@@ -509,6 +497,30 @@ ${generatedWebsite.js}
       default: return 'w-full'
     }
   }
+
+  const TemplateSelector = () => (
+    <div className="space-y-4 mb-8">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Select a Template</h3>
+        <div className="text-sm text-gray-500">Choose a starting point for your design</div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div 
+          className={`border rounded-lg p-4 cursor-pointer transition-all ${selectedTemplate === 'default' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+          onClick={() => setSelectedTemplate('default')}
+        >
+          <div className="aspect-video bg-gradient-to-r from-rose-100 to-purple-100 rounded-md mb-3 flex items-center justify-center">
+            <span className="font-medium text-rose-600">Luxury Template</span>
+          </div>
+          <h4 className="font-medium">Modern Luxury</h4>
+          <p className="text-sm text-gray-500 mt-1">Elegant, premium design with luxury aesthetics</p>
+        </div>
+        
+        {/* Add more template options here as they become available */}
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
@@ -694,6 +706,8 @@ ${generatedWebsite.js}
                     <p className="text-red-700 text-sm">{error}</p>
                   </div>
                 )}
+
+                <TemplateSelector />
 
                 <button
                   onClick={generateWebsite}
