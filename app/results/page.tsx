@@ -757,7 +757,7 @@ export default function ResultsPage() {
                                       </span>
                                     </div>
                                     <p className="text-xs text-red-600 mt-1">
-                                      Customers searching "{keyword}" won't easily find you
+                                      Customers searching &ldquo;{keyword}&rdquo; won&apos;t easily find you
                                     </p>
                                   </div>
                                 )}
