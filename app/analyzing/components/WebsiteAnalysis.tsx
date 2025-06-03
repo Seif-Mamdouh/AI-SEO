@@ -291,21 +291,6 @@ export default function WebsiteAnalysis({ selectedMedspa }: WebsiteAnalysisProps
           </div>
         </div>
 
-        {/* Detailed SEO Analysis */}
-        {websiteParseData?.seoAnalysis && !isLoading && (
-          <motion.div
-            className="mt-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <DetailedSEOAnalysis 
-              seoData={websiteParseData.seoAnalysis}
-              businessName={selectedMedspa?.name || 'Your Business'}
-            />
-          </motion.div>
-        )}
-
         {/* Website Screenshot */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
           <div className="bg-gray-100 px-4 py-2 flex items-center space-x-2">
