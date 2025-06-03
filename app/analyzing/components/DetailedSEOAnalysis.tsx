@@ -202,27 +202,6 @@ export default function DetailedSEOAnalysis({ seoData, businessName }: DetailedS
         {seoData.metadata.length > 0 && renderSEOSection('Metadata', seoData.metadata, 'metadata')}
         {seoData.technicalSEO.length > 0 && renderSEOSection('Technical SEO', seoData.technicalSEO, 'technicalSEO')}
       </div>
-
-      {/* Quick Fixes */}
-      <motion.div 
-        className="bg-white rounded-lg border border-gray-200 p-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-      >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">🚀 Quick Wins</h3>
-        <div className="space-y-2">
-          {[...seoData.headlines, ...seoData.metadata, ...seoData.technicalSEO]
-            .filter(item => item.status === 'failed' && item.recommendation)
-            .slice(0, 3)
-            .map((item, index) => (
-              <div key={index} className="flex items-start space-x-2">
-                <span className="text-orange-500 mt-1">•</span>
-                <span className="text-sm text-gray-700">{item.recommendation}</span>
-              </div>
-            ))}
-        </div>
-      </motion.div>
     </div>
   )
 } 

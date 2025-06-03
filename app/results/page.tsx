@@ -614,14 +614,12 @@ export default function ResultsPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          {spa.pagespeed_data && !spa.pagespeed_data.error ? (
+                          {spa.pagespeed_data && !spa.pagespeed_data.error && (
                             <div className={`text-sm ${
                               spa.isCurrentSpa ? 'text-blue-600' : 'text-gray-600'
                             }`}>
                               SEO: {spa.pagespeed_data.seo_score}/100
                             </div>
-                          ) : (
-                            <div className="text-sm text-gray-500">No website</div>
                           )}
                         </div>
                       </div>
