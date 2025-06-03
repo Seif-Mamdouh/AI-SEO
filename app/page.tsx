@@ -230,23 +230,6 @@ export default function Home() {
           </motion.div>
           <span className="text-xl font-semibold text-gray-900">MedSpaGPT</span>
         </motion.div>
-        
-        <motion.div 
-          className="flex items-center space-x-4"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <motion.a
-            href="/ai-builder"
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>AI Website Builder</span>
-          </motion.a>
-        </motion.div>
       </motion.div>
 
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
@@ -536,11 +519,10 @@ export default function Home() {
               >
                 <Users className="w-4 h-4 text-white" />
               </motion.div>
-              <span className="text-yellow-800 font-medium">Whos beating me and how?</span>
             </motion.button>
           </motion.div>
 
-          {/* Competitive Analysis Section */}
+          {/* Competitive Analysis Section */} 
           <AnimatePresence>
             {selectedMedspa && (
               <motion.div 
