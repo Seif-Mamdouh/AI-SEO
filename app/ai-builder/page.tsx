@@ -445,30 +445,6 @@ ${generatedWebsite.js}
     }
   }
 
-  const TemplateSelector = () => (
-    <div className="space-y-4 mb-8">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Select a Template</h3>
-        <div className="text-sm text-gray-500">Choose a starting point for your design</div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div 
-          className={`border rounded-lg p-4 cursor-pointer transition-all ${selectedTemplate === 'default' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
-          onClick={() => setSelectedTemplate('default')}
-        >
-          <div className="aspect-video bg-gradient-to-r from-rose-100 to-purple-100 rounded-md mb-3 flex items-center justify-center">
-            <span className="font-medium text-rose-600">Luxury Template</span>
-          </div>
-          <h4 className="font-medium">Modern Luxury</h4>
-          <p className="text-sm text-gray-500 mt-1">Elegant, premium design with luxury aesthetics</p>
-        </div>
-        
-        {/* Add more template options here as they become available */}
-      </div>
-    </div>
-  )
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
       {/* Header */}
@@ -648,17 +624,6 @@ ${generatedWebsite.js}
                 >
                   <Download className="w-4 h-4" />
                   <span>Download</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setGeneratedWebsite(null)
-                    setPrompt('')
-                    setError(null)
-                  }}
-                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                >
-                  New Website
                 </button>
               </div>
             </div>
