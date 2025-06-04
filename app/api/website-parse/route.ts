@@ -590,53 +590,8 @@ function extractMedSpaServices($: any) {
   const services: { name: string; description?: string }[] = []
   const pageText = $('body').text().toLowerCase()
   
-  // First approach: Look for service sections based on headings
-  console.log('👉 Approach 1: Looking for service sections based on headings')
-  $('h2, h3, h4').each((i: number, el: any) => {
-    const headingText = $(el).text().trim()
-    const headingLower = headingText.toLowerCase()
-    
-    // Check if this heading is about services
-    if (
-      headingLower.includes('service') || 
-      headingLower.includes('treatment') || 
-      headingLower.includes('procedure') ||
-      headingLower.includes('offering')
-    ) {
-      console.log(`   Found service heading: "${headingText}"`)
-      // Try to find service list items after this heading
-      const serviceItems = $(el).nextUntil('h2, h3, h4').find('li')
-      
-      if (serviceItems.length > 0) {
-        console.log(`   Found ${serviceItems.length} service list items`)
-        serviceItems.each((j: number, item: any) => {
-          const serviceText = $(item).text().trim()
-          if (serviceText.length > 0) {
-            services.push({
-              name: serviceText,
-              description: '' // Could extract description if available
-            })
-          }
-        })
-      } else {
-        // If no list items, check for paragraphs or divs that might contain services
-        const paragraphs = $(el).nextUntil('h2, h3, h4').filter('p, div')
-        console.log(`   Found ${paragraphs.length} paragraphs/divs under service heading`)
-        paragraphs.each((j: number, p: any) => {
-          const paragraphText = $(p).text().trim()
-          if (paragraphText.length > 0 && paragraphText.length < 200) { // Likely a service if not too long
-            services.push({
-              name: paragraphText,
-              description: ''
-            })
-          }
-        })
-      }
-    }
-  })
-  
-  // Second approach: Look for known service terms throughout the page
-  console.log('👉 Approach 2: Looking for known med spa services')
+  // First approach: Look for known service terms throughout the page
+  console.log('👉 Approach 1: Looking for known med spa services')
   let knownServicesFound = 0
   
   MED_SPA_SERVICES.forEach(service => {
@@ -672,10 +627,10 @@ function extractMedSpaServices($: any) {
       }
     }
   })
-  console.log(`   Found ${knownServicesFound} known med spa services`)
+  console.log(` Found ${knownServicesFound} known med spa services`)
   
-  // Third approach: Look for service cards or sections with specific classes
-  console.log('👉 Approach 3: Looking for service cards or sections with specific classes')
+  // Approach 2: Look for service cards or sections with specific classes
+  console.log('👉 Approach 2: Looking for service cards or sections with specific classes')
   const serviceElements = $('.service, .treatment, [class*="service"], [class*="treatment"]')
   console.log(`   Found ${serviceElements.length} potential service elements`)
   
@@ -683,8 +638,9 @@ function extractMedSpaServices($: any) {
     const title = $(el).find('h3, h4, .title, .heading, strong').first().text().trim()
     const desc = $(el).find('p, .description').first().text().trim()
     
+    
     if (title && title.length > 0) {
-      console.log(`   Found service from element: "${title}"`)
+      console.log(`Found service from element: "${title}"`)
       services.push({
         name: title,
         description: desc || undefined
