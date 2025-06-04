@@ -7,21 +7,13 @@ import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { 
   Sparkles, 
   Code, 
-  Eye, 
   Download, 
-  Copy, 
-  Play, 
-  Settings, 
-  Palette, 
+  Copy,
   Layout,
   Smartphone,
   Monitor,
   Tablet,
   RefreshCw,
-  Save,
-  Upload,
-  FileCode,
-  Globe,
   CheckCircle
 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
@@ -45,76 +37,10 @@ function DynamicReactPreview({ code }: { code: string }) {
       preview: code.substring(0, 200) + '...'
     })
     
-    // Always use the provided code as HTML content
     if (code && code.length > 0) {
       if (code.includes('<!DOCTYPE html>')) {
-        // Full HTML document - use as is
         setHtmlContent(code)
-      } else {
-        // Try to wrap the code in basic HTML for display
-        setHtmlContent(`
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>React Component Preview</title>
-              <script src="https://cdn.tailwindcss.com"></script>
-              <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-              <style>
-                body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
-                .bg-gradient-to-r { background: linear-gradient(to right, #ec4899, #8b5cf6); }
-                .text-transparent.bg-clip-text { -webkit-background-clip: text; background-clip: text; }
-                .backdrop-blur-xl { backdrop-filter: blur(24px); }
-                
-                /* Add template styles for proper preview */
-                .hero-gradient {
-                  background: linear-gradient(135deg, #fdf2f8, #f5f3ff);
-                }
-                .premium-badge {
-                  background: linear-gradient(90deg, #f59e0b, #db2777);
-                }
-                .service-card {
-                  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-                  transition: all 0.3s ease;
-                }
-                .service-card:hover {
-                  transform: translateY(-5px);
-                  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-                }
-                .testimonial-card {
-                  border-radius: 1rem;
-                  background: rgba(255, 255, 255, 0.9);
-                }
-              </style>
-          </head>
-          <body>
-              ${code}
-          </body>
-          </html>
-        `)
       }
-    } else {
-      // Fallback for empty/no content
-      setHtmlContent(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Preview Loading</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body>
-            <div style="padding: 2rem; text-align: center; background: #f8fafc; min-height: 400px; display: flex; align-items: center; justify-content: center;">
-                <div>
-                    <h2 style="color: #dc2626; margin-bottom: 1rem;">No Preview Available</h2>
-                    <p style="color: #6b7280;">Generate a website to see the preview here.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-      `)
     }
   }, [code])
   
