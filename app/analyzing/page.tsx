@@ -126,7 +126,6 @@ export default function AnalyzingPage() {
       if (response.ok) {
         const data = await response.json()
         console.log('✅ SEO analysis completed successfully')
-        console.log('🤖 LLM report included:', !!data.llm_report)
         
         updateStepStatus('ai-analysis', 'completed')
 

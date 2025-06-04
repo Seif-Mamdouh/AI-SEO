@@ -35,6 +35,10 @@ interface WebsiteParseResult {
     email?: string
     phone?: string
   }
+  services: {
+    name: string
+    description?: string
+  }[]
   structure: {
     hasNavigation: boolean
     hasFooter: boolean
@@ -63,6 +67,25 @@ const MED_SPA_KEYWORDS = [
 
 const LOCATION_KEYWORDS = [
   'near me', 'local', 'city', 'area', 'location', 'address', 'neighborhood', 'town', 'region'
+]
+
+// Common med spa services for detection
+const MED_SPA_SERVICES = [
+  { name: 'Botox', keywords: ['botox', 'botulinum toxin', 'anti-wrinkle injection'] },
+  { name: 'Dermal Fillers', keywords: ['filler', 'dermal filler', 'lip filler', 'cheek filler', 'injectable'] },
+  { name: 'Laser Hair Removal', keywords: ['laser hair', 'hair removal', 'laser treatment for hair'] },
+  { name: 'Chemical Peels', keywords: ['chemical peel', 'skin peel', 'facial peel'] },
+  { name: 'Microdermabrasion', keywords: ['microdermabrasion', 'skin resurfacing'] },
+  { name: 'Microneedling', keywords: ['microneedling', 'collagen induction therapy', 'skin needling'] },
+  { name: 'HydraFacial', keywords: ['hydrafacial', 'hydra facial', 'hydradermabrasion'] },
+  { name: 'CoolSculpting', keywords: ['coolsculpting', 'fat freezing', 'cryolipolysis'] },
+  { name: 'Body Contouring', keywords: ['body contouring', 'body sculpting', 'fat reduction'] },
+  { name: 'Skin Rejuvenation', keywords: ['skin rejuvenation', 'skin revitalization', 'anti-aging treatment'] },
+  { name: 'Laser Skin Resurfacing', keywords: ['laser resurfacing', 'skin resurfacing', 'laser treatment skin'] },
+  { name: 'IPL Therapy', keywords: ['ipl', 'intense pulsed light', 'photofacial'] },
+  { name: 'RF Skin Tightening', keywords: ['rf skin', 'radiofrequency', 'skin tightening', 'thermage'] },
+  { name: 'Vampire Facial', keywords: ['vampire facial', 'prp facial', 'platelet-rich plasma'] },
+  { name: 'Thread Lift', keywords: ['thread lift', 'pdo threads', 'non-surgical facelift'] }
 ]
 
 export async function POST(request: NextRequest) {
@@ -175,6 +198,13 @@ export async function POST(request: NextRequest) {
         }).length > 0
       }
 
+      // Extract services from the website
+      const services = extractMedSpaServices($)
+      console.log('🔍 Extracted med spa services:', {
+        count: services.length,
+        services: services.map(s => ({ name: s.name, hasDescription: !!s.description }))
+      })
+
       // Perform comprehensive SEO analysis
       const seoAnalysis = performSEOAnalysis($, {
         title,
@@ -196,6 +226,7 @@ export async function POST(request: NextRequest) {
         links: links.slice(0, 20), // Limit to first 20 links
         socialLinks,
         contactInfo,
+        services,
         structure,
         seoAnalysis,
         // Note: Screenshots disabled for now to avoid bundling issues
@@ -223,6 +254,7 @@ export async function POST(request: NextRequest) {
       links: [],
       socialLinks: [],
       contactInfo: {},
+      services: [],
       structure: {
         hasNavigation: false,
         hasFooter: false,
@@ -550,4 +582,84 @@ function checkBusinessNameInTitle(title: string, businessName: string) {
       recommendation: 'Add your business name to the page title to match your Google Business Profile'
     }
   }
+}
+
+// Function to extract med spa services from the website
+function extractMedSpaServices($: any) {
+  console.log('🏥 Starting med spa services extraction...')
+  const services: { name: string; description?: string }[] = []
+  const pageText = $('body').text().toLowerCase()
+  
+  // First approach: Look for known service terms throughout the page
+  console.log('👉 Approach 1: Looking for known med spa services')
+  let knownServicesFound = 0
+  
+  MED_SPA_SERVICES.forEach(service => {
+    // Check if any keywords for this service appear on the page
+    const found = service.keywords.some(keyword => pageText.includes(keyword.toLowerCase()))
+    
+    if (found) {
+      knownServicesFound++
+      console.log(`   Found service: ${service.name}`)
+      // Look for this service in sections/elements to find a description
+      let description = ''
+      
+      // Try to find a paragraph that mentions this service
+      $('p').each((i: number, el: any) => {
+        const text = $(el).text().toLowerCase()
+        if (service.keywords.some(keyword => text.includes(keyword.toLowerCase()))) {
+          description = $(el).text().trim()
+          return false // Break the loop once found
+        }
+      })
+      
+      // Check if we've already added this service
+      const existing = services.find(s => 
+        s.name.toLowerCase() === service.name.toLowerCase() ||
+        s.name.toLowerCase().includes(service.name.toLowerCase())
+      )
+      
+      if (!existing) {
+        services.push({
+          name: service.name,
+          description: description || undefined
+        })
+      }
+    }
+  })
+  console.log(` Found ${knownServicesFound} known med spa services`)
+  
+  // Approach 2: Look for service cards or sections with specific classes
+  console.log('👉 Approach 2: Looking for service cards or sections with specific classes')
+  const serviceElements = $('.service, .treatment, [class*="service"], [class*="treatment"]')
+  console.log(`   Found ${serviceElements.length} potential service elements`)
+  
+  serviceElements.each((i: number, el: any) => {
+    const title = $(el).find('h3, h4, .title, .heading, strong').first().text().trim()
+    const desc = $(el).find('p, .description').first().text().trim()
+    
+    
+    if (title && title.length > 0) {
+      console.log(`Found service from element: "${title}"`)
+      services.push({
+        name: title,
+        description: desc || undefined
+      })
+    }
+  })
+  
+  // Remove duplicates by name (case insensitive)
+  const uniqueServices: { name: string; description?: string }[] = []
+  const serviceNames = new Set<string>()
+  
+  services.forEach(service => {
+    const nameLower = service.name.toLowerCase()
+    if (!serviceNames.has(nameLower)) {
+      serviceNames.add(nameLower)
+      uniqueServices.push(service)
+    }
+  })
+  
+  console.log(`🏆 Total services extracted: ${services.length}, unique services: ${uniqueServices.length}`)
+  return uniqueServices
 } 

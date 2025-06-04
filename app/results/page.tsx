@@ -34,12 +34,6 @@ interface SEOAnalysisData {
   selectedMedspa: any
   competitors: any[]
   analysis: any
-  llm_report?: {
-    content: string
-    generatedAt: string
-    model: string
-    tokensUsed: number
-  }
 }
 
 // Calculate overall health score based on all metrics
@@ -414,7 +408,7 @@ export default function ResultsPage() {
     )
   }
 
-  const { selectedMedspa, competitors, analysis, llm_report } = seoData
+  const { selectedMedspa, competitors, analysis } = seoData
   const pageSpeedData = selectedMedspa.pagespeed_data
   const overallScore = calculateOverallScore(seoData)
   const scoreGrade = getScoreGrade(overallScore)
@@ -485,7 +479,7 @@ export default function ResultsPage() {
                       cx="50"
                       cy="50"
                       r="40"
-                      stroke={overallScore >= 80 ? "#10b981" : overallScore >= 60 ? "#f59e0b" : "#ef4444"}
+                      stroke={overallScore >= 80 ? "#10b981" : overallScore >= 50 ? "#f59e0b" : "#ef4444"}
                       strokeWidth="8"
                       fill="none"
                       strokeDasharray={`${overallScore * 2.51} 251`}
@@ -502,7 +496,7 @@ export default function ResultsPage() {
                 </div>
                 <div className="text-center">
                   <div className="text-sm text-gray-600 mb-1">Online health grade</div>
-                  <div className={`text-lg font-bold ${scoreGrade.color}`}>{scoreGrade.grade}</div>
+                  <div className={`text-lg font-bold ${scoreGrade.color}`}>{overallScore >= 80 ? 'Good' : overallScore >= 50 ? 'Average' : 'Poor'}</div>
                 </div>
               </div>
 
@@ -515,7 +509,7 @@ export default function ResultsPage() {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-gray-900">{pageSpeedData?.seo_score || 0}/100</div>
-                    <div className="text-xs text-gray-500">Poor</div>
+                    <div className="text-xs text-gray-500">{overallScore >= 80 ? 'Good' : overallScore >= 50 ? 'Average' : 'Poor'}</div>
                   </div>
                 </div>
 
@@ -526,7 +520,7 @@ export default function ResultsPage() {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-gray-900">{pageSpeedData?.performance_score || 0}/100</div>
-                    <div className="text-xs text-gray-500">Poor</div>
+                    <div className="text-xs text-gray-500">{overallScore >= 80 ? 'Good' : overallScore >= 50 ? 'Average' : 'Poor'}</div>
                   </div>
                 </div>
 
@@ -537,7 +531,7 @@ export default function ResultsPage() {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-gray-900">{selectedMedspa.rating ? Math.round(selectedMedspa.rating * 20) : 0}/100</div>
-                    <div className="text-xs text-gray-500">Good</div>
+                    <div className="text-xs text-gray-500">{overallScore >= 80 ? 'Good' : overallScore >= 50 ? 'Average' : 'Poor'}</div>
                   </div>
                 </div>
               </div>
