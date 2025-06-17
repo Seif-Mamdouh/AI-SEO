@@ -67,7 +67,6 @@ export default function AnalyzingPage() {
   ])
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [partialResults, setPartialResults] = useState<any>(null)
   const router = useRouter()
 
   const updateStepStatus = (stepId: string, status: AnalysisStep['status'], progress?: number) => {
@@ -118,8 +117,7 @@ export default function AnalyzingPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          selectedMedspa,
-          generate_llm_report: true  // Always include AI analysis
+          selectedMedspa
         }),
       })
 

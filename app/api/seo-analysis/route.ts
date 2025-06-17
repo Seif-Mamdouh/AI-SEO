@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PlaceDetails, CompetitorWithSEO, PageSpeedResult } from './types'
-import { calculateDistance } from './google-places'
+import { CompetitorWithSEO } from './types'
+import { getMedSpaDetails, findNearbyCompetitors, getDetailedCompetitors } from './google-places'
 import { calculateSEORankings, generateSEORecommendations } from './seo-calculations'
 import { analyzePageSpeedWithRetry } from './pagespeed'
 
@@ -43,150 +43,24 @@ export async function POST(request: NextRequest) {
     console.log('✅ API keys validated')
 
     // Step 1: Get detailed info for selected med spa including coordinates
-    console.log('📍 Step 1: Getting med spa details...')
-    let medSpaDetails: PlaceDetails
-    
-    if (!selectedMedspa.geometry?.location) {
-      console.log('🔍 Need to fetch coordinates for med spa')
-      // Get place details if we don't have coordinates
-      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${selectedMedspa.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry,reviews,photos&key=${googleApiKey}`
-      
-      console.log('🌐 Calling Google Places Details API...')
-      const detailsResponse = await fetch(detailsUrl)
-      const detailsData = await detailsResponse.json()
-      console.log('📊 Places Details response status:', detailsResponse.status)
-      console.log('🔍 Google Places API Debug:', {
-        url: detailsUrl,
-        responseStatus: detailsResponse.status,
-        hasResult: !!detailsData.result,
-        resultKeys: detailsData.result ? Object.keys(detailsData.result) : null,
-        reviews: detailsData.result?.reviews,
-        reviewsLength: detailsData.result?.reviews?.length || 0,
-        rating: detailsData.result?.rating,
-        userRatingsTotal: detailsData.result?.user_ratings_total,
-        fullResponse: detailsData
-      })
-
-      if (!detailsResponse.ok || !detailsData.result) {
-        console.log('❌ Failed to get med spa details:', detailsData.error_message || 'Unknown error')
-        return NextResponse.json(
-          { error: 'Failed to get med spa details' },
-          { status: 500 }
-        )
-      }
-
-      medSpaDetails = detailsData.result
-      console.log('✅ Got med spa details with coordinates:', medSpaDetails.geometry?.location)
-      console.log('🔍 Med Spa Details Debug:', {
-        name: medSpaDetails.name,
-        rating: medSpaDetails.rating,
-        userRatingsTotal: medSpaDetails.user_ratings_total,
-        hasReviews: !!medSpaDetails.reviews,
-        reviewsCount: medSpaDetails.reviews?.length || 0,
-        hasPhotos: !!medSpaDetails.photos,
-        photosCount: medSpaDetails.photos?.length || 0,
-        photos: medSpaDetails.photos
-      })
-    } else {
-      medSpaDetails = selectedMedspa
-      console.log('✅ Using existing coordinates:', medSpaDetails.geometry?.location)
+    const medSpaDetailsResult = await getMedSpaDetails(selectedMedspa, googleApiKey)
+    if (medSpaDetailsResult instanceof NextResponse) {
+      return medSpaDetailsResult
     }
+    const medSpaDetails = medSpaDetailsResult
 
     const { lat, lng } = medSpaDetails.geometry!.location
     console.log(`🗺️ Med spa location: ${lat}, ${lng}`)
 
-    // Step 2: Find nearby competitors within 10 miles (OPTIMIZED: Reduced radius and limit results)
-    console.log('🔍 Step 2: Finding nearby competitors...')
-    const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=8047&type=beauty_salon|spa&key=${googleApiKey}` // Reduced to 5 miles
-    
-    console.log('🌐 Calling Google Places Nearby API...')
-    const nearbyResponse = await fetch(nearbyUrl)
-    const nearbyData = await nearbyResponse.json()
-    console.log('📊 Found places:', nearbyData.results?.length || 0)
-
-    if (!nearbyResponse.ok) {
-      console.error('❌ Places Nearby API error:', nearbyData)
-      return NextResponse.json(
-        { error: 'Failed to find nearby competitors' },
-        { status: 500 }
-      )
+    // Step 2: Find nearby competitors
+    const competitorsResult = await findNearbyCompetitors(medSpaDetails, googleApiKey)
+    if (competitorsResult instanceof NextResponse) {
+      return competitorsResult
     }
-
-    // Filter for medical spas and aesthetic clinics, exclude the selected one (OPTIMIZED: Limit to top 5)
-    const competitors = nearbyData.results?.filter((place: any) => {
-      const name = place.name.toLowerCase()
-      const types = place.types || []
-      
-      // Exclude the selected medspa itself
-      if (place.place_id === selectedMedspa.place_id) {
-        return false
-      }
-      
-      // Focus on medical spas and aesthetic clinics
-      return (
-        name.includes('med spa') ||
-        name.includes('medical spa') ||
-        name.includes('aesthetic') ||
-        name.includes('dermatology') ||
-        name.includes('cosmetic') ||
-        name.includes('laser') ||
-        name.includes('botox') ||
-        name.includes('filler') ||
-        types.includes('spa') ||
-        types.includes('health') ||
-        types.includes('beauty_salon')
-      )
-    }).slice(0, 5) || [] // OPTIMIZED: Limit to 5 competitors
-
-    console.log(`🏢 Filtered to ${competitors.length} relevant competitors`)
+    const competitors = competitorsResult
 
     // Step 3: Get detailed info for each competitor
-    console.log('🔍 Step 3: Getting detailed competitor information...')
-    const detailedCompetitors: CompetitorWithSEO[] = []
-    for (const competitor of competitors) {
-      console.log(`🔍 Processing competitor: ${competitor.name}`)
-      try {
-        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${competitor.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry&key=${googleApiKey}`
-        const detailsResponse = await fetch(detailsUrl)
-        const detailsData = await detailsResponse.json()
-        const details = detailsResponse.ok && detailsData.result ? detailsData.result : competitor
-        const distance = calculateDistance(
-          lat, lng,
-          details.geometry?.location?.lat || competitor.geometry?.location?.lat,
-          details.geometry?.location?.lng || competitor.geometry?.location?.lng
-        )
-        const result = {
-          place_id: details.place_id,
-          name: details.name,
-          formatted_address: details.formatted_address,
-          rating: details.rating,
-          user_ratings_total: details.user_ratings_total,
-          website: details.website,
-          phone: details.formatted_phone_number,
-          geometry: details.geometry,
-          distance_miles: distance
-        }
-        console.log(`✅ Competitor processed: ${result.name} (${result.distance_miles} miles, website: ${!!result.website})`)
-        detailedCompetitors.push(result)
-      } catch (error) {
-        console.error(`❌ Error fetching competitor details:`, error)
-        detailedCompetitors.push({
-          place_id: competitor.place_id,
-          name: competitor.name,
-          formatted_address: competitor.formatted_address,
-          rating: competitor.rating,
-          user_ratings_total: competitor.user_ratings_total,
-          distance_miles: calculateDistance(
-            lat, lng,
-            competitor.geometry?.location?.lat,
-            competitor.geometry?.location?.lng
-          )
-        })
-      }
-    }
-
-    const competitorsWithWebsites = detailedCompetitors.filter((competitor: CompetitorWithSEO) => competitor.website)
-    console.log(`🌐 Found ${competitorsWithWebsites.length} competitors with websites`)
+    const detailedCompetitors = await getDetailedCompetitors(competitors, lat, lng, googleApiKey)
 
     // Step 4: Analyze PageSpeed and website data for selected med spa
     console.log('⚡ Step 4: Running PageSpeed analysis sequentially...')
