@@ -189,30 +189,41 @@ export async function POST(request: NextRequest) {
 
     // Sequential execution for PageSpeed analysis
     console.log('⚡ Running PageSpeed analysis sequentially...')
-    const selectedMedSpaAnalysis = medSpaDetails.website ? {
-      pageSpeed: await analyzePageSpeedWithRetry(medSpaDetails.website, pageSpeedApiKey),
-      websiteData: await fetch(`${request.nextUrl.origin}/api/website-parse`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          url: medSpaDetails.website,
-          businessLocation: medSpaDetails.formatted_address,
-          businessName: medSpaDetails.name
+    let selectedMedSpaPageSpeed = null
+    let selectedMedSpaWebsiteData = null
+
+    if (medSpaDetails.website) {
+      console.log('🔍 Analyzing PageSpeed for selected med spa...')
+      selectedMedSpaPageSpeed = await analyzePageSpeedWithRetry(medSpaDetails.website, pageSpeedApiKey)
+      
+      console.log('🔍 Parsing website data for selected med spa...')
+      try {
+        const websiteResponse = await fetch(`${request.nextUrl.origin}/api/website-parse`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            url: medSpaDetails.website,
+            businessLocation: medSpaDetails.formatted_address,
+            businessName: medSpaDetails.name
+          })
         })
-      }).then(res => res.json()).catch(() => ({
-        url: medSpaDetails.website,
-        headings: { h1: [], h2: [], h3: [] },
-        images: [], links: [], socialLinks: [], contactInfo: {},
-        structure: { hasNavigation: false, hasFooter: false, hasContactForm: false, hasBookingForm: false },
-        seoAnalysis: { overallScore: 0, totalChecks: 0, passedChecks: 0, headlines: [], metadata: [], technicalSEO: [] },
-        error: 'Website parsing failed'
-      }))
-    } : { pageSpeed: null, websiteData: null }
+        selectedMedSpaWebsiteData = await websiteResponse.json()
+      } catch (error) {
+        console.error('❌ Website parsing failed:', error)
+        selectedMedSpaWebsiteData = {
+          url: medSpaDetails.website,
+          headings: { h1: [], h2: [], h3: [] },
+          images: [], links: [], socialLinks: [], contactInfo: {},
+          structure: { hasNavigation: false, hasFooter: false, hasContactForm: false, hasBookingForm: false },
+          seoAnalysis: { overallScore: 0, totalChecks: 0, passedChecks: 0, headlines: [], metadata: [], technicalSEO: [] },
+          error: 'Website parsing failed'
+        }
+      }
+    }
 
     // Remove PageSpeed analysis for competitors
     const competitorsWithSEO = detailedCompetitors.map(competitor => ({ ...competitor }))
 
-    const { pageSpeed: selectedMedSpaPageSpeed, websiteData: selectedMedSpaWebsiteData } = selectedMedSpaAnalysis || {}
     console.log(`✅ All analysis completed without competitor PageSpeed analysis`)
 
     // Step 5: Calculate SEO rankings
