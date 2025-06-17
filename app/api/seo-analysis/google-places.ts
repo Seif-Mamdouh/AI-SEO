@@ -124,56 +124,50 @@ export async function findNearbyCompetitors(selectedMedspa: PlaceDetails, google
 }
 
 export async function getDetailedCompetitors(competitors: any[], lat: number, lng: number, googleApiKey: string): Promise<CompetitorWithSEO[]> {
-  console.log('📍 Step 3: Getting detailed competitor information in parallel...')
+  console.log('🔍 Step 3: Getting detailed competitor information...')
   
-  const detailedCompetitors: CompetitorWithSEO[] = await Promise.all(
-    competitors.map(async (competitor: any, index: number): Promise<CompetitorWithSEO> => {
-      console.log(`🔍 Processing competitor ${index + 1}/${competitors.length}: ${competitor.name}`)
-      try {
-        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${competitor.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry&key=${googleApiKey}`
-        
-        const detailsResponse = await fetch(detailsUrl)
-        const detailsData = await detailsResponse.json()
-
-        const details = detailsResponse.ok && detailsData.result ? detailsData.result : competitor
-
-        const distance = calculateDistance(
-          lat, lng,
-          details.geometry?.location?.lat || competitor.geometry?.location?.lat,
-          details.geometry?.location?.lng || competitor.geometry?.location?.lng
-        )
-
-        const result = {
-          place_id: details.place_id,
-          name: details.name,
-          formatted_address: details.formatted_address,
-          rating: details.rating,
-          user_ratings_total: details.user_ratings_total,
-          website: details.website,
-          phone: details.formatted_phone_number,
-          geometry: details.geometry,
-          distance_miles: distance
-        }
-
-        console.log(`✅ Competitor ${index + 1} processed: ${result.name} (${result.distance_miles} miles, website: ${!!result.website})`)
-        return result
-      } catch (error) {
-        console.error(`❌ Error fetching competitor ${index + 1} details:`, error)
-        return {
-          place_id: competitor.place_id,
-          name: competitor.name,
-          formatted_address: competitor.formatted_address,
-          rating: competitor.rating,
-          user_ratings_total: competitor.user_ratings_total,
-          distance_miles: calculateDistance(
-            lat, lng,
-            competitor.geometry?.location?.lat,
-            competitor.geometry?.location?.lng
-          )
-        }
+  const detailedCompetitors: CompetitorWithSEO[] = []
+  for (const competitor of competitors) {
+    console.log(`🔍 Processing competitor: ${competitor.name}`)
+    try {
+      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${competitor.place_id}&fields=name,formatted_address,rating,user_ratings_total,website,formatted_phone_number,geometry&key=${googleApiKey}`
+      const detailsResponse = await fetch(detailsUrl)
+      const detailsData = await detailsResponse.json()
+      const details = detailsResponse.ok && detailsData.result ? detailsData.result : competitor
+      const distance = calculateDistance(
+        lat, lng,
+        details.geometry?.location?.lat || competitor.geometry?.location?.lat,
+        details.geometry?.location?.lng || competitor.geometry?.location?.lng
+      )
+      const result = {
+        place_id: details.place_id,
+        name: details.name,
+        formatted_address: details.formatted_address,
+        rating: details.rating,
+        user_ratings_total: details.user_ratings_total,
+        website: details.website,
+        phone: details.formatted_phone_number,
+        geometry: details.geometry,
+        distance_miles: distance
       }
-    })
-  )
+      console.log(`✅ Competitor processed: ${result.name} (${result.distance_miles} miles, website: ${!!result.website})`)
+      detailedCompetitors.push(result)
+    } catch (error) {
+      console.error(`❌ Error fetching competitor details:`, error)
+      detailedCompetitors.push({
+        place_id: competitor.place_id,
+        name: competitor.name,
+        formatted_address: competitor.formatted_address,
+        rating: competitor.rating,
+        user_ratings_total: competitor.user_ratings_total,
+        distance_miles: calculateDistance(
+          lat, lng,
+          competitor.geometry?.location?.lat,
+          competitor.geometry?.location?.lng
+        )
+      })
+    }
+  }
 
   console.log(`🌐 Found ${detailedCompetitors.filter((competitor: CompetitorWithSEO) => competitor.website).length} competitors with websites`)
   return detailedCompetitors
