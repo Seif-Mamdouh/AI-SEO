@@ -140,7 +140,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`🏢 Filtered to ${competitors.length} relevant competitors`)
 
-    // Remove parallel execution for competitor analysis and PageSpeed analysis
+    // Step 3: Get detailed info for each competitor
+    console.log('🔍 Step 3: Getting detailed competitor information...')
     const detailedCompetitors: CompetitorWithSEO[] = []
     for (const competitor of competitors) {
       console.log(`🔍 Processing competitor: ${competitor.name}`)
@@ -187,8 +188,8 @@ export async function POST(request: NextRequest) {
     const competitorsWithWebsites = detailedCompetitors.filter((competitor: CompetitorWithSEO) => competitor.website)
     console.log(`🌐 Found ${competitorsWithWebsites.length} competitors with websites`)
 
-    // Sequential execution for PageSpeed analysis
-    console.log('⚡ Running PageSpeed analysis sequentially...')
+    // Step 4: Analyze PageSpeed and website data for selected med spa
+    console.log('⚡ Step 4: Running PageSpeed analysis sequentially...')
     let selectedMedSpaPageSpeed = null
     let selectedMedSpaWebsiteData = null
 
